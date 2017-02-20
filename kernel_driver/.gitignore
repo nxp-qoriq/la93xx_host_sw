@@ -1,0 +1,5 @@
+
+*.mod.c
+*.ko
+modules.builtin
+Module.symvers

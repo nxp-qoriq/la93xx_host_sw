@@ -1,0 +1,97 @@
+Introduction
+============
+
+   LA9310_HOST_SW repository contains all the host software components for
+   supporting LA9310 PCIe card. It includes LA9310 PCIe kernel driver,
+   user space libraries, user space applications, user space configuration
+   files or scripts that are required, and any test IQ data that might be
+   required for basic data path test.
+
+   This repository contains all the software that runs on Host Linux system
+   Any freeRTOS code is not kept in this repository. 
+
+Directory structure
+===================
+
+la9310_host_sw/
+
+   -kernel_driver : LA9310 PCI card kernel driver. This generates a lodable module
+                    that is required to be loaded in running host Linux system.
+
+   -common        : Contains header files which are shared between Host software
+                    any FreeRTOS LA9310 software. It contains the files header file
+                    which deines LA9310 Host Control & status interface, Event definition.
+
+   -lib           : Contains user space library sources. For each .so/.a file that
+                    is generated create a separate directory under lib. Examples
+                    VSPA user space library.
+
+   -app           : Contains source of any reference application/executables that
+                    are required. For example VSPA test utility. 
+
+   -api           : Header files which exports APIs. For example Header file for API
+                    of a Library in lib/ or API exposed by driver like VSPA.
+
+   -config        : Contains Any configuration files that might be required. For example any
+                    RFIC init sequence that are stored in different configuration specefic
+                    RFIC init files.
+
+   -Scripts        : Contains any init/RC scripts that are required to be run on Host. it will
+                     also contains udev rule files that will be required as reference for
+                     firmware loading 
+
+   -install       : contains executables of reference test applications (if any)/scripts
+                     and library binaries (.a/.so). This directory is created by make install,
+                     and removed by make clean, it is not kept in git repository.
+
+   -firmware       : Test firmware binaries for VSPA, RFIC.
+ 
+   -test_data      : Test Canned IQ data that is required for running any IQ data path tests.
+
+
+Build Instructions
+==================
+
+1.  export following symbols:
+
+    export ARCH = Host architecture [for example ARM64 for ARMv8 platform like NXP LS1046].
+
+    export KERNEL_DIR = [path to Kernel source]
+
+    export CROSS_COMPILE =  CROSS compiler name without 'gcc' [For exmaple aarch64-linux-gnu-] 
+
+    export CROSS_COMPILE_PATH = [path to cross compiler]
+
+    export PATH=$CROSS_COMPILE_PATH:$PATH  
+
+2.a. make all/clean/install : To build, clean and install the whole repository. make install will
+     copy all the .ko, .so/.a, app executable files to la9310_host_sw/install directory, all these
+     files need to be moved to host for exectuion.
+
+2.b  make driver : Builds only the kernel module without makeing any applications.
+
+NOTE: 2.a will build everything including the driver, 2.b is provided to just build the driver if
+      developer doesn't want to build user space code.
+
+How to add new library/application
+==================================
+
+   steps for adding new library/application in this repository is explained with example
+   of libxyz library.
+
+   a) Create 'libxyz' directory in lib/ and put code + makefile for library in libxyz.
+   b) Add 'libxyz' in LIB_DIRS in top level lib/Makefile
+   c) In libxyz/Makefile perform following mandatory steps:
+
+	- Implement 'all' and 'install' targets.
+	- Under 'install' target copy generated library in LIB_INSTALL_DIR, and copy
+	  any API header files to API_DIR
+	- Under 'install' target copy exectuable/scripts [if any] to BIN_INSTALL_DIR
+
+Coding conventions
+==================
+
+1. Use Linux kernel coding guidelines for All dirver and user space code
+   ([Linux kernel repository]/Documentation/CodingStyle).
+
+2. Write wonderful code, take pride in what you write and happy coding :)
