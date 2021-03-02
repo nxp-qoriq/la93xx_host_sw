@@ -10,6 +10,9 @@ Introduction
    This repository contains all the software that runs on Host Linux system
    Any freeRTOS code is not kept in this repository. 
 
+   This repository uses the Open Source BSD-3-Clause license for the user space
+   libraries and applications. The kernel components are Dual (BSD-3-Clause & GPL-2.0) licensed.
+
 Directory structure
 ===================
 
@@ -32,9 +35,7 @@ la9310_host_sw/
    -api           : Header files which exports APIs. For example Header file for API
                     of a Library in lib/ or API exposed by driver like VSPA.
 
-   -config        : Contains Any configuration files that might be required. For example any
-                    RFIC init sequence that are stored in different configuration specefic
-                    RFIC init files.
+   -config        : Contains Any configuration files that might be required.
 
    -Scripts        : Contains any init/RC scripts that are required to be run on Host. it will
                      also contains udev rule files that will be required as reference for
@@ -44,7 +45,7 @@ la9310_host_sw/
                      and library binaries (.a/.so). This directory is created by make install,
                      and removed by make clean, it is not kept in git repository.
 
-   -firmware       : Test firmware binaries for VSPA, RFIC.
+   -firmware       : Test firmware binaries for VSPA etc as submodule.
  
    -test_data      : Test Canned IQ data that is required for running any IQ data path tests.
 
@@ -69,6 +70,12 @@ Build Instructions
      files need to be moved to host for exectuion.
 
 2.b  make driver : Builds only the kernel module without makeing any applications.
+
+3. Please fetch firmware submodule to get VSPA binaries:
+	If it's the first time you check-out a repo you need to use --init first:
+		git submodule update --init --recursive
+	otherwise use:, 
+		git submodule update --recursive
 
 NOTE: 2.a will build everything including the driver, 2.b is provided to just build the driver if
       developer doesn't want to build user space code.

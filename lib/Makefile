@@ -1,8 +1,8 @@
-#Copyright 2017 NXP
+#Copyright 2021 NXP
 
 #Add lib directory here
 
-LIB_DIRS := ipc
+LIB_DIRS := wdog
 CLEAN_LIB_DIRS = $(patsubst %, %_clean, ${LIB_DIRS})
 INSTALL_LIB_DIRS = $(patsubst %, %_install, ${LIB_DIRS})
 

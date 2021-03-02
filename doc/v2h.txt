@@ -1,0 +1,50 @@
+===============================================================================
+			Title: V2H (VSPA-to-Host) README
+===============================================================================
+V2H Demo module is designed to generate packets on La9310, store it into a
+buffer descriptor ring in TCM, copy the packet to host and send MSI interrupt
+to Host (LS1046). V2H Host API then receives the packet and calls a demo
+callback function.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, V2H Demo app runs for 1000000 iterations. For each iteration it
+generates a single packet with a pattern, copies the packet to host DDR and
+raises a single MSI. If it is unable to copy the generated packet then it drops
+the packet.
+
+The size of the buffer descriptor ring in TCM is 16, by default. Ideally there
+should be no need to change this value but if required, to change size of buffer
+descriptor ring, change the value of V2H_MAX_BD in
+<la931x_common_headers>/la9310_v2h_if.h file
+
+Steps to run V2H
+-------------------------------------------------------------------------------
+FreeRTOS side:
+step 1: Enable RUN_V2H_TEST_APP in <la931x_common_headers>/la9310_v2h_if.h
+
+
+Host Side:
+step 2: Enable NLM_ENABLE_V2H in <la931x_common_headers>/la9310_v2h_if.h
+        To turn on debug logs, Enable DEBUG_V2H_TEST in same file.
+
+step 3: Ensure kernel module la9310shiva.ko and la9310demo.ko are inserted in the
+	same order.
+
+
+Steps to verify V2H
+-------------------------------------------------------------------------------
+step 1: Run following command on Host shell to verify:
+	cat /sys/class/pci_bus/0000\:01/device/0000\:01\:00.0/la9310sysfs/target_stats
+
+OUTPUT:
+	LA9310 End Point Stats
+	v2h_sent_pkt     1000000
+	v2h_dropped_pkt  0
+
+	Host V2H stats
+	v2h_rcvd_pkts:   1000000
+
+===============================================================================
+End of File.......
+===============================================================================

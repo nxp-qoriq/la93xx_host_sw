@@ -1,8 +1,8 @@
-#Copyright 2017 NXP
+#Copyright 2017, 2021 NXP
 
 #Add applicatin/exectuable directories here
 
-APP_DIRS := ipc rfic bincreate
+APP_DIRS := bincreate wdog
 
 
 CLEAN_APP_DIRS = $(patsubst %, %_clean, ${APP_DIRS})

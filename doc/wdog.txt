@@ -1,0 +1,21 @@
+============================================================================
+            Title: WDOG (Watchdog) README
+============================================================================
+When enabled, a programmable counter value is loaded into a 32-bit
+downcounter. If it reaches zero before being reloaded by software, then an
+interrupt is asserted, and the counter value is reloaded and downcounting
+continues. If the counter reaches zero again before the interrupt is cleared,
+then a MSI Interrupt asserted towards Host_sw.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Steps to use WDOG.
+
+To invoke wdog test
+
+$la9310_wdog_testapp -w 0
+
+where 0 is watchdog_id
+=============================================================================
+End of File.......
+=============================================================================
