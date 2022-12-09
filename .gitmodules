@@ -1,3 +1,3 @@
 [submodule "firmware"]
 	path = firmware
-	url = ssh://git@bitbucket.sw.nxp.com/dn5g/la931x_firmware.git
+	url = https://github.com/nxp-qoriq/la93xx_firmware.git
