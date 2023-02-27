@@ -480,7 +480,12 @@ out:
 void
 la9310_remove_sysfs(struct la9310_dev *la9310_dev)
 {
-	sysfs_del_host_stats_list(la9310_dev);
 	sysfs_remove_group(&la9310_dev->pdev->dev.kobj,
 			   &la9310_attribute_group);
+}
+
+void
+la9310_remove_stats (struct la9310_dev *la9310_dev)
+{
+	sysfs_del_host_stats_list(la9310_dev);
 }

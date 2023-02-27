@@ -380,6 +380,7 @@ int la9310_dev_reserve_firmware(struct la9310_dev *la9310_dev);
 void la9310_dev_free_firmware(struct la9310_dev *la9310_dev);
 int la9310_init_sysfs(struct la9310_dev *la9310_dev);
 void la9310_remove_sysfs(struct la9310_dev *la9310_dev);
+void la9310_remove_stats(struct la9310_dev *la9310_dev);
 int la9310_create_outbound_msi(struct la9310_dev *la9310_dev);
 int la9310_request_irq(struct la9310_dev *la9310_dev,
 		       struct irq_evt_regs *irq_evt_regs);

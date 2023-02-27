@@ -411,25 +411,6 @@ out:
 }
 
 static int
-la9310_free_dma_buf(struct la9310_dev *la9310_dev)
-{
-
-	struct la9310_dma_info *dma_info = &la9310_dev->dma_info;
-	struct la9310_mem_region_info *host_region;
-
-	host_region = &dma_info->host_buf;
-
-	if (host_region->vaddr) {
-		pci_free_consistent(la9310_dev->pdev, host_region->size,
-				    host_region->vaddr,
-				    host_region->phys_addr);
-		memset(dma_info, 0, sizeof(struct la9310_dma_info));
-	}
-
-	return 0;
-}
-
-static int
 la9310_verify_hif_compatibility(struct la9310_dev *la9310_dev)
 {
 	struct la9310_hif *hif = la9310_dev->hif;
@@ -882,6 +863,7 @@ la9310_base_remove(struct la9310_dev *la9310_dev)
 		la9310_dev->name);
 	host_region = &dma_info->host_buf;
 	iounmap(host_region->vaddr);
+	host_region->vaddr = NULL;
 
 	la9310_subdrv_remove(la9310_dev);
 
@@ -897,7 +879,7 @@ la9310_base_remove(struct la9310_dev *la9310_dev)
 	pci_disable_msi(la9310_dev->pdev);
 
 	la9310_remove_sysfs(la9310_dev);
-	la9310_free_dma_buf(la9310_dev);
+	la9310_remove_stats (la9310_dev);
 
 	return 0;
 }
