@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2023 NXP
  */
 #include <linux/kernel.h>
 #include <linux/pci.h>
@@ -15,6 +15,8 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/delay.h>
+#include <linux/version.h>
+
 #include "la9310_pci.h"
 #include "la9310_base.h"
 #include "la9310_sync_timing_device.h"
@@ -135,8 +137,18 @@ int la9310_load_rtos_img(struct la9310_dev *la9310_dev)
 	}
 
 	fw_size =  la9310_dev->firmware_info.size;
-	pci_map_single(la9310_dev->pdev, dma_region->vaddr, fw_size,
-		       PCI_DMA_TODEVICE);
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+	dma_map_page_attrs(&la9310_dev->pdev->dev,
+			virt_to_page(dma_region->vaddr),
+			offset_in_page(dma_region->vaddr), fw_size,
+			(enum dma_data_direction)PCI_DMA_TODEVICE, 0);
+#else
+	pci_map_single(la9310_dev->pdev, dma_region->vaddr,
+			fw_size, PCI_DMA_TODEVICE);
+#endif
+ 
 	dev_info(la9310_dev->dev, "udev Firmware [%s] - Addr %px, size %d\n",
 		FIRMWARE_RTOS, dma_region->vaddr, fw_size);
 
