@@ -1,7 +1,8 @@
-#Copyright 2017-2021 NXP
+#Copyright 2017-2023 NXP
 
 ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UAPI_DIR} -I${LA9310_COMMON_HEADERS}
-ccflags-y += -Wall -Werror
+ccflags-y += -Wall
+#ccflags-y += -Wall -Werror
 
 ifeq (${BOOTROM_USE_EDMA}, 1)
 ccflags-y += -DBOOTROM_USE_EDMA=1
