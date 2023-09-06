@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2023 NXP
  */
 
 #include <linux/irq.h>
@@ -356,9 +356,21 @@ v2h_tasklet_handler(unsigned long data)
 						     host_phys_addr);
 				headroom_ptr =
 					(struct v2h_headroom *) (virt_addr);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+				dma_map_single(&((struct pci_dev *)la9310_dev->pdev)->dev,
+						virt_addr,
+						V2H_MAX_SKB_BUFF_SIZE,
+						DMA_FROM_DEVICE);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+			dma_map_page_attrs(&la9310_dev->pdev->dev,
+						virt_to_page(virt_addr),
+						offset_in_page(virt_addr), V2H_MAX_SKB_BUFF_SIZE,
+						DMA_FROM_DEVICE, 0);
+#else
 				pci_map_single(la9310_dev->pdev, virt_addr,
 					       V2H_MAX_SKB_BUFF_SIZE,
 					       PCI_DMA_FROMDEVICE);
+#endif
 				dma_wmb();
 				skb = (struct sk_buff *) headroom_ptr->
 					skb_ptr;

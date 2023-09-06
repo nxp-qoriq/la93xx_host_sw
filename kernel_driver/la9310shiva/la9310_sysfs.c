@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2021 NXP
+ * Copyright 2017-2023 NXP
  */
 
 #include <linux/kernel.h>
@@ -72,11 +72,21 @@ la9310_show_ep_log(struct device *dev,
 	log_len = 0;
 
 	dev_info(la9310_dev->dev,
-		 "LA9310 log buf dump, vaddr %p, offset %d\n", ep_log->buf,
+		 "LA9310 log buf dump, vaddr %px, offset %d\n", ep_log->buf,
 		 ep_log->offset);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+	dma_map_single(&((struct pci_dev *)la9310_dev->pdev)->dev,
+			ep_log->buf, ep_log->len,
+			DMA_FROM_DEVICE);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+	dma_map_page_attrs(&la9310_dev->pdev->dev,
+			virt_to_page(ep_log->buf),
+			offset_in_page(ep_log->buf), ep_log->len,
+			DMA_FROM_DEVICE, 0);
+#else
 	pci_map_single(la9310_dev->pdev, ep_log->buf, ep_log->len,
 		       PCI_DMA_FROMDEVICE);
-
+#endif
 	log_len = la9310_collect_ep_log(ep_log, buf);
 	if (log_len == 0) {
 		for (i = 0; i < ep_log->len; i++) {
