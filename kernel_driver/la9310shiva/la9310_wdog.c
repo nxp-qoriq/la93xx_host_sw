@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021 NXP
+ * Copyright 2021-2023 NXP
  */
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -397,17 +397,17 @@ int wdog_init(void)
 	struct wdog_dev *wdog_dev;
 	struct device_node *dn_wdog;
 
+	dn_wdog = of_find_node_by_name(NULL, "la9310_wdog");
+	if (!dn_wdog) {
+		pr_err("la9310_wdog: Node missing in DTB, skip wdog config\n");
+		return rc;
+	}
+
 	wdog_dev = kmalloc(sizeof(struct wdog_dev), GFP_KERNEL);
 	if (wdog_dev == NULL)
 		return -ENOMEM;
 
 	wdog_gdev = wdog_dev;
-
-	dn_wdog = of_find_node_by_name(NULL, "la9310_wdog");
-	if (!dn_wdog) {
-		pr_err("la9310_wdog: Node missing in DTB\n");
-		return -ENODEV;
-	}
 
 	for (i = 0; i < WDOG_ID_MAX; i++) {
 		wdog_dev->wdog_pd[i].gpio =
