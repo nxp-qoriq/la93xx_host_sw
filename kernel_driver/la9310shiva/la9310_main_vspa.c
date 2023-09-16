@@ -454,6 +454,25 @@ get_lma(uint8_t *file_start, uint32_t pg_hd_off,
 	return -LIBVSPA_ERR_INVALID_FILE;
 }
 
+int _strncmp( const char * s1, const char * s2, size_t n )
+{
+    while ( n && *s1 && ( *s1 == *s2 ) )
+    {
+        ++s1;
+        ++s2;
+        --n;
+    }
+    if ( n == 0 )
+    {
+        return 0;
+    }
+    else
+    {
+        return ( *(unsigned char *)s1 - *(unsigned char *)s2 );
+    }
+}
+#define LA_STRNCMP _strncmp
+
 static char *
 get_overlay_section(uint8_t *string_table, int sec_name_offset)
 {
@@ -464,7 +483,7 @@ get_overlay_section(uint8_t *string_table, int sec_name_offset)
 
 	for (i = 0; i < MAX_OVERLAY_SECTIONS; i++) {
 		len = strlen(overlay_sec_info[i].sec_name);
-		if (!strncmp((char *) (string_table + sec_name_offset),
+		if (!LA_STRNCMP((char *) (string_table + sec_name_offset),
 			     overlay_sec_info[i].sec_name, len))
 			return overlay_sec_info[i].sec_name;
 	}
@@ -482,7 +501,7 @@ getsectiontype(uint8_t *string_table, int sec_name_offset)
 	len = strlen(vspa_sec_info[i].sec_name);
 
 	for (i = 0; i < MAX_VSP_SECTION; i++) {
-		if (!strncmp((char *) (string_table + sec_name_offset),
+		if (!LA_STRNCMP((char *) (string_table + sec_name_offset),
 			     vspa_sec_info[i].sec_name, len))
 			return i;
 	}
@@ -738,7 +757,7 @@ fw_read_and_load_sections(struct la9310_dev *la9310_dev,
 								    [i].
 								    sec_name);
 					if (section_name) {
-						if (!strncmp
+						if (!LA_STRNCMP
 						     (DEFAULT_OVERLAY_SEC_NAME,
 						      section_name,
 						      strlen
