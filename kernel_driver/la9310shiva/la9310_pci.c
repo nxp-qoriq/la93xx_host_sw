@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2022 NXP
+ * Copyright 2017-2023 NXP
  */
 
 #include <linux/kernel.h>
@@ -425,9 +425,6 @@ static const struct pci_device_id la9310_pcidev_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_LA9310) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_LA9310_DISABLE_CIP)
 	 },
-	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_LS1043A) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_LS1046A) },
-	{ 0 },
 };
 
 static struct pci_driver la9310_pcidev_driver = {
@@ -441,10 +438,10 @@ static int __init la9310_pcidev_init(void)
 {
 	int err = 0;
 
-	pr_info("NXP PCIe LA9310 Driver.\n");
+	pr_info("NXP PCIe LA9310 Driver: Init.\n");
 
 	if (!(scratch_buf_size && scratch_buf_phys_addr)) {
-		pr_err("ERR %s: Scratch buf values are not correct\n",
+		pr_err("ERR %s: Scratch buf values should be non zero\n",
 		       __func__);
 		err = -EINVAL;
 		goto out;
@@ -452,7 +449,8 @@ static int __init la9310_pcidev_init(void)
 
 	if ((scratch_buf_size <= LA9310_VSPA_FW_SIZE) ||
 	    (scratch_buf_size > LA9310_MAX_SCRATCH_BUF_SIZE)) {
-		pr_err("ERR %s: Scratch_buf_size is not correct\n", __func__);
+		pr_err("ERR %s: Scratch_buf_size is not correct 0x%x (Range - 0x%x-0x%x)\n", __func__,
+			scratch_buf_size, LA9310_VSPA_FW_SIZE, LA9310_MAX_SCRATCH_BUF_SIZE);
 		err = -EINVAL;
 		goto out;
 	}
@@ -484,14 +482,15 @@ static void __exit la9310_pcidev_exit(void)
 	pci_unregister_driver(&la9310_pcidev_driver);
 	la9310_subdrv_mod_exit();
 	class_destroy(la9310_class);
-	pr_err("Exit from NXP PCIe LA9310 driver\n");
+	pr_err("NXP PCIe LA9310 Driver: Exit\n");
 }
 
 module_init(la9310_pcidev_init);
 module_exit(la9310_pcidev_exit);
 module_param(scratch_buf_size, int, 0);
+MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
 module_param(scratch_buf_phys_addr, ullong, 0);
-MODULE_PARM_DESC(max_raw_minors, "Maximum number of raw devices (1-65536)");
+MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("NXP");
 MODULE_DESCRIPTION("PCIe LA9310 Driver");
