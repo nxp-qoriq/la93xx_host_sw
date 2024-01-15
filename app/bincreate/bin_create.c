@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright 2017, 2021-2022 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 	uint32_t size, val;
 	uint32_t *p, *p_start;
 	int fd, i;
+	ssize_t ret;
 
 	if (argc < 4) {
 		fprintf(stderr, "usage: %s <file> <size> <0xval>\n", argv[0]);
@@ -50,8 +51,10 @@ int main(int argc, char *argv[])
 		*p = val;
 		p++;
 	}
-	write(fd, p_start, size);
-	printf("Val 0x%x, size %d\n", val, size);
+	ret = write(fd, p_start, size);
+
+	if(ret != -1)
+		printf("Val 0x%x, size %d\n", val, size);
 
 	if (close(fd) == -1) {
 		perror("close");
