@@ -1,4 +1,4 @@
-#Copyright 2017, 2021 NXP
+#Copyright 2017, 2021-2024 NXP
 
 CC              = $(CROSS_COMPILE)gcc
 AR              = $(CROSS_COMPILE)ar
