@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2018, 2021-2022 NXP
+ * Copyright 2017-2018, 2021-2024 NXP
  */
 #ifndef __LA9310_BASE_H__
 #define __LA9310_BASE_H__
@@ -39,6 +39,7 @@ extern struct completion ScratchRegisterHandshake;
 
 extern int scratch_buf_size;
 extern uint64_t scratch_buf_phys_addr;
+extern char firmware_name[];
 
 struct la9310_global {
 	char dev_name[64];
