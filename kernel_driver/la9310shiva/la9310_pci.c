@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2023 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #include <linux/kernel.h>
@@ -24,6 +24,9 @@
 static const char *driver_name = "la9310-shiva";
 int scratch_buf_size;
 uint64_t scratch_buf_phys_addr;
+
+char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
+EXPORT_SYMBOL_GPL(firmware_name);
 
 LIST_HEAD(pcidev_list);
 static int la9310_dev_id_g;
@@ -491,6 +494,10 @@ module_param(scratch_buf_size, int, 0);
 MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
 module_param(scratch_buf_phys_addr, ullong, 0);
 MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
+module_param_string(alt_firmware_name, firmware_name,
+		sizeof(firmware_name), 0400);
+MODULE_PARM_DESC(alt_firmware_name,
+	"Alternative shiva firmware name e.g la9310.bin");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("NXP");
 MODULE_DESCRIPTION("PCIe LA9310 Driver");
