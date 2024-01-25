@@ -27,6 +27,8 @@ uint64_t scratch_buf_phys_addr;
 
 char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
 EXPORT_SYMBOL_GPL(firmware_name);
+char vspa_fw_name[FIRMWARE_NAME_SIZE] = VSPA_FW_NAME;
+EXPORT_SYMBOL(vspa_fw_name);
 
 LIST_HEAD(pcidev_list);
 static int la9310_dev_id_g;
@@ -458,6 +460,12 @@ static int __init la9310_pcidev_init(void)
 		goto out;
 	}
 
+	if (!(strlen(vspa_fw_name))) {
+		pr_err("ERR %s: alt_vspa_fw_name empty", __func__);
+		err = -EINVAL;
+		goto out;
+	}
+
 	la9310_class = class_create(THIS_MODULE, driver_name);
 	if (IS_ERR(la9310_class)) {
 		pr_err("%s:%d Error in creating (%s) class\n",
@@ -494,6 +502,10 @@ module_param(scratch_buf_size, int, 0);
 MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
 module_param(scratch_buf_phys_addr, ullong, 0);
 MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
+module_param_string(alt_vspa_fw_name, vspa_fw_name,
+		sizeof(vspa_fw_name), 0400);
+MODULE_PARM_DESC(alt_vspa_fw_name,
+		"Alternative VSP firmware name prefix e.g apm.eld");
 module_param_string(alt_firmware_name, firmware_name,
 		sizeof(firmware_name), 0400);
 MODULE_PARM_DESC(alt_firmware_name,

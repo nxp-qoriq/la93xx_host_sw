@@ -4,7 +4,7 @@
  * This file has been taken from ua_bringup branch
  * and appropriate changes are made to support La9310.
  *
- * Copyright 2017, 2021-2023 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
 #include <linux/types.h>
@@ -905,7 +905,7 @@ vspa_get_fw_image(struct la9310_dev *la9310_dev)
 	}
 
 	ret = la9310_udev_load_firmware(la9310_dev, vspa_fw_region->vaddr,
-			buf_size, VSPA_FW_NAME);
+			buf_size, vspadev->eld_filename);
 	if (ret < 0) {
 		dev_err(la9310_dev->dev, "%s: udev firmware request failed\n",
 				__func__);
@@ -916,7 +916,7 @@ vspa_get_fw_image(struct la9310_dev *la9310_dev)
 	la9310_dev_free_firmware(la9310_dev);
 
 	dev_dbg(la9310_dev->dev,
-			"Udev FW [%s]: Address:%p\tVSPA FW Size:%d\n", VSPA_FW_NAME,
+			"Udev FW [%s]: Address:%p\tVSPA FW Size:%d\n", vspadev->eld_filename,
 			vspa_fw_region->vaddr, vspa_fw_size);
 
 	dev_dbg(la9310_dev->dev,
@@ -1068,6 +1068,9 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 		goto err_out;
 	}
 
+	snprintf(vspadev->eld_filename, VSPA_MAX_ELD_FILENAME,
+			"%s", vspa_fw_name);
+
 	/* Call the LA9310 base APIs to request_firmware */
 	if (vspa_get_fw_image(la9310_dev)) {
 		dev_err(la9310_dev->dev, "ERR %s : Loading VSPA FW failed\n",
@@ -1076,7 +1079,6 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 		goto err_out;
 	}
 
-	strcpy(vspadev->eld_filename, VSPA_FW_NAME);
 	dev_info(la9310_dev->dev,
 			"INFO:%s :VSPA FW image %s loading finished\n", __func__,
 			vspadev->eld_filename);
