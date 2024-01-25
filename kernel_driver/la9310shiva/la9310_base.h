@@ -40,6 +40,7 @@ extern struct completion ScratchRegisterHandshake;
 extern int scratch_buf_size;
 extern uint64_t scratch_buf_phys_addr;
 extern char firmware_name[];
+extern char vspa_fw_name[];
 
 struct la9310_global {
 	char dev_name[64];
