@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2024 NXP
  */
 
 
@@ -271,8 +271,8 @@ int la9310_request_irq(struct la9310_dev *la9310_dev,
 			struct irq_evt_regs *irq_evt_regs)
 {
 	int err = 0;
-	u32 num_irq = (la9310_mem_r(&irq_evt_regs->irq_evt_cfg) & NIRQ_MASK) >>
-									    8;
+	u32 num_irq = (la9310_mem_r(&irq_evt_regs->irq_evt_cfg) & NIRQ_MASK) >> 8;
+    dev_info(la9310_dev->dev,"num_irq %d",num_irq);
 
 	la9310_create_outbound_msi(la9310_dev);
 	if (!num_irq) {

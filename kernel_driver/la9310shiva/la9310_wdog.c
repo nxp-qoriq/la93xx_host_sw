@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021-2023 NXP
+ * Copyright 2021-2024 NXP
  */
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -41,6 +41,7 @@ struct wdog_priv {
 	int irq;
 	int irq_status_flag;
 	int gpio;
+	int gpio_hrst;
 	int wdog_id;
 	int wdog_modem_status;
 	int domain_nr;
@@ -142,6 +143,26 @@ static int wdog_gpio_config(struct wdog_priv *wdog_pd)
 		gpio_free(wdog_pd->gpio);
 		goto err;
 	}
+
+	if (wdog_pd->gpio_hrst != 0) {
+		ret = gpio_request(wdog_pd->gpio_hrst,
+				   "watchdog modem reset");
+		if (ret) {
+			pr_err("%s: Can't request gpio %d, error: %d\n", __func__,
+			       wdog_pd->gpio_hrst, ret);
+			goto err;
+		}
+
+		ret = gpio_direction_output(wdog_pd->gpio_hrst, 1);
+		if (ret < 0) {
+			pr_err("%s: Can't configure gpio %d\n", __func__,
+			       wdog_pd->gpio_hrst);
+			gpio_free(wdog_pd->gpio_hrst);
+			goto err1;
+		}
+	}
+err1:
+	gpio_free(wdog_pd->gpio_hrst);
 err:
 	gpio_free(wdog_pd->gpio);
 	return ret;
@@ -150,10 +171,14 @@ err:
 static void wdog_reset_modem(struct wdog_priv *wdog_pd, struct wdog *wdog)
 {
 	(void)wdog;
-	pr_info("%s: Resetting Modem\n", __func__);
+	pr_info("%s: Resetting LA9310 Modem\n", __func__);
 	gpio_set_value_cansleep(wdog_pd->gpio, 0);
+	if (wdog_pd->gpio_hrst != 0)
+		gpio_set_value_cansleep(wdog_pd->gpio_hrst, 0);
 	mdelay(1);
 	gpio_set_value_cansleep(wdog_pd->gpio, 1);
+	if (wdog_pd->gpio_hrst != 0)
+		gpio_set_value_cansleep(wdog_pd->gpio_hrst, 1);
 }
 
 int wdog_set_modem_status(int wdog_id, int status)
@@ -413,9 +438,26 @@ int wdog_init(void)
 		wdog_dev->wdog_pd[i].gpio =
 			of_get_named_gpio(dn_wdog, "la9310-reset-gpio", i);
 		if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio)) {
-			pr_err("la9310-reset-gpio %d not found\n", i);
-			rc = -EINVAL;
-			goto err;
+			pr_warn("la9310-reset-gpio %d not found\n", i);
+			/*RFNM boards have different GPIO name */
+			wdog_dev->wdog_pd[i].gpio =	
+				of_get_named_gpio(dn_wdog, "la9310-trst-gpios", i);
+			if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio)) {
+				pr_err("rfnm: la9310-trst-gpios %d not found\n", i);
+				rc = -EINVAL;
+				goto err;
+			} else {
+				/* 2nd GPIO for RFNM */
+				wdog_dev->wdog_pd[i].gpio_hrst =
+					of_get_named_gpio(dn_wdog, "la9310-hrst-gpios", i);
+				if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio_hrst)) {
+					pr_err("rfnm: la9310-hrst-gpios %d not found\n", i);
+					rc = -EINVAL;
+					goto err;
+				}
+			}
+		} else {
+			wdog_dev->wdog_pd[i].gpio_hrst = 0;
 		}
 		if (wdog_gpio_config(&wdog_dev->wdog_pd[i])) {
 			rc = -EINVAL;
@@ -439,10 +481,13 @@ int wdog_init(void)
 
 	return rc;
 err:
-	for (j = 0; j < i; j++)
+	for (j = 0; j < i; j++) {
 		gpio_free(wdog_dev->wdog_pd[j].gpio);
-	wdog_gdev = NULL;
+		if (wdog_dev->wdog_pd[j].gpio_hrst)
+			gpio_free(wdog_dev->wdog_pd[j].gpio_hrst);
+	}
 	kfree(wdog_dev);
+	wdog_gdev = NULL;
 	return rc;
 }
 
@@ -455,6 +500,8 @@ int wdog_exit(void)
 
 	for (i = 0; i < WDOG_ID_MAX; i++) {
 		gpio_free(wdog_dev->wdog_pd[i].gpio);
+		if (wdog_dev->wdog_pd[i].gpio_hrst)
+			gpio_free(wdog_dev->wdog_pd[i].gpio_hrst);
 		if (wdog_dev->wdog_pd[i].irq_status_flag != 0)
 			free_irq(wdog_dev->wdog_pd[i].irq,
 				 &(wdog_dev->wdog_pd[i]));
