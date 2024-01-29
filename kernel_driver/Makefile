@@ -1,4 +1,4 @@
-#Copyright 2017, 2021 NXP
+#Copyright 2017, 2021, 2024 NXP
 
 PWD=$(shell pwd)
 
@@ -14,6 +14,9 @@ include $(KERNEL_DIR)/.config
 
 obj-y += la9310shiva/
 obj-y += la9310demo/
+ifdef IMX_RFNM
+#obj-y += la9310rfnm/
+endif
 
 all:
 	make ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) modules
@@ -25,3 +28,6 @@ clean:
 install:
 	install  -D  la9310shiva/la9310shiva.ko ${MODULE_INSTALL_DIR}/la9310shiva.ko
 	install  -D  la9310demo/la9310demo.ko ${MODULE_INSTALL_DIR}/la9310demo.ko
+	ifdef IMX_RFNM
+#	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
+	endif

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2021 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #include <linux/kernel.h>
@@ -280,6 +280,23 @@ la9310_create_ipc_hugepage_outbound(struct la9310_dev *la9310_dev,
 			size);
 	dev_info(la9310_dev->dev, "Huge Page Buff:0x%llx[H]-0x%x[M],size %d\n",
 		 phys_addr, LA9310_USER_HUGE_PAGE_PHYS_ADDR, size);
+}
+
+void
+la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
+{
+	struct la9310_mem_region_info *ccsr_region;
+
+	ccsr_region = &la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR];
+
+	ls_pcie_iatu_outbound_set(ccsr_region->vaddr + PCIE_RHOM_DBI_BASE,
+			LA9310_IPC_OUTBOUND_WIN,
+			PCIE_ATU_TYPE_MEM,
+			LA9310_IQFLOOD_PHYS_ADDR,
+			RFNM_IQFLOOD_MEMADDR,
+			RFNM_IQFLOOD_MEMSIZE);
+	dev_info(la9310_dev->dev, "RFNM IQFLOOD Buff:0x%x[H]-0x%x[M],size %d\n",
+		 LA9310_IQFLOOD_PHYS_ADDR, RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE);
 }
 
 static void
@@ -674,6 +691,10 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 				"Failed to init DMA buf for outbound, err %d\n", rc);
 		goto out;
 	}
+
+#ifdef RFNM
+	la9310_create_rfnm_iqflood_outbound(la9310_dev);
+#endif
 
 	rc = la9310_init_hif(la9310_dev);
 	if (rc)
@@ -1201,3 +1222,66 @@ la9310_raise_msgunit_irq(struct la9310_dev *la9310_dev,
 
 	return 0;
 }
+/*
+static irqreturn_t
+tmp_handler(int irq, void *dev)
+{
+	struct la9310_dev *la9310_dev = (struct la9310_dev *) dev;
+
+	dev_info(la9310_dev->dev,"Host Handshake interrupt boom!! irq num %d\n", irq);
+	return IRQ_HANDLED;
+
+}
+*/
+
+int register_rfnm_callback(void * callbackfunc, int irqid) {
+
+	struct la9310_dev *la9310_dev;
+	int rc;
+
+	la9310_dev = get_la9310_dev_byname("nlm0");
+	
+	if(irqid == 0) {
+		rc = request_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_2), 
+		callbackfunc, 0, "MSI_IRQ_UNUSED_2", la9310_dev);
+		printk("rc returned %d\n", rc);
+	} else {
+		rc = request_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_3), 
+		callbackfunc, 0, "MSI_IRQ_UNUSED_3", la9310_dev);
+		printk("rc returned %d\n", rc);
+	}
+
+	return rc;
+		
+}
+EXPORT_SYMBOL_GPL(register_rfnm_callback);
+/*****************************************************************************
+ * @unregister_v2h_callback
+ *
+ * unregister callback function , set callback func pointer to null
+ *
+ * name			- [IN] device name
+ *
+ * Return Value -
+ *	SUCCESS - 0
+ *	Negative value -EINVAL
+ ****************************************************************************/
+
+int unregister_rfnm_callback(void)
+{
+	struct la9310_dev *la9310_dev;
+
+	la9310_dev = get_la9310_dev_byname("nlm0");
+
+	if (NULL != la9310_dev) {
+		free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_2), la9310_dev);
+		free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_3), la9310_dev);
+
+		return 0;
+	}
+	return -EINVAL;
+
+
+
+}
+EXPORT_SYMBOL_GPL(unregister_rfnm_callback);

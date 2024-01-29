@@ -222,7 +222,11 @@ struct la9310_dma_info {
 					LA9310_FREERTOS_HEAP + \
 					LA9310_FREERTOS_INTERRUPT_STACK))
 #define LA9310_DBUG_LOG_SIZE		(4 * 1024)
+#ifdef RFNM
+#define LA9310_IQ_SAMPLES_SIZE		(20 * 1024 * 1024)
+#else
 #define LA9310_IQ_SAMPLES_SIZE		(4 * 1024 * 1024)
+#endif
 #define LA9310_NLM_OPS_SIZE		(16 * 1024 * 1024)
 #define LA9310_STD_FW_SIZE		(128 * 1024)
 /* Mem region separator */
