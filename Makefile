@@ -1,3 +1,4 @@
+#SPDX-License-Identifier: GPL-2.0
 #Copyright 2017, 2021-2024 NXP
 
 CC              = $(CROSS_COMPILE)gcc
@@ -11,7 +12,7 @@ LDFLAGS := --sysroot=${SYSROOT_PATH}
 CFLAGS := --sysroot=${SYSROOT_PATH}
 endif
 
-VERSION_STRING :=\"v0.1\"
+VERSION_STRING :=\"v3.x\"
 
 INSTALL_DIR ?= ${PWD}/install
 LIB_INSTALL_DIR := ${INSTALL_DIR}/usr/lib
@@ -31,12 +32,16 @@ COMMON_INCLUDES += -I${COMMON_DIR}
 
 CFLAGS += ${COMMON_INCLUDES}
 HOST_CFLAGS += ${COMMON_INCLUDES}
+GIT_VERSION :=\"$(shell git describe --abbrev=0 --tags)\"
+CFLAGS += -DVERSION=${GIT_VERSION}
+CFLAGS += -Wall -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -Wno-unused-function -Wno-unused-variable
 
-CFLAGS += -Wall -DLA931x_HOST_SW_VERSION="${VERSION_STRING}" -Wno-unused-function -Wno-unused-variable
 
 # Config Tweak handles
 DEBUG ?= 1
 BOOTROM_USE_EDMA ?= 1
+IMX_RFNM ?= 1
+NLM ?= 0
 
 export CC LIB_INSTALL_DIR BIN_INSTALL_DIR SCRIPTS_INSTALL_DIR MODULE_INSTALL_DIR \
 	FIRMWARE_INSTALL_DIR
@@ -67,6 +72,7 @@ ${CLEAN_DIRS}:
 	rm -rf ${LIB_INSTALL_DIR}/*;
 	rm -rf ${BIN_INSTALL_DIR}/*;
 	rm -rf ${SCRIPTS_INSTALL_DIR}/*;
+	rm -rf ${CONFIG_INSTALL_DIR}/*;
 	rm -rf ${INSTALL_DIR};
 
 ${INSTALL_DIRS}:

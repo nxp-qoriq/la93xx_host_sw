@@ -5,7 +5,7 @@ supporting LA9310 PCIe card. It includes LA9310 PCIe kernel driver,
 user space libraries, user space applications, user space configuration
 files or scripts that are required.
 
-Release Name:		Version: 0.1
+Release Name:		Version: 3.0
 Package:		la931x_host_sw
 Release Location:	https://github.com/nxp-qoriq/la93xx_host_sw
 Origin: 		NXP (BSD-3-Clause OR GPL-2.0)
@@ -24,6 +24,15 @@ Package - uapi
 -    License: BSD-3-Clause OR GPL-2.0
 -    Format: source code
 -    Location: uapi
+
+Package - app/devmem
+-    Description: devmem application
+-    License: GPL-2.0
+-    Format: source code
+-    Location: app
+-    Author: 	Jan-Derk Bakker (jdb@lartmaker.nl)
+		The Mobile MultiMedia Communications (http://www.mmc.tudelft.nl/)
+		Ubiquitous Communications (http://www.ubicom.tudelft.nl/)
 
 Package - app
 -    Description: application samples

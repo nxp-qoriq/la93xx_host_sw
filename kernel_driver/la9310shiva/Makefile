@@ -1,10 +1,11 @@
-#Copyright 2017-2023 NXP
+#SPDX-License-Identifier: GPL-2.0
+#Copyright 2017-2024 NXP
 
 ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UAPI_DIR} -I${LA9310_COMMON_HEADERS}
 ccflags-y += -Wall
 #ccflags-y += -Wall -Werror
 
-ifdef IMX_RFNM
+ifeq ($(IMX_RFNM),1)
 ccflags-y += -DRFNM=1
 ccflags-y += -DVSPA_MUX_IRQ=1
 endif

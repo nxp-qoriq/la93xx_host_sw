@@ -1,4 +1,5 @@
-#Copyright 2017, 2021, 2024 NXP
+#SPDX-License-Identifier: GPL-2.0
+#Copyright 2017, 2021-2024 NXP
 
 PWD=$(shell pwd)
 
@@ -12,22 +13,24 @@ endif
 
 include $(KERNEL_DIR)/.config
 
+#Add any CFLAGS that needs to be passed to driver
+EXTRA_CFLAGS += -g -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -DVERSION=${GIT_VERSION} -I${COMMON_DIR} -I${UAPI_DIR}
 obj-y += la9310shiva/
 obj-y += la9310demo/
-ifdef IMX_RFNM
-#obj-y += la9310rfnm/
+ifeq ($(IMX_RFNM),1)
+obj-y += la9310rfnm/
 endif
 
 all:
-	make ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) modules
+	$(MAKE) ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) modules
 
 clean:
-	make ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) clean
+	$(MAKE) ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) clean
 	rm -rf ${MODULE_INSTALL_DIR}/*.ko
 
 install:
 	install  -D  la9310shiva/la9310shiva.ko ${MODULE_INSTALL_DIR}/la9310shiva.ko
 	install  -D  la9310demo/la9310demo.ko ${MODULE_INSTALL_DIR}/la9310demo.ko
-	ifdef IMX_RFNM
-#	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
-	endif
+ifeq ($(IMX_RFNM),1)
+	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
+endif
