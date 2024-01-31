@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2018, 2021-2022 NXP
+ * Copyright 2017-2018, 2021-2024 NXP
  */
 
 #include <linux/module.h>
@@ -19,8 +19,49 @@ void *cookie;
 static int pkt_ctr;
 #endif
 
+#ifdef RFNM
+volatile int countdown_to_print = 0;
+volatile int callback_cnt = 0;
+volatile int last_callback_cnt = 0;
+volatile int received_data = 0;
+volatile int last_received_data = 0;
+volatile long long int last_print_time = 0;
+#endif
+
 void callback_func(struct sk_buff *skb_ptr, void *cookie)
 {
+#ifdef RFNM
+	long long int curr_time, time_diff;
+	int packet_count_diff, received_data_diff;
+
+	callback_cnt++;
+	received_data += skb_ptr->len;
+	if(countdown_to_print++ > 100000) {
+		countdown_to_print = 0;
+
+		
+
+		curr_time = ktime_get();
+		time_diff = last_print_time - curr_time;
+		last_print_time = curr_time;
+
+		packet_count_diff = callback_cnt - last_callback_cnt;
+		received_data_diff = received_data - last_received_data;
+
+		last_callback_cnt = callback_cnt;
+		last_received_data = received_data;
+
+
+		printk("time diff %lld, packet_count_diff %d, received_data_diff %d\n", time_diff, packet_count_diff, received_data_diff);
+
+	}
+
+	if (NULL != skb_ptr) {
+		kfree_skb(skb_ptr);
+	}
+
+	return;
+#else
 #ifdef DEBUG_V2H_TEST
 	uint8_t *ptr;
 	int i;
@@ -41,6 +82,7 @@ void callback_func(struct sk_buff *skb_ptr, void *cookie)
 	} else {
 		dev_dbg(la9310_dev->dev, "V2H Callback: sk buffer is null\n");
 	}
+#endif
 }
 
 int v2h_callback_test_init(struct la9310_dev *la9310_dev)
@@ -50,6 +92,8 @@ int v2h_callback_test_init(struct la9310_dev *la9310_dev)
 	dev_info(la9310_dev->dev, "V2H Callback registered\n");
 	ret = register_v2h_callback(la9310_device_name, callback_func,
 				     la9310_dev);
+
+	last_print_time = ktime_get();
 
 	return ret;
 }

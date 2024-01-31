@@ -1,3 +1,4 @@
+#SPDX-License-Identifier: BSD-3-Clause
 #Copyright 2017, 2021 NXP
 
 #Add applicatin/exectuable directories here
@@ -10,6 +11,8 @@ INSTALL_APP_DIRS = $(patsubst %, %_install, ${APP_DIRS})
 
 .PHONY: ${APP_DIRS} ${CLEAN_APP_DIRS} ${INSTALL_APP_DIRS}
 
+#Add any CFLAGS that needs to be passed to driver
+#EXTRA_CFLAGS += -g -DHOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR}
 
 ${APP_DIRS}:
 	${MAKE} -C $@ all
