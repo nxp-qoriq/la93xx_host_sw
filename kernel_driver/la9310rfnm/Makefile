@@ -9,6 +9,7 @@ endif
 
 ccflags-y += -I${LA9310_DRV_HEADER_DIR} -I${LA9310_COMMON_HEADERS} 
 ccflags-y += -I${KERNEL_DIR}/drivers/usb/gadget/
+ccflags-y += -I${KERNEL_DIR}/../kernel-source/drivers/usb/gadget/
 
 obj-m := la9310rfnm.o rfnm_usb_function.o rfnm_usb.o 
 la9310rfnm-objs := la9310_rfnm.o  cache.o #pack12bit.o unpack12bit.o
