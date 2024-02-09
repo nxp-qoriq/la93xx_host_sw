@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2023 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #include <linux/kernel.h>
@@ -60,7 +60,7 @@ la9310_collect_ep_log(struct la9310_ep_log *ep_log, char *buf)
 }
 
 static ssize_t
-la9310_show_ep_log(struct device *dev,
+target_log_show(struct device *dev,
 		   struct device_attribute *attr, char *buf)
 {
 	struct la9310_dev *la9310_dev;
@@ -104,7 +104,7 @@ la9310_show_ep_log(struct device *dev,
 }
 
 static ssize_t
-la9310_reset_ep_log(struct device *dev,
+target_log_store(struct device *dev,
 		    struct device_attribute *attr, const char *buf,
 		    size_t count)
 {
@@ -241,7 +241,7 @@ sysfs_del_host_stats_list(struct la9310_dev *la9310_dev)
 }
 
 static ssize_t
-la9310_show_ep_log_level(struct device *dev,
+target_log_show_level(struct device *dev,
 			 struct device_attribute *attr, char *buf)
 {
 	struct la9310_dev *la9310_dev;
@@ -427,12 +427,31 @@ la9310_iq_samples_size(struct device *dev,
 		return 0;
 }
 
+static ssize_t shiva_version_show(struct kobject *kobj,
+				struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%s\n", LA9310_HOST_SW_VERSION);
+}
+
+static ssize_t shiva_status_show(struct kobject *kobj,
+				struct kobj_attribute *attr, char *buf)
+{
+	return la9310_show_global_status(buf);
+}
+
+static ssize_t ipc_status_show(struct kobject *kobj,
+				struct kobj_attribute *attr, char *buf)
+{
+	  return sprintf(buf, "TODO\n");
+}
+
+
 static DEVICE_ATTR(target_log, S_IWUSR | S_IRUGO,
-		   la9310_show_ep_log, la9310_reset_ep_log);
+		   target_log_show, target_log_store);
 static DEVICE_ATTR(target_stats, S_IWUSR | S_IRUGO,
 		   la9310_show_stats, la9310_reset_stats);
 static DEVICE_ATTR(target_log_level, S_IWUSR | S_IRUGO,
-		   la9310_show_ep_log_level, la9310_set_ep_log_level);
+		   target_log_show_level, la9310_set_ep_log_level);
 static DEVICE_ATTR(target_stats_control, S_IWUSR | S_IRUGO,
 		   la9310_show_stats_control_mask,
 		   la9310_set_stats_control_mask);
@@ -458,9 +477,29 @@ static struct attribute *la9310_sysfs_entries[] = {
  * sys/devices/pci0000:00/0000:00:1c.4/
  * 0000:06:00.0/la9310sysfs
  */
+
+static struct kobj_attribute shiva_version_attr = __ATTR(shiva_version, 0444,
+						shiva_version_show, NULL);
+
+static struct kobj_attribute shiva_status_attr = __ATTR(shiva_status, 0444,
+						shiva_status_show, NULL);
+
+static struct kobj_attribute ipc_status_attr = __ATTR(ipc_status, 0444,
+						ipc_status_show, NULL);
+
+static struct attribute *g_la9310_sysfs_entries[] = {
+	&shiva_version_attr.attr,
+	&shiva_status_attr.attr,
+	&ipc_status_attr.attr,
+	NULL
+};
 struct attribute_group la9310_attribute_group = {
 	.name = "la9310sysfs",
 	.attrs = la9310_sysfs_entries,
+};
+
+struct attribute_group g_la9310_attribute_group = {
+	.attrs = g_la9310_sysfs_entries,
 };
 
 int
@@ -492,10 +531,33 @@ la9310_remove_sysfs(struct la9310_dev *la9310_dev)
 {
 	sysfs_remove_group(&la9310_dev->pdev->dev.kobj,
 			   &la9310_attribute_group);
+	sysfs_del_host_stats_list(la9310_dev);
 }
 
-void
-la9310_remove_stats (struct la9310_dev *la9310_dev)
+static struct kobject *la9310_kobj;
+
+int la9310_init_global_sysfs(void)
 {
-	sysfs_del_host_stats_list(la9310_dev);
+	int rc = 0;
+
+	la9310_kobj = kobject_create_and_add("la9310", NULL);
+	if (!la9310_kobj) {
+		pr_err("Failed to crate la9310_kobj\n");
+		rc = -1;
+		goto out;
+	}
+	rc = sysfs_create_group(la9310_kobj, &g_la9310_attribute_group);
+	if (rc) {
+		kobject_put(la9310_kobj);
+		goto out;
+	}
+	pr_info("Created sysfs group %s\n", g_la9310_attribute_group.name);
+out:
+	return rc;
+}
+
+void la9310_remove_global_sysfs(void)
+{
+	sysfs_remove_group(la9310_kobj, &g_la9310_attribute_group);
+	kobject_put(la9310_kobj);
 }

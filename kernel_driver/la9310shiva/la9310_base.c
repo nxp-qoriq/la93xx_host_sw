@@ -104,7 +104,6 @@ la9310_map_mem_regions(struct la9310_dev *la9310_dev)
 				 "mem[%d] phy %llx, vaddr %px\n", i, phys_addr,
 				 vaddr);
 			mem_region->vaddr = vaddr;
-			mem_region->type = i;
 		}
 	}
 
@@ -312,7 +311,6 @@ la9310_init_subdrv_region(struct la9310_dev *la9310_dev,
 
 	host_dma_region = &la9310_dev->dma_info.host_buf;
 
-	ep_buf->type = type;
 	ep_buf->vaddr = host_dma_region->vaddr + *offset;
 	ep_buf->phys_addr = dma_info->ep_pcie_addr + *offset;
 	ep_buf->size = size;
@@ -420,6 +418,7 @@ la9310_scratch_dma_buf(struct la9310_dev *la9310_dev)
 	}
 
 	la9310_init_subdrv_dma_buf(la9310_dev);
+
 	return 0;
 out:
 	iounmap(host_region->vaddr);
@@ -796,6 +795,8 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 			}
 		}
 	}
+	la9310_init_ep_pcie_allocator(la9310_dev);
+	rc = la9310_modinfo_init(la9310_dev);
 
 out:
 	if (rc)
@@ -900,7 +901,6 @@ la9310_base_remove(struct la9310_dev *la9310_dev)
 	pci_disable_msi(la9310_dev->pdev);
 
 	la9310_remove_sysfs(la9310_dev);
-	la9310_remove_stats (la9310_dev);
 
 	return 0;
 }
@@ -1252,7 +1252,6 @@ int register_rfnm_callback(void * callbackfunc, int irqid) {
 	}
 
 	return rc;
-		
 }
 EXPORT_SYMBOL_GPL(register_rfnm_callback);
 /*****************************************************************************
@@ -1280,8 +1279,5 @@ int unregister_rfnm_callback(void)
 		return 0;
 	}
 	return -EINVAL;
-
-
-
 }
 EXPORT_SYMBOL_GPL(unregister_rfnm_callback);

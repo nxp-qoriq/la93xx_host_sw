@@ -33,9 +33,6 @@ COMMON_INCLUDES += -I${COMMON_DIR}
 CFLAGS += ${COMMON_INCLUDES}
 HOST_CFLAGS += ${COMMON_INCLUDES}
 GIT_VERSION :=\"$(shell git describe --abbrev=0 --tags)\"
-CFLAGS += -DVERSION=${GIT_VERSION}
-CFLAGS += -Wall -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -Wno-unused-function -Wno-unused-variable
-
 
 # Config Tweak handles
 DEBUG ?= 1
@@ -47,7 +44,23 @@ export CC LIB_INSTALL_DIR BIN_INSTALL_DIR SCRIPTS_INSTALL_DIR MODULE_INSTALL_DIR
 	FIRMWARE_INSTALL_DIR
 export CONFIG_INSTALL_DIR API_DIR KERNEL_DIR COMMON_DIR UAPI_DIR LA9310_DRV_HEADER_DIR
 export INCLUDES CFLAGS VERSION_STRING LDFLAGS
-export DEBUG BOOTROM_USE_EDMA
+export DEBUG BOOTROM_USE_EDMA IMX_RFNM
+
+ifeq ($(IMX_RFNM),1)
+	export BSP_VERSION := $(shell git describe --tags --abbrev=11 --dirty --match "la12*")
+	CFLAGS += -DIMX_RFNM
+endif
+
+ifneq ($(BSP_VERSION),)
+	GIT_VERSION:=\"${BSP_VERSION}\"
+endif
+
+ifneq ($(GIT_VERSION),)
+	VERSION_STRING :=${GIT_VERSION}
+endif
+
+CFLAGS += -DVERSION=${GIT_VERSION}
+CFLAGS += -Wall -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -Wno-unused-function -Wno-unused-variable
 
 ifeq (${DEBUG}, 1)
 CFLAGS += -DDEBUG

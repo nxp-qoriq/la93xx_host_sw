@@ -9,6 +9,7 @@
 #include <la9310_host_if.h>
 #include <linux/firmware.h>
 #include "la9310_pci.h"
+#include <la9310_modinfo.h>
 #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
 #include <linux/completion.h>
 #endif
@@ -33,6 +34,9 @@
 #define TCMU_MEM_SIZE 0x10000
 #define MAX_MODEM_INSTANCES    1
 
+#define IN_MB(x) ((x)/(1024*1024))
+#define IN_KB(x) ((x)/(1024))
+
 #ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
 extern struct completion ScratchRegisterHandshake;
 #endif
@@ -43,6 +47,7 @@ extern char firmware_name[];
 extern char vspa_fw_name[];
 
 struct la9310_global {
+	bool active;
 	char dev_name[64];
 };
 
@@ -151,7 +156,6 @@ struct la9310_mem_region_info {
 	phys_addr_t phys_addr;
 	u8 __iomem *vaddr;
 	size_t size;
-	enum la9310_mem_region_t type;
 };
 
 struct la9310_firmware_info {
@@ -386,7 +390,8 @@ int la9310_dev_reserve_firmware(struct la9310_dev *la9310_dev);
 void la9310_dev_free_firmware(struct la9310_dev *la9310_dev);
 int la9310_init_sysfs(struct la9310_dev *la9310_dev);
 void la9310_remove_sysfs(struct la9310_dev *la9310_dev);
-void la9310_remove_stats(struct la9310_dev *la9310_dev);
+int la9310_init_global_sysfs(void);
+void la9310_remove_global_sysfs(void);
 int la9310_create_outbound_msi(struct la9310_dev *la9310_dev);
 int la9310_request_irq(struct la9310_dev *la9310_dev,
 		       struct irq_evt_regs *irq_evt_regs);
@@ -411,4 +416,10 @@ int wdog_set_modem_status(int wdog_id, int status);
 int wdog_set_pci_domain_nr(int wdog_id, int domain_nr);
 void raise_msg_interrupt(struct la9310_dev *la9310_dev,
 			 uint32_t msg_unit_index, uint32_t ibs);
+
+ssize_t la9310_show_global_status(char *buf);
+
+int la9310_modinfo_init(struct la9310_dev *dev);
+int la9310_modinfo_exit(struct la9310_dev *dev);
+void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi);
 #endif
