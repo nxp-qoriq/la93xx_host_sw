@@ -114,6 +114,75 @@ struct la9310_dev *get_la9310_dev_byname(const char *name)
 }
 EXPORT_SYMBOL_GPL(get_la9310_dev_byname);
 
+ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
+{
+	int i = 0;
+	struct vspa_device *vspadev = (struct vspa_device *)dev->vspa_priv;
+	modinfo_t mi;
+
+	la9310_modinfo_get(dev, &mi);
+	sprintf(&buf[strlen(buf)],
+			" Board Name:%s, Modem ID=%d, Name:%s PCI-ID:%x, PCI_ADDR:%s\n",
+			mi.board_name, dev->id, dev->name, dev->pdev->device,
+			g_la9310_global[dev->id].dev_name);
+
+	sprintf(&buf[strlen(buf)], " bin: (%s)\n", firmware_name);
+	sprintf(&buf[strlen(buf)], " VSPA: (%s)\n", vspadev->eld_filename);
+
+	sprintf(&buf[strlen(buf)], " HIF Start: addr:0x%llx len:0x%llx\n",
+			mi.hif.host_phy_addr, (u64)mi.hif.size);
+	sprintf(&buf[strlen(buf)], " (CCSR) BAR:%d        addr:0x%llx len:0x%llx\n",
+			i, mi.ccsr.host_phy_addr, (u64)mi.ccsr.size);
+	sprintf(&buf[strlen(buf)], " (TCML) BAR:%d        addr:0x%llx len:0x%llx\n",
+			i, mi.tcml.host_phy_addr, (u64)mi.tcml.size);
+	sprintf(&buf[strlen(buf)], " (TCMU) BAR:%d        addr:0x%llx len:0x%llx\n",
+			i, mi.tcmu.host_phy_addr, (u64)mi.tcmu.size);
+	sprintf(&buf[strlen(buf)], " VSPA OVERLAY BAR:%d  addr:0x%llx len:0x%llx\n",
+			i, mi.ov.host_phy_addr, (u64)mi.ov.size);
+	sprintf(&buf[strlen(buf)], " VSPA BAR:%d          addr:0x%llx len:0x%llx\n",
+			i, mi.vspa.host_phy_addr, (u64)mi.vspa.size);
+	sprintf(&buf[strlen(buf)], " FW BAR:%d            addr:0x%llx len:0x%llx\n",
+			i, mi.fw.host_phy_addr, (u64)mi.fw.size);
+	sprintf(&buf[strlen(buf)], " DBG LOG BAR:%d       addr:0x%llx len:0x%llx\n",
+			i, mi.dbg.host_phy_addr, (u64)mi.dbg.size);
+	sprintf(&buf[strlen(buf)], " IQ SAMPLES BAR:%d    addr:0x%llx len:0x%llx\n",
+			i, mi.iqr.host_phy_addr, (u64)mi.iqr.size);
+	sprintf(&buf[strlen(buf)], " NLM OPS BAR:%d       addr:0x%llx len:0x%llx\n",
+			i, mi.nlmops.host_phy_addr, (u64)mi.nlmops.size);
+	sprintf(&buf[strlen(buf)], " STD FW BAR:%d        addr:0x%llx len:0x%llx\n",
+			i, mi.stdfw.host_phy_addr, (u64)mi.stdfw.size);
+	sprintf(&buf[strlen(buf)], "\n Scratch:  Phy      addr:0x%llx Size:0x%llx (%lldMB)\n",
+			mi.scratchbuf.host_phy_addr, (u64)mi.scratchbuf.size,
+			IN_MB((u64)mi.scratchbuf.size));
+	sprintf(&buf[strlen(buf)], "\n %s", "-*-*-*-");
+	sprintf(&buf[strlen(buf)], "%ld\n", strlen(buf));
+	return strlen(buf);
+}
+
+ssize_t la9310_show_global_status(char *buf)
+{
+	struct list_head *ptr;
+	struct la9310_dev *dev = NULL;
+	sprintf(buf, "*%s\n", LA9310_HOST_SW_VERSION);
+	sprintf(&buf[strlen(buf)], " No. of LA93xx Devices Detected = %d\n",
+			la9310_dev_id_g);
+
+	list_for_each(ptr, &pcidev_list) {
+		dev = list_entry(ptr, struct la9310_dev, list);
+		if (g_la9310_global[dev->id].active)
+			la9310_device_dump(dev, buf);
+		/*  if buffer has already crossed 4K or if number of modems are more than 2
+		 *  and buffer is already around 3K, better to stop.
+		 */
+		if (strlen(buf) > PAGE_SIZE && strlen(buf) > 3000)
+			break;
+	}
+
+	sprintf(&buf[strlen(buf)], " %s", "\n");
+	return strlen(buf) > PAGE_SIZE ? PAGE_SIZE : strlen(buf);
+}
+EXPORT_SYMBOL_GPL(la9310_show_global_status);
+
 void la9310_dev_reset_interrupt_capability(struct la9310_dev *la9310_dev)
 {
 	if (LA9310_CHK_FLG(la9310_dev->flags, LA9310_FLG_PCI_MSI_EN)) {
@@ -281,6 +350,10 @@ static struct la9310_dev *la9310_pci_priv_init(struct pci_dev *pdev)
 	la9310_dev->pdev = pdev;
 
 	i = get_la9310_dev_id_pcidevname(la9310_dev->dev);
+
+	la9310_dev->id = i;
+
+	sprintf(&la9310_dev->name[0], "%s%d", la9310_dev_name_prefix_g, la9310_dev->id);
 	/* Not allowed to create it */
 	if (i == -1) {
 		dev_err(&pdev->dev,
@@ -291,6 +364,7 @@ static struct la9310_dev *la9310_pci_priv_init(struct pci_dev *pdev)
 	}
 	la9310_dev->id = i;
 
+	g_la9310_global[la9310_dev->id].active = 1;
 	sprintf(g_la9310_global[la9310_dev->id].dev_name, "%s",
 		dev_name(la9310_dev->dev));
 
@@ -482,14 +556,14 @@ static int __init la9310_pcidev_init(void)
 		pr_err("%s:%d pci_register_driver() failed!\n",
 			__func__, __LINE__);
 	}
-
+	la9310_init_global_sysfs();
 out:
 	return err;
 }
 
 static void __exit la9310_pcidev_exit(void)
 {
-
+	la9310_remove_global_sysfs ();
 	pci_unregister_driver(&la9310_pcidev_driver);
 	la9310_subdrv_mod_exit();
 	class_destroy(la9310_class);
