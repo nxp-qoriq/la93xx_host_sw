@@ -1,8 +1,9 @@
-#Copyright 2017-2019, 2021 NXP
+#Copyright 2017-2019, 2021-2024 NXP
+SCRIPT_TEST := reset_la9310.sh scratch_buff_base.sh
 
 .PHONY: all
 
 all:
 clean:
 install:
-	install -D ./reset_la9310.sh ${BIN_INSTALL_DIR}/reset_la9310.sh
+	install -D $(SCRIPT_TEST) ${SCRIPTS_INSTALL_DIR}/$(SCRIPTS_TEST)
