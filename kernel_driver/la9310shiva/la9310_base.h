@@ -296,6 +296,8 @@ struct la9310_dev {
 	struct la9310_dma_info dma_info;
 	struct la9310_boot_header __iomem *boot_header;
 	struct la9310_hif *hif;
+	u32 hif_offset;
+	u32 hif_size;
 	struct la9310_ep_log ep_log;
 	struct irq_info irq[LA9310_MSI_MAX_CNT];
 	int irq_count;
