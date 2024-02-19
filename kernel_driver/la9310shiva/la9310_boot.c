@@ -51,11 +51,17 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 	struct la9310_ccsr_dcr *ccsr_dcr;
 	u32 scratch_val;
 	u32 *scratch_reg;
+	u32 hif_offset, hif_size;
+	volatile u32 *hif_offset_reg, *hif_size_reg;
 
 	ccsr_dcr = (struct la9310_ccsr_dcr *)
 			(la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR].vaddr
 			+ DCR_OFFSET);
 	scratch_reg = &ccsr_dcr->scratchrw[LA9310_BOOT_HSHAKE_SCRATCH_REG];
+	hif_size_reg = &ccsr_dcr->scratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG];
+	hif_offset_reg = &ccsr_dcr->scratchrw[LA9310_BOOT_HSHAKE_HIF_REG];
+	dma_rmb();
+
 	writel(LA9310_HOST_COMPLETE_CLOCK_CONFIG, scratch_reg);
 	dma_wmb();
 
@@ -69,23 +75,30 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 	schedule_timeout(msecs_to_jiffies(LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
 	dma_rmb();
 	scratch_val = readl(scratch_reg);
-
-	while ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && retries) {
+	hif_offset = readl(hif_offset_reg);
+	hif_size = readl(hif_size_reg);
+	while ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && (!hif_size) && retries) {
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(msecs_to_jiffies(
 			LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
 		retries--;
 		dma_rmb();
 		scratch_val = readl(scratch_reg);
+		hif_offset = readl(hif_offset_reg);
+		hif_size = readl(hif_size_reg);
 	}
+
+
 #else
 	/*waiting for interrupt from la9310 to do handshake*/
 	wait_for_completion_timeout(&ScratchRegisterHandshake,
 				    msecs_to_jiffies
 				    (LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
 
-
+	dma_rmb();
 	scratch_val = readl(scratch_reg);
+	hif_offset = readl(hif_offset_reg);
+	hif_size = readl(hif_size_reg);
 #endif
 	if (scratch_val != LA9310_HOST_START_DRIVER_INIT) {
 		dev_err(la9310_dev->dev,
@@ -96,6 +109,17 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 		dev_info(la9310_dev->dev,
 			 "LA9310 Reset HSHAKE done, scratch 0x%x",
 			 scratch_val);
+	}
+
+	if (hif_size) {
+		dev_info(la9310_dev->dev, "Reset HandShake: Done. HIF 0x%x, size 0x%x (%d)\n",
+				hif_offset, hif_size, hif_size);
+		la9310_dev->hif_offset = hif_offset;
+		la9310_dev->hif_size = hif_size;
+	} else {
+		dev_err(la9310_dev->dev, "Reset HandShake: Failed. HIF 0x%x, size 0x%x (%d)\n",
+				hif_offset, hif_size, hif_size);
+		rc = -EBUSY;
 	}
 
 	return rc;

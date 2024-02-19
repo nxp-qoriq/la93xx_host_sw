@@ -433,6 +433,14 @@ la9310_verify_hif_compatibility(struct la9310_dev *la9310_dev)
 	u32 hif_ep_version, hif_host_version;
 	int rc = 0;
 
+	if (sizeof(struct la9310_hif) != la9310_dev->hif_size) {
+		dev_err(la9310_dev->dev,
+			"LA931x firmware(%s) not compatible with la9310shiva  driverHIF siz mismatch %d!=%d",
+			firmware_name, (int) sizeof(struct la9310_hif), la9310_dev->hif_size);
+		rc = -EINVAL;
+		goto out;
+	}
+
 	hif_host_version = LA9310_VER_MAKE(LA9310_HIF_MAJOR_VERSION,
 					   LA9310_HIF_MINOR_VERSION);
 	hif_ep_version = readl(&hif->hif_ver);
