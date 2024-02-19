@@ -92,9 +92,9 @@ int v2h_callback_test_init(struct la9310_dev *la9310_dev)
 	dev_info(la9310_dev->dev, "V2H Callback registered\n");
 	ret = register_v2h_callback(la9310_device_name, callback_func,
 				     la9310_dev);
-
+#ifdef RFNM
 	last_print_time = ktime_get();
-
+#endif
 	return ret;
 }
 
