@@ -1,23 +1,28 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright 2022-2024 NXP
+# Copyright 2024 NXP
 #
 
 CFLAGS  += -Wall -Werror -I${LA9310_COMMON_HEADERS}
 
 OBJS := modem_info.o
 BIN_MOD_INFO := modem_info
+OBJS_SHBUF := la9310_shbuf_test.o
+BIN_SHBUF := la9310_shbuf_test
 
-all: $(BIN_MOD_INFO)
+all: $(BIN_MOD_INFO) $(BIN_SHBUF)
 
 $(BIN_MOD_INFO): ${OBJS}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $(BIN_MOD_INFO) ${OBJS} $(INCLUDES)
 
+$(BIN_SHBUF): ${OBJS_SHBUF}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $(BIN_SHBUF) ${OBJS_SHBUF} $(INCLUDES)
 
 %.o: %.c
 	${CC} -c ${CFLAGS} ${INCLUDES}  $< -o $@
 
 clean:
-	rm -rf *.o $(BIN_MOD_INFO)
+	rm -rf *.o $(BIN_MOD_INFO) $(BIN_SHBUF)
 
 install:
 	install -D $(BIN_MOD_INFO) ${BIN_INSTALL_DIR}/$(BIN_MOD_INFO)
+	install -D $(BIN_SHBUF) ${BIN_INSTALL_DIR}/$(BIN_SHBUF)
