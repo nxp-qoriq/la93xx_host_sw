@@ -38,7 +38,7 @@ GIT_VERSION :=\"$(shell git describe --abbrev=0 --tags)\"
 # Config Tweak handles
 DEBUG ?= 1
 BOOTROM_USE_EDMA ?= 1
-IMX_RFNM ?= 1
+IMX_RFNM ?= 0
 NLM ?= 0
 
 export CC LIB_INSTALL_DIR BIN_INSTALL_DIR SCRIPTS_INSTALL_DIR MODULE_INSTALL_DIR \
