@@ -50,7 +50,6 @@ extern int modem_rf_data_size;
 
 static int la9310_modinfo_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-#if 0
 	int rc;
 	struct la9310_dev *la9310_dev = filp->private_data;
 	phys_addr_t offset = (phys_addr_t)vma->vm_pgoff << PAGE_SHIFT;
@@ -63,9 +62,9 @@ static int la9310_modinfo_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	dev_dbg(la9310_dev->dev, "request to mmap %llx:%lx\n", offset, size);
 
-	if ((offset >= la9310_dev->scratch_allocator.host_phys) &&
-		((offset + size) <= (la9310_dev->scratch_allocator.host_phys +
-			modem_share_buf_size + modem_host_data_size + modem_rf_data_size))) {
+	if ((offset >= scratch_buf_phys_addr) &&
+		((offset + size) <= scratch_buf_phys_addr +
+					scratch_buf_size)) {
 		vma->vm_page_prot = pgprot_cached(vma->vm_page_prot);
 		dev_dbg(la9310_dev->dev,
 			"request to mmap %llx:%lx marked cacheable\n",
@@ -76,8 +75,6 @@ static int la9310_modinfo_mmap(struct file *filp, struct vm_area_struct *vma)
 	rc = remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff, size,
 				vma->vm_page_prot);
 	return rc;
-#endif
-	return 0;
 }
 
 void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
