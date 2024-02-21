@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-#include "la9310_modinfo.h"
+#include <la9310_modinfo.h>
 
 #ifndef MAX_MODEM
 #define MAX_MODEM 4
