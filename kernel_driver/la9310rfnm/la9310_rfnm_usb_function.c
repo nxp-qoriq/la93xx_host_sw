@@ -149,7 +149,7 @@ void callback_func(struct device *dev)
 	int list_node_count;
 	//struct device *dev;
 	//dev = kmalloc(1024, 0);
-	//dma_sync_single_for_cpu(dev, rfnm_iqflood_dma_addr, RFNM_IQFLOOD_MEMSIZE, DMA_BIDIRECTIONAL);
+	//dma_sync_single_for_cpu(dev, rfnm_iqflood_dma_addr, iq_mem_size, DMA_BIDIRECTIONAL);
 
 	//return;
 
@@ -904,15 +904,15 @@ static int __init la9310_rfnm_init(void)
 		}
 	}
 */	
-	rfnm_iqflood_vmem_nocache = ioremap(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE * 10);
-	rfnm_iqflood_vmem = memremap(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE, MEMREMAP_WB ); 
+	rfnm_iqflood_vmem_nocache = ioremap(iq_mem_addr, iq_mem_size * 10);
+	rfnm_iqflood_vmem = memremap(iq_mem_addr, iq_mem_size, MEMREMAP_WB );
 
 	if(!rfnm_iqflood_vmem) {
 		dev_err(la9310_dev->dev, "Failed to map I/Q buffer\n");
 		err = ENOMEM;
 	}
 
-	dev_info(la9310_dev->dev, "Mapped IQflood from %x to %p\n", RFNM_IQFLOOD_MEMADDR, rfnm_iqflood_vmem);
+	dev_info(la9310_dev->dev, "Mapped IQflood from %x to %p\n", iq_mem_addr, rfnm_iqflood_vmem);
 
 	gpio4_iomem = ioremap(0x30230000, SZ_4K);
 	gpio4 = (volatile unsigned int *) gpio4_iomem;
