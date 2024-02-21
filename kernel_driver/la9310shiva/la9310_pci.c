@@ -24,7 +24,17 @@
 static const char *driver_name = "la9310-shiva";
 int scratch_buf_size;
 uint64_t scratch_buf_phys_addr;
+#if RFNM
+int dcs_rate = 0;
+#else
+int dcs_rate = 1;
+#endif
+EXPORT_SYMBOL_GPL(dcs_rate);
 
+uint64_t iq_mem_addr = 0x96400000;
+EXPORT_SYMBOL_GPL(iq_mem_addr);
+int iq_mem_size = (1024 * 1024 * 20);
+EXPORT_SYMBOL_GPL(iq_mem_size);
 char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
 EXPORT_SYMBOL_GPL(firmware_name);
 char vspa_fw_name[FIRMWARE_NAME_SIZE] = VSPA_FW_NAME;
@@ -576,6 +586,13 @@ module_param(scratch_buf_size, int, 0);
 MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
 module_param(scratch_buf_phys_addr, ullong, 0);
 MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
+module_param(dcs_rate, int, 0400);
+MODULE_PARM_DESC(dcs_rate,
+	"DCS Frequency for LA9310 device (0 for Full Duplex, 1 for Half Duplex");
+module_param(iq_mem_addr, ullong, 0400);
+MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Address");
+module_param(iq_mem_size, int, 0400);
+MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Size");
 module_param_string(alt_vspa_fw_name, vspa_fw_name,
 		sizeof(vspa_fw_name), 0400);
 MODULE_PARM_DESC(alt_vspa_fw_name,

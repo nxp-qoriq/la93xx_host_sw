@@ -24,6 +24,8 @@
 #define LA9310_IPC_INIT_WAIT_RETRIES		50
 #define NXP_ERRATUM_A008822	       1
 
+#define LA9310_IQFLOOD_PHYS_ADDR	0xC0000000
+
 /*Enable the multiple MSIs support */
 #define LA9310_REAL_MSI_FLAG	   (1 << 0)
 /* Macros to mark status of IRQ line */
@@ -42,6 +44,9 @@ extern struct completion ScratchRegisterHandshake;
 #endif
 
 extern int scratch_buf_size;
+extern int dcs_rate;
+extern int iq_mem_size;
+extern uint64_t iq_mem_addr;
 extern uint64_t scratch_buf_phys_addr;
 extern char firmware_name[];
 extern char vspa_fw_name[];
