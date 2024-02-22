@@ -292,10 +292,10 @@ la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
 			LA9310_IPC_OUTBOUND_WIN,
 			PCIE_ATU_TYPE_MEM,
 			LA9310_IQFLOOD_PHYS_ADDR,
-			RFNM_IQFLOOD_MEMADDR,
-			RFNM_IQFLOOD_MEMSIZE);
-	dev_info(la9310_dev->dev, "RFNM IQFLOOD Buff:0x%x[H]-0x%x[M],size %d\n",
-		 LA9310_IQFLOOD_PHYS_ADDR, RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE);
+			iq_mem_addr,
+			iq_mem_size);
+	dev_info(la9310_dev->dev, "RFNM IQFLOOD Buff:0x%x[H]-0x%llx[M],size %d\n",
+		 LA9310_IQFLOOD_PHYS_ADDR, iq_mem_addr, iq_mem_size);
 }
 
 static void
@@ -774,6 +774,11 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	wdog_set_pci_domain_nr(la9310_dev->id,
 			pci_domain_nr(la9310_dev->pdev->bus));
 	wdog_set_modem_status(0, WDOG_MODEM_READY);
+
+	writel(dcs_rate, &la9310_dev->hif->dcs_rate);
+	writel(LA9310_IQFLOOD_PHYS_ADDR, &la9310_dev->hif->iq_phys_addr);
+	writel(iq_mem_size, &la9310_dev->hif->iq_mem_size);
+	writel(iq_mem_addr, &la9310_dev->hif->iq_mem_addr);
 
 	init_stage = LA9310_SUBDRV_PROBE_STAGE;
 	dev_info(la9310_dev->dev, "%s:Initiating sub-drivers\n",

@@ -294,7 +294,7 @@ void callback_func(struct device *dev)
 	int list_node_count;
 	//struct device *dev;
 	//dev = kmalloc(1024, 0);
-	//dma_sync_single_for_cpu(dev, rfnm_iqflood_dma_addr, RFNM_IQFLOOD_MEMSIZE, DMA_BIDIRECTIONAL);
+	//dma_sync_single_for_cpu(dev, rfnm_iqflood_dma_addr, iq_mem_size, DMA_BIDIRECTIONAL);
 
 	//return;
 
@@ -309,7 +309,7 @@ void callback_func(struct device *dev)
 	//flush_cache_all();
 
 	
-	//dcache_clean_poc(start, start + RFNM_IQFLOOD_MEMSIZE);
+	//dcache_clean_poc(start, start + iq_mem_size);
 
 
 	//for(i = 0; i < 100; i++) {
@@ -319,13 +319,13 @@ void callback_func(struct device *dev)
 
 
 
-	//arch_sync_dma_for_cpu(0x96400000lu, RFNM_IQFLOOD_MEMSIZE, 0);
-	//arch_sync_dma_for_device(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE, 0);
+	//arch_sync_dma_for_cpu(0x96400000lu, iq_mem_size, 0);
+	//arch_sync_dma_for_device(iq_mem_addr, iq_mem_size, 0);
 	
 	/*
-	start = (unsigned long)phys_to_virt(RFNM_IQFLOOD_MEMADDR);
-	//dcache_clean_poc(start, start + RFNM_IQFLOOD_MEMSIZE);
-	dcache_inval_poc(start, start + RFNM_IQFLOOD_MEMSIZE);
+	start = (unsigned long)phys_to_virt(iq_mem_addr);
+	//dcache_clean_poc(start, start + iq_mem_size);
+	dcache_inval_poc(start, start + iq_mem_size);
 	*/
 	
 
@@ -818,13 +818,13 @@ static int __init la9310_rfnm_init(void)
 	}
 
 	
-	rfnm_iqflood_vmem_nocache = ioremap(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE * 10);
-	rfnm_iqflood_vmem = memremap(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE, MEMREMAP_WB ); 
-//	rfnm_iqflood_vmem = ioremap(RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE); 
+	rfnm_iqflood_vmem_nocache = ioremap(iq_mem_addr, iq_mem_size * 10);
+	rfnm_iqflood_vmem = memremap(iq_mem_addr, iq_mem_size, MEMREMAP_WB );
+//	rfnm_iqflood_vmem = ioremap(iq_mem_addr, iq_mem_size);
 
 	
 
-	/*err = dma_declare_coherent_memory(la9310_dev->dev, RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMADDR, RFNM_IQFLOOD_MEMSIZE);
+	/*err = dma_declare_coherent_memory(la9310_dev->dev, iq_mem_addr, iq_mem_addr, iq_mem_size);
 	if (err) {
 		pr_err("Error dma_declare_coherent_memory");
 		return err;
@@ -840,7 +840,7 @@ static int __init la9310_rfnm_init(void)
 		dev_err(la9310_dev->dev, "mydev: No suitable DMA available\n");
 	}*/
 	/*attr = DMA_ATTR_WEAK_ORDERING | DMA_ATTR_FORCE_CONTIGUOUS;
-	rfnm_iqflood_vmem = dma_alloc_coherent(la9310_dev->dev, RFNM_IQFLOOD_MEMSIZE, &rfnm_iqflood_dma_addr, attr);
+	rfnm_iqflood_vmem = dma_alloc_coherent(la9310_dev->dev, iq_mem_size, &rfnm_iqflood_dma_addr, attr);
 
 	*/
 
@@ -851,22 +851,22 @@ static int __init la9310_rfnm_init(void)
 	}
 	
 
-	//rfnm_iqflood_vmem = phys_to_virt(RFNM_IQFLOOD_MEMADDR);
+	//rfnm_iqflood_vmem = phys_to_virt(iq_mem_addr);
 
-	dev_info(la9310_dev->dev, "Mapped IQflood from %x to %p\n", RFNM_IQFLOOD_MEMADDR, rfnm_iqflood_vmem);
+	dev_info(la9310_dev->dev, "Mapped IQflood from %x to %p\n", iq_mem_addr, rfnm_iqflood_vmem);
 
 
 	//for(i = 0; i < 1000; i++) {
 	//	callback_func(i & 1);
 	//}
 /*
-	//start = (unsigned long)phys_to_virt(RFNM_IQFLOOD_MEMADDR);
+	//start = (unsigned long)phys_to_virt(iq_mem_addr);
 	start = (unsigned long)rfnm_iqflood_vmem;
-	//dcache_clean_poc(start, start + RFNM_IQFLOOD_MEMSIZE);
+	//dcache_clean_poc(start, start + iq_mem_size);
 
 
 	for(i = 0; i < 100; i++) {
-		dcache_inval_poc(start, start + RFNM_IQFLOOD_MEMSIZE);
+		dcache_inval_poc(start, start + iq_mem_size);
 		//printk("asd\n");
 	}
 */	
