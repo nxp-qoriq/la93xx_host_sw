@@ -33,7 +33,7 @@ la9310_collect_ep_log(struct la9310_ep_log *ep_log, char *buf)
 	max_len = ep_log->len - ep_log->offset;
 	str_len = strnlen(ep_log_str, max_len);
 	if (str_len) {
-		memcpy(buf, ep_log_str, str_len);
+		memcpy_fromio(buf, ep_log_str, str_len);
 		memset_io(ep_log_str, 0, str_len);
 		ep_log->offset += str_len;
 		if (ep_log->offset >= ep_log->len)
@@ -45,7 +45,7 @@ la9310_collect_ep_log(struct la9310_ep_log *ep_log, char *buf)
 			ep_log_str = ep_log->buf;
 			str_len = strlen(ep_log_str);
 			if (str_len) {
-				memcpy(buf, ep_log_str, str_len);
+				memcpy_fromio(buf, ep_log_str, str_len);
 				memset_io(ep_log_str, 0, str_len);
 				log_len += str_len;
 				buf += str_len;
