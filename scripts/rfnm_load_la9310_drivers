@@ -1,0 +1,24 @@
+
+# m4 jtag enable:
+
+gpioget 2 9
+gpioget 2 14
+
+./rfnm_enable_la9310_uart_ext_port
+
+#lspci -vv | grep Addr
+#echo 1 > /sys/bus/pci/devices/0000\:01\:00.0/remove
+#sleep 1
+#lspci
+#echo "1" > /sys/bus/pci/rescan
+
+lspci -vv | grep Addr
+
+
+echo 7 > /proc/sys/kernel/printk
+
+insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=0x4000000 scratch_buf_phys_addr=0x92400000
+insmod /lib/modules/$(uname -r)/extra/kpage_ncache.ko
+insmod /lib/modules/$(uname -r)/extra/la9310rfnm.ko
+insmod /lib/modules/$(uname -r)/extra/rfnm_usb_function.ko
+insmod /lib/modules/$(uname -r)/extra/rfnm_usb.ko file=/home/root/backing_storage

@@ -1,0 +1,5 @@
+./rfnm_init_rba_gpio
+./rfnm_en_daughterboard_power
+
+gpioset 2 22=1 # 1.4V LMS
+gpioset 3 8=1 # 1.25V LMS
