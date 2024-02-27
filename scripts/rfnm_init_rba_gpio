@@ -1,0 +1,18 @@
+gpioset 3 22=1
+gpioset 3 23=1
+gpioset 3 31=1
+gpioset 3 28=1
+
+
+gpioset 1 2=1 #ff mr
+gpioset 1 3=0 #ff oe
+
+gpioset 3 0=1 #clk 1
+gpioset 3 1=1 #clk 2
+gpioset 3 2=1 #clk 3
+
+gpioset 3 4=1 #clk 4
+gpioset 3 5=1 #clk 5
+
+
+gpioset 3 9=1 #data
