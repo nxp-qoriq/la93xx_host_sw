@@ -12,6 +12,7 @@
 #include <linux/uaccess.h>
 #include <linux/module.h>
 #include <linux/version.h>
+#include <linux/delay.h>
 
 #include <la9310_host_if.h>
 #include "la9310_base.h"
@@ -1024,11 +1025,46 @@ int  __attribute__((weak)) wdog_exit(void)
 	return 0;
 }
 
+int  __attribute__((weak)) tvd_init(void)
+{
+	printk(KERN_DEBUG "Dummy TVD init\n");
+	return 0;
+}
+
+int  __attribute__((weak)) tvd_exit(void)
+{
+	printk(KERN_DEBUG "Dummy TVD exit\n");
+	return 0;
+}
+
+int  __attribute__((weak)) tvd_probe(struct la9310_dev *la9310_dev,
+		int virq_count, struct virq_evt_map *virq_map)
+{
+	dev_dbg(la9310_dev->dev, "[%s]Dummy TVD probe\n", la9310_dev->name);
+	return 0;
+}
+
+int  __attribute__((weak)) tvd_remove(struct la9310_dev *la9310_dev)
+{
+	dev_dbg(la9310_dev->dev, "[%s]Dummy TVD remove\n", la9310_dev->name);
+	return 0;
+}
+
 /*
  * Sub driver initializer table
  * Add the subdrivers in the order of desired initiazation sequence
  */
 static struct la9310_sub_driver sub_drvs_g[] = {
+	{
+		.name = "TVD",
+		.type = LA9310_SUBDRV_TYPE_TVD,
+		{
+			.probe = tvd_probe,
+			.remove = tvd_remove,
+			.mod_init = tvd_init,
+			.mod_exit = tvd_exit,
+		},
+	},
 	{
 		.name = "WDOG",
 		.type = LA9310_SUBDRV_TYPE_WDOG,
