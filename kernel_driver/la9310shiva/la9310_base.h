@@ -310,6 +310,7 @@ struct la9310_dev {
 	void *vspa_priv;
 	void *ipc_priv;
 	void *v2h_priv;
+	void *tvd_priv;
 	struct la9310_host_stats host_stats;
 	struct list_head list;
 	uint32_t pci_outbound_win_start_addr;
@@ -348,6 +349,7 @@ typedef enum {
 	LA9310_SUBDRV_TYPE_IPC,
 	LA9310_SUBDRV_TYPE_WDOG,
 	LA9310_SUBDRV_TYPE_V2H,
+	LA9310_SUBDRV_TYPE_TVD,
 	LA9310_SUBDRV_TYPE_TEST
 } la9310_subdrv_type_t;
 
