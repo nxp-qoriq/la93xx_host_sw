@@ -8,7 +8,7 @@ INCLUDES  += -I${LA9310_COMMON_HEADERS}
 
 SRCS_TEST := modem_info.c
 OBJS := $(SRCS_TEST:.c =.o)
-BIN_MOD_INFO := modem_info
+BIN_MOD_INFO := la9310_modem_info
 
 SRCS_SHBUF := la9310_shbuf_test.c
 OBJS_SHBUF := $(SRCS_TEST:.c =.o)
