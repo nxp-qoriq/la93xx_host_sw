@@ -44,7 +44,10 @@ extern struct completion ScratchRegisterHandshake;
 #endif
 
 extern int scratch_buf_size;
-extern int dcs_rate;
+extern int dac_mask;
+extern int adc_mask;
+extern int adc_rate_mask;
+extern int dac_rate_mask;
 extern int iq_mem_size;
 extern uint64_t iq_mem_addr;
 extern uint64_t scratch_buf_phys_addr;
