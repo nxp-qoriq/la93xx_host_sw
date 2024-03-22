@@ -24,12 +24,22 @@
 static const char *driver_name = "la9310-shiva";
 int scratch_buf_size;
 uint64_t scratch_buf_phys_addr;
-#if RFNM
-int dcs_rate = 0;
+
+int dac_mask = 0x1;
+EXPORT_SYMBOL(dac_mask);
+int adc_mask = 0x4;
+EXPORT_SYMBOL(adc_mask);
+
+#ifdef RFNM
+int adc_rate_mask;
+int dac_rate_mask;
 #else
-int dcs_rate = 1;
+/*1 indicates the corresponding DCS at half sampling rate else full */
+int adc_rate_mask = 0x4;
+int dac_rate_mask = 0x1;
 #endif
-EXPORT_SYMBOL_GPL(dcs_rate);
+EXPORT_SYMBOL(adc_rate_mask);
+EXPORT_SYMBOL(dac_rate_mask);
 
 uint64_t iq_mem_addr = 0x96400000;
 EXPORT_SYMBOL_GPL(iq_mem_addr);
@@ -586,9 +596,16 @@ module_param(scratch_buf_size, int, 0);
 MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
 module_param(scratch_buf_phys_addr, ullong, 0);
 MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
-module_param(dcs_rate, int, 0400);
-MODULE_PARM_DESC(dcs_rate,
-	"DCS Frequency for LA9310 device (0 for Full Duplex, 1 for Half Duplex");
+module_param(adc_mask, int, 0400);
+MODULE_PARM_DESC(adc_mask, "ADC channel enable mask - bit wise (MAX 0x4)");
+module_param(adc_rate_mask, int, 0400);
+MODULE_PARM_DESC(adc_rate_mask,
+	"ADC Frequency mask for each channel (0 for Full Duplex, 1 for Half Duplex)");
+module_param(dac_mask, int, 0400);
+MODULE_PARM_DESC(dac_mask, "DAC channel enable mask - bit wise (MAX 0x2)");
+module_param(dac_rate_mask, int, 0400);
+MODULE_PARM_DESC(dac_rate_mask,
+	"DAC Frequency for each channel (0 for Full Duplex, 1 for Half Duplex");
 module_param(iq_mem_addr, ullong, 0400);
 MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Address");
 module_param(iq_mem_size, int, 0400);

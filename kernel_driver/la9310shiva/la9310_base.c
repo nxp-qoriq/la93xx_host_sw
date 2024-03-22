@@ -776,7 +776,11 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 			pci_domain_nr(la9310_dev->pdev->bus));
 	wdog_set_modem_status(0, WDOG_MODEM_READY);
 
-	writel(dcs_rate, &la9310_dev->hif->dcs_rate);
+	writel(adc_mask, &la9310_dev->hif->adc_mask);
+	writel(adc_rate_mask, &la9310_dev->hif->adc_rate_mask);
+	writel(dac_mask, &la9310_dev->hif->dac_mask);
+	writel(dac_rate_mask, &la9310_dev->hif->dac_rate_mask);
+
 	writel(LA9310_IQFLOOD_PHYS_ADDR, &la9310_dev->hif->iq_phys_addr);
 	writel(iq_mem_size, &la9310_dev->hif->iq_mem_size);
 	writel(iq_mem_addr, &la9310_dev->hif->iq_mem_addr);
@@ -884,7 +888,6 @@ la9310_base_deinit(struct la9310_dev *la9310_dev, int stage, int drv_index)
 	case LA9310_SCRATCH_DMA_INIT_STAGE:
 		host_region = &dma_info->host_buf;
 		iounmap(host_region->vaddr);
-		__attribute__((__fallthrough__));
 	}
 	return 0;
 }
