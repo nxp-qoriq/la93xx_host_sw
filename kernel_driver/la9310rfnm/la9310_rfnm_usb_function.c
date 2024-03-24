@@ -29,8 +29,8 @@
 #include <linux/usb/gadget.h>
 
 #include <linux/usb/composite.h>
-#include "/home/davide/imx-rfnm-bsp/build/tmp/work-shared/imx8mp-rfnm/kernel-source/drivers/usb/gadget/function/g_zero.h"
-#include "/home/davide/imx-rfnm-bsp/build/tmp/work-shared/imx8mp-rfnm/kernel-source/drivers/usb/gadget/u_f.h"
+#include <function/g_zero.h>
+#include <u_f.h>
 
 
 volatile int countdown_to_print = 0;
@@ -856,29 +856,9 @@ static struct usb_function_instance *loopback_alloc_instance(void)
 }
 DECLARE_USB_FUNCTION(Loopback, loopback_alloc_instance, loopback_alloc);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void rfnm_usb_gadget_init(struct la9310_dev *la9310_dev) {
 	usb_function_register(&Loopbackusb_func);
 }
-
-
-
-
-
 
 static int __init la9310_rfnm_init(void)
 {
@@ -955,11 +935,7 @@ static void  __exit la9310_rfnm_exit(void)
 	usb_function_unregister(&Loopbackusb_func);
 }
 
-MODULE_PARM_DESC(device, "LA9310 Device name(wlan_monX)");
+MODULE_PARM_DESC(device, "LA9310 Device name(la9310_rfnm)");
 module_init(la9310_rfnm_init);
 module_exit(la9310_rfnm_exit);
 MODULE_LICENSE("GPL");
-
-
-
-

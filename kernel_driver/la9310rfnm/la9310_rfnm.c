@@ -223,17 +223,17 @@ tasklet_again:
 	}
 
 	if(readable % 8) {
-		printk("readable is not divisible by 8\n", readable);
+		printk("readable (%d) is not divisible by 8\n", readable);
 	}
 
 	if(tail % 8) {
-		printk("tail is not divisible by 8\n", tail);
+		printk("tail(%d) is not divisible by 8\n", tail);
 	}
 
 	readable = (readable * 12) / 16;
 
 	if(readable % 6) {
-		printk("readable is not divisible by 6\n", readable);
+		printk("readable(%d) is not divisible by 6\n", readable);
 	}
 
 	//printk("e %d %d %d", head, tail, readable);
@@ -457,17 +457,7 @@ void callback_func(struct device *dev)
 	//pack16to12(rfnm_iqflood_buf[next_iqflood_write_buf], (uint64_t *)((uint8_t *) rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE)), RFNM_IQFLOOD_BUFSIZE);
 	//memcpy(rfnm_iqflood_buf[next_iqflood_write_buf], ((uint8_t *) rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE)), RFNM_IQFLOOD_BUFSIZE / 1);
 	//printk("%p %p\n", rfnm_iqflood_buf[next_iqflood_write_buf], rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE));
-
-	
-
-
-
-	
-
-
-
 	//printk("Block retrived! with %llx paddr %p vaddr %lu size\n", block_writing_to->phys_addr, block_writing_to->vaddr, block_writing_to->size);
-	
 	//pack16to12(rfnm_iqflood_buf[next_iqflood_write_buf], block_writing_to->vaddr, RFNM_IQFLOOD_BUFSIZE);
 
 
@@ -553,11 +543,7 @@ int rfnm_callback_deinit(void)
 	return ret;
 }
 
-
-
-
-
-static void rfnm_submit_usb_req(struct usb_ep *ep, struct usb_request *req)
+void rfnm_submit_usb_req(struct usb_ep *ep, struct usb_request *req)
 {
 	struct usb_composite_dev	*cdev;
 	struct f_sourcesink		*ss = ep->driver_data;
@@ -572,7 +558,7 @@ static void rfnm_submit_usb_req(struct usb_ep *ep, struct usb_request *req)
 
 	switch (status) {
 
-	case 0:				/* normal completion? */
+	case 0:			/* normal completion? */
 
 		rfnm_ep_stats[RFNM_USB_EP_OK]++;
 		//printk("req->length %d\n", req->length);
@@ -602,17 +588,17 @@ static void rfnm_submit_usb_req(struct usb_ep *ep, struct usb_request *req)
 					 */
 		rfnm_ep_stats[RFNM_USB_EP_OVERFLOW]++;
 		printk( "%s EOVERFLOW (%d), %d/%d\n", ep->name, status, req->actual, req->length);
-
+		break;
+	case -EREMOTEIO:		/* short read */
+		rfnm_ep_stats[RFNM_USB_EP_REMOTEIO]++;
+		printk( "%s short read (%d), %d/%d\n", ep->name, status, req->actual, req->length);
+		break;
 	default:
 #if 1
 		rfnm_ep_stats[RFNM_USB_EP_DEFAULT]++;
 		printk("%s complete --> %d, %d/%d\n", ep->name, status, req->actual, req->length);
 		break;
 #endif
-	case -EREMOTEIO:		/* short read */
-		rfnm_ep_stats[RFNM_USB_EP_REMOTEIO]++;
-		printk( "%s short read (%d), %d/%d\n", ep->name, status, req->actual, req->length);
-		break;
 	}
 
 	struct usb_ep_queue_ele *new_ele;
@@ -626,12 +612,6 @@ static void rfnm_submit_usb_req(struct usb_ep *ep, struct usb_request *req)
 	spin_unlock_irq(&rfnm_usb_req_buffer->list_lock);
 
 	tasklet_schedule(&rfnm_tasklet);
-
-
-
-
-
-
 	/*status = usb_ep_queue(ep, req, GFP_ATOMIC);
 	if (status) {
 		printk("kill %s:  resubmit %d bytes --> %d\n", ep->name, req->length, status);
@@ -657,18 +637,6 @@ EXPORT_SYMBOL_GPL(rfnm_submit_usb_req);
 	return 0;
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
 static int __init la9310_rfnm_init(void)
 {
 	int err = 0, i;
@@ -703,7 +671,7 @@ static int __init la9310_rfnm_init(void)
 		err = ENOMEM;
 	}
 
-	dev_info(la9310_dev->dev, "Mapped IQflood from %x to %p\n", iq_mem_addr, rfnm_iqflood_vmem);
+	dev_info(la9310_dev->dev, "Mapped IQflood from %llx to %p\n", iq_mem_addr, rfnm_iqflood_vmem);
 
 	gpio4_iomem = ioremap(0x30230000, SZ_4K);
 	gpio4 = (volatile unsigned int *) gpio4_iomem;
@@ -721,13 +689,9 @@ static int __init la9310_rfnm_init(void)
 
 	rfnm_usb_req_buffer = kzalloc(sizeof(*rfnm_usb_req_buffer), GFP_KERNEL);
 	if (!rfnm_usb_req_buffer)
-		return ERR_PTR(-ENOMEM);
+		return -ENOMEM;
 
 	INIT_LIST_HEAD(&rfnm_usb_req_buffer->active);
-
-	
-
-	
 	/*err = usb_gadget_probe_driver(&rfnm_usb_driver);
 	if (err < 0)
 		dev_err(la9310_dev->dev, "Failed to register USB driver\n");*/

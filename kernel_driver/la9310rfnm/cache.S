@@ -2,8 +2,6 @@
 */
 #include <linux/linkage.h>
 
-
-
 	.macro __dcache_op_workaround_clean_cache, op, addr
 //alternative_if_not ARM64_WORKAROUND_CLEAN_CACHE
 	dc	\op, \addr
@@ -45,10 +43,6 @@
 	dcache_line_size \tmp1, \tmp2
 	dcache_by_myline_op \op, \domain, \start, \end, \tmp1, \tmp2, \fixup
 	.endm
-
-
-
-
 
 /*
  *      dcache_inval_poc(start, end)
@@ -104,9 +98,6 @@ SYM_FUNC_END_PI(dcache_inval_poc)
 SYM_FUNC_END(__dma_inv_area)
 
 
-
-
-
 /*
  *	dcache_clean_poc(start, end)
  *
@@ -129,6 +120,3 @@ SYM_FUNC_START_PI(dcache_clean_poc)
 	ret
 SYM_FUNC_END_PI(dcache_clean_poc)
 SYM_FUNC_END(__dma_clean_area)
-
-
-
