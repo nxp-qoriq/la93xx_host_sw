@@ -81,13 +81,30 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 {
 	int32_t idx;
 	struct la9310_mem_region_info *ep_buf;
+	int name_len = 2;
+	char *brd_name = "NA";
+	struct device_node *root;
 
 	sprintf(mi->name, "%s", la9310_dev->name);
 	mi->id = la9310_dev->id;
 
-	if (of_machine_is_compatible("fsl,imx8mp-evk") ||
-			of_machine_is_compatible("fsl,imx8mp"))
-		strcpy(mi->board_name, LA9310_BOARD_NAME);
+	root = of_find_node_by_path("/");
+	if (root) {
+		if (of_machine_is_compatible("fsl,imx8mp-evk") ||
+			of_machine_is_compatible("fsl,imx8mp") ||
+			of_machine_is_compatible("fsl,imx8dxl-evk") ||
+			of_machine_is_compatible("fsl,imx8dxl")) {
+			brd_name = (char *)of_get_property(root, "model", &name_len);
+			if (brd_name)
+				strncpy(mi->board_name, brd_name, name_len);
+		}
+		else {
+			strncpy(mi->board_name, brd_name, name_len);
+		}
+	}
+	else {
+		strncpy(mi->board_name, brd_name, name_len);
+	}
 
 	mi->ccsr.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR].phys_addr;
 	mi->ccsr.size = la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR].size;
