@@ -243,9 +243,6 @@ int tvd_probe(struct la9310_dev *la9310_dev, int virq_count,
 	la9310_dev->tvd_priv = tvd_dev;
 
 	return 0;
-out:
-	cdev_del(&tvd_dev_data[i]->cdev);
-	device_destroy(la9310_tvd_dev_class, MKDEV(tvd_dev_major, i));
 err:
 	kfree(tvd_dev_data[i]);
 	tvd_dev_data_g[i] = NULL;
