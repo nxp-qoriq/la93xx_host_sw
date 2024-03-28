@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
 #Copyright 2019, 2024 NXP
-CFLAGS  += -Wall -Werror
+CFLAGS  +=  -g -O0 -Wall -Werror
 
 SRCS_TEST := mem_rw.c
 OBJS_TEST := $(SRCS_TEST:.c =.o)

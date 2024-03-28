@@ -19,7 +19,7 @@ $(BIN_TEST): ${OBJS_TEST}
 	${CC} -c ${CFLAGS} ${INCLUDES}  $< -o $@
 
 clean:
-	rm -rf *.o bin_create
+	rm -rf *.o $(BIN_TEST)
 
 install:
 	install -D $(BIN_TEST) ${BIN_INSTALL_DIR}/$(BIN_TEST)
