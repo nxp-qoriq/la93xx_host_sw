@@ -2,6 +2,7 @@
 SCRIPT_TEST := reset_la9310.sh scratch_buff_base.sh
 SCRIPT_TEST += rfnm_load_la9310_drivers rfnm_enable_la9310_uart_ext_port
 SCRIPT_TEST += rfnm_en_lms rfnm_init_rba_gpio rfnm_en_daughterboard_power
+SCRIPT_TEST += rfnm_load_lime.sh
 
 .PHONY: all
 
