@@ -1053,6 +1053,30 @@ int  __attribute__((weak)) tvd_remove(struct la9310_dev *la9310_dev)
 	return 0;
 }
 
+int  __attribute__((weak)) init_tti_dev(void)
+{
+	printk(KERN_DEBUG "Dummy TTI init\n");
+	return 0;
+}
+
+int  __attribute__((weak)) remove_tti_dev(void)
+{
+	printk(KERN_DEBUG "Dummy TTI exit\n");
+	return 0;
+}
+
+int  __attribute__((weak)) tti_dev_start(struct la9310_dev *la9310_dev,
+		int virq_count, struct virq_evt_map *virq_map)
+{
+	dev_dbg(la9310_dev->dev, "[%s]Dummy TTI probe\n", la9310_dev->name);
+	return 0;
+}
+
+int  __attribute__((weak)) tti_dev_stop(struct la9310_dev *la9310_dev)
+{
+	dev_dbg(la9310_dev->dev, "[%s]Dummy TTI remove\n", la9310_dev->name);
+	return 0;
+}
 /*
  * Sub driver initializer table
  * Add the subdrivers in the order of desired initiazation sequence
@@ -1068,6 +1092,18 @@ static struct la9310_sub_driver sub_drvs_g[] = {
 			.mod_exit = tvd_exit,
 		},
 	},
+#ifndef RFNM
+	{
+		.name = "TTI",
+		.type = LA9310_SUBDRV_TYPE_TTI,
+		{
+			.probe = tti_dev_start,
+			.remove = tti_dev_stop,
+			.mod_init = init_tti_dev,
+			.mod_exit = remove_tti_dev,
+		},
+	},
+#endif
 	{
 		.name = "WDOG",
 		.type = LA9310_SUBDRV_TYPE_WDOG,

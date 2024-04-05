@@ -1,9 +1,9 @@
 #SPDX-License-Identifier: BSD-3-Clause
-#Copyright 2017, 2021 NXP
+#Copyright 2017, 2021, 2024 NXP
 
 #Add applicatin/exectuable directories here
 
-APP_DIRS := bincreate wdog devmem bin2mem modem_info memrw tvd
+APP_DIRS := bincreate wdog devmem bin2mem modem_info memrw tvd tti
 
 
 CLEAN_APP_DIRS = $(patsubst %, %_clean, ${APP_DIRS})
