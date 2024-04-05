@@ -5,6 +5,7 @@
 #define __LA9310_BASE_H__
 
 #include <linux/if.h>
+#include <linux/cdev.h>
 #include <linux/semaphore.h>
 #include <la9310_host_if.h>
 #include <linux/firmware.h>
@@ -271,6 +272,23 @@ struct irq_info {
 	int free;
 };
 
+struct tti_priv {
+	int irq;
+	int tti_id;
+	uint64_t tti_count;
+	/* TBD Timestamp; */
+	struct swait_queue_head tti_wq;
+	raw_spinlock_t wq_lock;
+	int tti_irq_status;
+	struct eventfd_ctx *evt_fd_ctxt;
+};
+
+/*TTI char Dev data holder */
+struct la9310_tti_device_data {
+	struct tti_priv *tti_dev;
+	struct cdev cdev;
+};
+
 /**
  * struct la9310_dev - The LA9310 device private structure.
  *
@@ -353,6 +371,7 @@ typedef enum {
 	LA9310_SUBDRV_TYPE_WDOG,
 	LA9310_SUBDRV_TYPE_V2H,
 	LA9310_SUBDRV_TYPE_TVD,
+	LA9310_SUBDRV_TYPE_TTI,
 	LA9310_SUBDRV_TYPE_TEST
 } la9310_subdrv_type_t;
 
@@ -430,6 +449,7 @@ void raise_msg_interrupt(struct la9310_dev *la9310_dev,
 			 uint32_t msg_unit_index, uint32_t ibs);
 
 ssize_t la9310_show_global_status(char *buf);
+
 
 int la9310_modinfo_init(struct la9310_dev *dev);
 int la9310_modinfo_exit(struct la9310_dev *dev);
