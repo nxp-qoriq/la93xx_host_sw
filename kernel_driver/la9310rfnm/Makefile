@@ -28,6 +28,7 @@ obj-m += rfnm_gpio.o
 obj-m += rfnm_tti.o
 #obj-m += rfnm_kasan.o
 
+ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
 rfnm_lime-objs := rfnm_lime_m.o
 rfnm_lime-objs += rfnm_fe_generic.o
 rfnm_lime-objs += rfnm_fe_lime0.o
@@ -54,3 +55,6 @@ rfnm_lime-objs += ${LMS7002M_MODULE_DIR}/src/LMS7002M_lml.o
 rfnm_lime-objs += ${LMS7002M_MODULE_DIR}/src/LMS7002M_sxx.o 
 rfnm_lime-objs += ${LMS7002M_MODULE_DIR}/src/LMS7002M_xbuf.o
 obj-m += rfnm_lime.o
+else
+$(warning RFNM_LIME Module not compiled)
+endif
