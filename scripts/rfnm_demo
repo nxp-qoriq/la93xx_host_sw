@@ -1,3 +1,5 @@
+#!/bin/sh
+#SPDX-License-Identifier: BSD-3-Clause
 
 echo tdd > /sys/kernel/rfnm_primary/rx0/enable
 echo sma_a > /sys/kernel/rfnm_primary/rx0/path
