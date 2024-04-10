@@ -289,6 +289,7 @@ struct la9310_tti_device_data {
 	struct cdev cdev;
 };
 
+
 /**
  * struct la9310_dev - The LA9310 device private structure.
  *
@@ -449,7 +450,6 @@ void raise_msg_interrupt(struct la9310_dev *la9310_dev,
 			 uint32_t msg_unit_index, uint32_t ibs);
 
 ssize_t la9310_show_global_status(char *buf);
-
 
 int la9310_modinfo_init(struct la9310_dev *dev);
 int la9310_modinfo_exit(struct la9310_dev *dev);

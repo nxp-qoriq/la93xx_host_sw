@@ -66,7 +66,6 @@ int modem_tti_register(struct tti *tti_t, int modem_id, int tti_event_flag)
 		close(tti_t->dev_tti_handle);
 		goto err;
 	}
-
 err:
 	return ret;
 }
