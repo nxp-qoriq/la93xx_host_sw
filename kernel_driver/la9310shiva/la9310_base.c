@@ -1094,7 +1094,6 @@ static struct la9310_sub_driver sub_drvs_g[] = {
 			.mod_exit = tvd_exit,
 		},
 	},
-#ifndef RFNM
 	{
 		.name = "TTI",
 		.type = LA9310_SUBDRV_TYPE_TTI,
@@ -1105,7 +1104,6 @@ static struct la9310_sub_driver sub_drvs_g[] = {
 			.mod_exit = remove_tti_dev,
 		},
 	},
-#endif
 	{
 		.name = "WDOG",
 		.type = LA9310_SUBDRV_TYPE_WDOG,

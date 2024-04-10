@@ -25,6 +25,9 @@
 #include <linux/rfnm-shared.h>
 #include <rfnm-gpio.h>
 
+extern void tti_irq_api(void);
+extern void set_tti_irq_status(u8 irq_status);
+
 /*
  * There are 4 versions of the timer hardware on Freescale MXC hardware.
  *  - MX1/MXL
@@ -211,6 +214,8 @@ static irqreturn_t mxc_timer_interrupt(int irq, void *dev_id)
 	//u32 tcn = imx_read_current_timer();
 	//u32 tcmp = readl_relaxed(imxtm->base + V2_TCMP);
 
+	tti_irq_api();
+
 	return IRQ_HANDLED;
 }
 
@@ -274,6 +279,7 @@ static int __init _mxc_timer_init(struct imx_timer *imxtm)
 	mxc_clockevent_init(imxtm);
 
 	imxtm->gpt->gpt_irq_enable(imxtm);
+	set_tti_irq_status(1);
 
 
 	return 0;
@@ -361,6 +367,7 @@ static int __init rfnm_gpt_init(void)
 
 
 static __exit void rfnm_gpt_exit(void) {
+	set_tti_irq_status(0);
 	free_irq(imxtm_exit->irq, imxtm_exit);
 }
 

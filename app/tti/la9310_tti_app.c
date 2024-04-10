@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <sched.h>
-#include<la9310_tti_ioctl.h>
+#include <la9310_tti_ioctl.h>
 #include <sys/epoll.h>
 #include <sys/mman.h>
 #include <sys/eventfd.h>
@@ -31,7 +31,7 @@ static int tti_event_flag;
 
 void print_usage_message(void)
 {
-	printf("Usage : ./app_name [options] modem_id tti_count_max\n");
+	printf("Usage : ./app_name modem_id tti_count_max [options] \n");
 	printf("\n");
 	printf("options:\n");
 	printf("\n-e : eventMode\n");
