@@ -858,6 +858,7 @@ la9310_base_deinit(struct la9310_dev *la9310_dev, int stage, int drv_index)
 	struct la9310_dma_info *dma_info = &la9310_dev->dma_info;
 	struct la9310_mem_region_info *host_region;
 
+	la9310_modinfo_exit(la9310_dev);
 	switch (stage) {
 	case LA9310_SUBDRV_PROBE_STAGE:
 		la9310_base_cleanup_subdrv(la9310_dev, drv_index);
@@ -904,6 +905,7 @@ la9310_base_remove(struct la9310_dev *la9310_dev)
 	iounmap(host_region->vaddr);
 	host_region->vaddr = NULL;
 
+	la9310_modinfo_exit(la9310_dev);
 	la9310_subdrv_remove(la9310_dev);
 
 	la9310_clean_request_irq(la9310_dev, &la9310_dev->hif->irq_evt_regs);
