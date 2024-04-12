@@ -106,6 +106,8 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 		strncpy(mi->board_name, brd_name, name_len);
 	}
 
+	sprintf(mi->pci_addr, "%s", g_la9310_global[0].dev_name);
+
 	mi->ccsr.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR].phys_addr;
 	mi->ccsr.size = la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR].size;
 
@@ -163,6 +165,12 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 
 	mi->scratchbuf.host_phy_addr = scratch_buf_phys_addr;
 	mi->scratchbuf.size = scratch_buf_size;
+
+	mi->dac_mask = dac_mask;
+	mi->adc_mask = adc_mask;
+	mi->adc_rate_mask = adc_rate_mask;
+	mi->dac_rate_mask = dac_rate_mask;
+
 }
 
 static long la9310_modinfo_ioctl(struct file *filp, unsigned int cmd,

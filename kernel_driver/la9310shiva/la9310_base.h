@@ -55,11 +55,11 @@ extern uint64_t scratch_buf_phys_addr;
 extern char firmware_name[];
 extern char vspa_fw_name[];
 extern char la9310_dev_name[];
-
 struct la9310_global {
 	bool active;
 	char dev_name[64];
 };
+extern struct la9310_global g_la9310_global[];
 
 enum la9310_init_stage {
 	LA9310_SCRATCH_DMA_INIT_STAGE = 1,
