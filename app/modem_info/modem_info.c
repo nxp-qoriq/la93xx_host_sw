@@ -14,27 +14,22 @@
 
 #include <la9310_modinfo.h>
 
-#ifndef MAX_MODEM
-#define MAX_MODEM 4
-#endif
-char modem_pci_id[15];
-int modem_pci_id_match;
-int modem_id = -1;
+int modem_id = 0;
 int stats;
+
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 void print_usage_message(void)
 {
-	printf("Usage : ./modem_info [optional] modem_pci_id\n");
+	printf("Usage : ./modem_info [optional]\n");
 	printf("\n");
 	printf("\t-h or -H    help and usages\n");
-	printf("\tmodem_pci_id    - as Modem PCI address e.g. 0002:01:00.0\n");
 	printf("\t-m <dev id>\n");
 	printf("\t-s  got printing stats\n");
 	fflush(stdout);
 
 	exit(EXIT_SUCCESS);
 }
-
 
 void validate_cli_args(int argc, char *argv[])
 {
@@ -61,9 +56,6 @@ void validate_cli_args(int argc, char *argv[])
 			break;
 		}
 	}
-
-	strncpy(modem_pci_id, argv[1], 15);
-	modem_pci_id_match = 1;
 }
 
 void print_modem_stats(int fd)
@@ -88,7 +80,7 @@ void print_modem_info(int id)
 	int fd;
 	modinfo_t mil = {0};
 	modinfo_t *mi = &mil;
-	int ret;
+	int ret, i;
 	char dev_name[32];
 
 	sprintf(dev_name, "/dev/%s%d", LA9310_DEV_NAME_PREFIX, id);
@@ -108,7 +100,8 @@ void print_modem_info(int id)
 
 	printf("Board Name - %s\n", mi->board_name);
 	printf("LA93xx ID:%d\n", mi->id);
-	printf("PCI DEV Name - %s\n", mi->name);
+	printf("Dev name - %s\n", mi->name);
+	printf("PCI addr - %s\n", mi->pci_addr);
 	printf("PCI WIN start     0x%lx Size:0x%x\n",
 		mi->pciwin.host_phy_addr, mi->pciwin.size);
 	printf("HIF start         0x%lx Size:0x%x\n",
@@ -135,6 +128,14 @@ void print_modem_info(int id)
 		mi->stdfw.host_phy_addr, mi->stdfw.size);
 	printf("Scratch buf phys  0x%lx Size:0x%x\n",
 		mi->scratchbuf.host_phy_addr, mi->scratchbuf.size);
+	printf("DAC Mask: 0x%x  Rate: %s\n",
+			mi->dac_mask,
+			mi->dac_rate_mask ? "122.88 MHz": "61.44 MHz");
+	for (i = 0; i < 4; i++) {
+		printf("ADC-%d: %s  Rate : %s \n",
+			i, CHECK_BIT(mi->adc_mask,i) ? "ON": "OFF",
+			CHECK_BIT(mi->adc_rate_mask,i) ? "122.88 MHz": "61.44 MHz");
+	}
 
 	if (stats == 1)
 		print_modem_stats(fd);
@@ -148,12 +149,5 @@ int main(int argc, char *argv[])
 	/* Validate CLI Args */
 	validate_cli_args(argc, argv);
 
-
-	if (modem_id != -1)
-		print_modem_info(modem_id);
-	else {
-		for (i = 0; i < MAX_MODEM; i++)
-			print_modem_info(i);
-	}
-	return 0;
+	print_modem_info(modem_id);
 }

@@ -27,7 +27,7 @@ uint64_t scratch_buf_phys_addr;
 
 int dac_mask = 0x1;
 EXPORT_SYMBOL(dac_mask);
-int adc_mask = 0x4;
+int adc_mask = 0xf;
 EXPORT_SYMBOL(adc_mask);
 
 #ifdef RFNM
@@ -35,7 +35,8 @@ int adc_rate_mask;
 int dac_rate_mask;
 #else
 /*1 indicates the corresponding DCS at half sampling rate else full */
-int adc_rate_mask = 0x4;
+/* 61.44MHz for half, 122.88MHz  for full */
+int adc_rate_mask = 0xf;
 int dac_rate_mask = 0x1;
 #endif
 EXPORT_SYMBOL(adc_rate_mask);
@@ -136,10 +137,30 @@ struct la9310_dev *get_la9310_dev_byname(const char *name)
 }
 EXPORT_SYMBOL_GPL(get_la9310_dev_byname);
 
+static int pci_current_link_speed(struct pci_dev *pci_dev)
+{
+	u16 linkstat;
+	int err;
+
+	err = pcie_capability_read_word(pci_dev, PCI_EXP_LNKSTA, &linkstat);
+	if (err)
+		return -EINVAL;
+
+	return linkstat;
+}
+
+#define PCI_EXP_SPEED2STR(speed) \
+	((speed) == PCI_EXP_LNKSTA_CLS_16_0GB ? "16 GT/s" : \
+	 (speed) == PCI_EXP_LNKSTA_CLS_8_0GB ? "8 GT/s" : \
+	 (speed) == PCI_EXP_LNKSTA_CLS_5_0GB ? "5 GT/s" : \
+	 (speed) == PCI_EXP_LNKSTA_CLS_2_5GB ? "2.5 GT/s" : \
+	 "Unknown speed")
+
 ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 {
 	int i = 0;
 	struct vspa_device *vspadev = (struct vspa_device *)dev->vspa_priv;
+	u16 linkstat;
 	modinfo_t mi;
 
 	la9310_modinfo_get(dev, &mi);
@@ -147,6 +168,13 @@ ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 			" Board Name:%s, Modem ID=%d, Name:%s PCI-ID:%x, PCI_ADDR:%s\n",
 			mi.board_name, dev->id, dev->name, dev->pdev->device,
 			g_la9310_global[dev->id].dev_name);
+
+	linkstat = pci_current_link_speed(dev->pdev);
+	sprintf(&buf[strlen(buf)],
+		" PCI Link Width:X%x Current:X%x(%s)\n",
+		pcie_get_width_cap(dev->pdev),
+		((linkstat & PCI_EXP_LNKSTA_NLW) >> PCI_EXP_LNKSTA_NLW_SHIFT),
+		PCI_EXP_SPEED2STR(linkstat & PCI_EXP_LNKSTA_CLS));
 
 	sprintf(&buf[strlen(buf)], " bin: (%s)\n", firmware_name);
 	sprintf(&buf[strlen(buf)], " VSPA: (%s)\n", vspadev->eld_filename);
