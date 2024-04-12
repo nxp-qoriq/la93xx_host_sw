@@ -19,7 +19,8 @@ lspci -vv | grep Addr
 
 
 echo 7 > /proc/sys/kernel/printk
-
+unlink /home/root/backing_storage
+dd if=/dev/zero of=/home/root/backing_storage bs=1M count=64
 insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=0x4000000 scratch_buf_phys_addr=0x92400000
 insmod /lib/modules/$(uname -r)/extra/kpage_ncache.ko
 insmod /lib/modules/$(uname -r)/extra/la9310rfnm.ko
