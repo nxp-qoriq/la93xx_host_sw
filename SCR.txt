@@ -19,13 +19,6 @@ License: BSD-3-Clause OR GPL-2.0
 Format: source code
 Location: api
 ---------------------------------------------
-Package - uapi
-Description: uapi (files here are shared between user and kernel spaces)
-Author: NXP
-License: BSD-3-Clause OR GPL-2.0
-Format: source code
-Location: uapi
----------------------------------------------
 Package - app/devmem
 Description: devmem application
 License: GPL-2.0

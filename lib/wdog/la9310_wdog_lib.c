@@ -1,23 +1,6 @@
-/*
+/* SPDX-License-Identifier: BSD-3-Clause
  *
- * Copyright 2021 NXP
- *
- * Author:Pramod Kumar <pramod.kumar_1@nxp.com>
- *
- * This software is available to you under the BSD-3-Clause
- * license mentioned below:
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the names of the copyright holders nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
+ * Copyright 2021, 2024 NXP
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,9 +13,7 @@
 #include <poll.h>
 
 #include <la9310_wdog_ioctl.h>
-
-#define LA9310_WDOG_DEVNAME_PREFIX "la9310wdog"
-#define LA9310_WDOG_DEV0_NAME       "dev0"
+#define LA9310_DEV_NAME_PREFIX	"shiva"
 
 struct pollfd pfd;
 
@@ -42,7 +23,8 @@ static inline int open_devwdog(int modem_id)
 	char wdog_dev_name[50];
 	int devwdog;
 
-	sprintf(wdog_dev_name, "/dev/%s%d", LA9310_WDOG_DEVNAME_PREFIX, modem_id);
+	sprintf(wdog_dev_name, "/dev/%s%s%d",
+		LA9310_DEV_NAME_PREFIX, LA9310_WDOG_DEVNAME_PREFIX, modem_id);
 	devwdog = open(wdog_dev_name, O_RDWR | O_NONBLOCK);
 	if (devwdog < 0)
 		return devwdog;

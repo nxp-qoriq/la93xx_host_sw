@@ -368,11 +368,6 @@ void callback_func(struct device *dev)
 	//pack16to12(rfnm_iqflood_buf[next_iqflood_write_buf], (uint64_t *)((uint8_t *) rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE)), RFNM_IQFLOOD_BUFSIZE);
 	//memcpy(rfnm_iqflood_buf[next_iqflood_write_buf], ((uint8_t *) rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE)), RFNM_IQFLOOD_BUFSIZE / 1);
 	//printk("%p %p\n", rfnm_iqflood_buf[next_iqflood_write_buf], rfnm_iqflood_vmem + (this_rcv_buf * RFNM_IQFLOOD_BUFSIZE));
-
-	
-
-
-
 	//printk("Block retrived! with %llx paddr %p vaddr %lu size\n", block_writing_to->phys_addr, block_writing_to->vaddr, block_writing_to->size);
 	
 	//pack16to12(rfnm_iqflood_buf[next_iqflood_write_buf], block_writing_to->vaddr, RFNM_IQFLOOD_BUFSIZE);
@@ -460,8 +455,6 @@ void callback_func(struct device *dev)
 
 	}
 
-	
-
 	//iio_rfnm_buffer_block_done(block_writing_to);
 
 	total_processing_time += ktime_get() - time_processing_start;
@@ -526,18 +519,9 @@ static void  __exit la9310_rfnm_exit(void)
 	}
 
 	enable_callback = 0;
-
-
-
-
 	iio_device_unregister(indio_dev);
 	iio_device_free(indio_dev);
 	
-	
-
-
-
-
 }
 
 /*
@@ -547,10 +531,6 @@ struct rfnm_dev {
 
 struct rfnm_dev *rfnm_dev;
 */
-
-
-
-
 //int dma_declare_coherent_memory(struct device *dev, phys_addr_t phys_addr, 				dma_addr_t device_addr, size_t size);
 
 #define RFNM_LA9310_CHMOD(_chan, _mod, _si)			\
@@ -577,10 +557,6 @@ static const struct iio_chan_spec iio_rfnm_channels[] = {
 	RFNM_LA9310_CHMOD(0, IIO_MOD_Q, 1)
 };
 
-
-
-
-
 static struct iio_rfnm_buffer *iio_buffer_to_rfnm_buffer(struct iio_buffer *buffer)
 {
 	return container_of(buffer, struct iio_rfnm_buffer, queue.buffer);
@@ -603,18 +579,6 @@ static const struct attribute *iio_rfnm_buffer_attrs[] = {
 	&iio_dev_attr_length_align_bytes.dev_attr.attr,
 	NULL,
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 static int iio_rfnm_buffer_submit_block(struct iio_dma_buffer_queue *queue, struct iio_dma_buffer_block *block) //, int direction
 {
@@ -669,8 +633,7 @@ int iio_rfnm_buffer_set_length(struct iio_buffer *buffer, unsigned int length)
 {
 
 	struct la9310_dev *la9310_dev;
-	la9310_dev = get_la9310_dev_byname("nlm0");
-
+	la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 
 	/* Avoid an invalid state */
 	if (length < 2)
@@ -789,25 +752,16 @@ static int __init la9310_rfnm_init(void)
 	struct la9310_dev *la9310_dev;
 	//unsigned long attr;
     //unsigned long start;
-
 	struct iio_buffer *buffer;
-
 	struct iio_rfnm_state *st;
 
-	
-
 	INIT_LIST_HEAD(&iio_rfnm_submitted_buffer);
-	
-	
 
-
-	la9310_dev = get_la9310_dev_byname("nlm0");
+	la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 	if (la9310_dev == NULL) {
-		pr_err("No LA9310 device named nlm0\n");
+		pr_err("No LA9310 device named %s\n", la9310_dev_name);
 		return -ENODEV;
 	}
-
-	
 
 	for(i = 0; i < RFNM_IQFLOOD_BUFCNT; i++) {
 		rfnm_iqflood_buf[i] = kmalloc(RFNM_IQFLOOD_BUFSIZE, GFP_KERNEL);
@@ -816,13 +770,10 @@ static int __init la9310_rfnm_init(void)
 			err = ENOMEM;
 		}
 	}
-
 	
 	rfnm_iqflood_vmem_nocache = ioremap(iq_mem_addr, iq_mem_size * 10);
 	rfnm_iqflood_vmem = memremap(iq_mem_addr, iq_mem_size, MEMREMAP_WB );
 //	rfnm_iqflood_vmem = ioremap(iq_mem_addr, iq_mem_size);
-
-	
 
 	/*err = dma_declare_coherent_memory(la9310_dev->dev, iq_mem_addr, iq_mem_addr, iq_mem_size);
 	if (err) {
@@ -843,8 +794,6 @@ static int __init la9310_rfnm_init(void)
 	rfnm_iqflood_vmem = dma_alloc_coherent(la9310_dev->dev, iq_mem_size, &rfnm_iqflood_dma_addr, attr);
 
 	*/
-
-
 	if(!rfnm_iqflood_vmem) {
 		dev_err(la9310_dev->dev, "Failed to map I/Q buffer\n");
 		err = ENOMEM;
@@ -870,12 +819,6 @@ static int __init la9310_rfnm_init(void)
 		//printk("asd\n");
 	}
 */	
-	
-
-
-	
-
-
 	gpio4_iomem = ioremap(0x30230000, SZ_4K);
 
 	gpio4 = (volatile unsigned int *) gpio4_iomem;
@@ -883,18 +826,11 @@ static int __init la9310_rfnm_init(void)
 	gpio4_initial = *gpio4;
 
 	// 1000 = 1.06us
-
-
-
-
-
-
-
 	//rfnm_dev = vmalloc(sizeof(struct rfnm_dev));
 
 
 	
-printk("asd %lu\n", sizeof(la9310_dev->dev));
+	printk("asd %lu\n", sizeof(la9310_dev->dev));
 	indio_dev = iio_device_alloc(la9310_dev->dev, sizeof(*st));
 	if (!indio_dev) {
 		dev_err(la9310_dev->dev, "failed iio_device_alloc\n");
@@ -907,20 +843,6 @@ printk("asd %lu\n", sizeof(la9310_dev->dev));
 	indio_dev->num_channels = ARRAY_SIZE(iio_rfnm_channels);
 	indio_dev->info = &iio_rfnm_chinfo;
 
-	
-
-
-
-
-
-
-
-
-
-
-
-	
-
 	buffer = iio_rfnm_buffer_alloc(indio_dev->dev.parent, NULL, NULL);
 	if (IS_ERR(buffer)) {
 		dev_err(la9310_dev->dev, "failed iio_rfnm_buffer_alloc\n");
@@ -932,11 +854,6 @@ printk("asd %lu\n", sizeof(la9310_dev->dev));
 	if(err) {
 		dev_err(la9310_dev->dev, "failed to iio_device_attach_buffer\n");
 	}
-
-
-
-
-
 
 	err = iio_device_register(indio_dev);
 	if(err) {
@@ -961,8 +878,6 @@ printk("asd %lu\n", sizeof(la9310_dev->dev));
 	if (err < 0)
 		dev_err(la9310_dev->dev, "Failed to register RFNM Callback\n");
 
-
-
 	return err;
 }
 
@@ -971,7 +886,3 @@ MODULE_PARM_DESC(device, "LA9310 Device name(wlan_monX)");
 module_init(la9310_rfnm_init);
 module_exit(la9310_rfnm_exit);
 MODULE_LICENSE("GPL");
-
-
-
-

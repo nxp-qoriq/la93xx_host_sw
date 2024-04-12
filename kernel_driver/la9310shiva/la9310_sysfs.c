@@ -540,7 +540,7 @@ int la9310_init_global_sysfs(void)
 {
 	int rc = 0;
 
-	la9310_kobj = kobject_create_and_add("la9310", NULL);
+	la9310_kobj = kobject_create_and_add(LA9310_DEV_NAME_PREFIX, NULL);
 	if (!la9310_kobj) {
 		pr_err("Failed to crate la9310_kobj\n");
 		rc = -1;

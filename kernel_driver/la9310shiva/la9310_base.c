@@ -1327,7 +1327,7 @@ int register_rfnm_callback(void * callbackfunc, int irqid) {
 	struct la9310_dev *la9310_dev;
 	int rc;
 
-	la9310_dev = get_la9310_dev_byname("nlm0");
+	la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 	
 	if(irqid == 0) {
 		rc = request_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_2), 
@@ -1358,7 +1358,7 @@ int unregister_rfnm_callback(void)
 {
 	struct la9310_dev *la9310_dev;
 
-	la9310_dev = get_la9310_dev_byname("nlm0");
+	la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 
 	if (NULL != la9310_dev) {
 		free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_UNUSED_2), la9310_dev);

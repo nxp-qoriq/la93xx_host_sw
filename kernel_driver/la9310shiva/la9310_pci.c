@@ -52,7 +52,9 @@ EXPORT_SYMBOL(vspa_fw_name);
 
 LIST_HEAD(pcidev_list);
 static int la9310_dev_id_g;
-static char *la9310_dev_name_prefix_g = "nlm";
+char la9310_dev_name[20];
+EXPORT_SYMBOL(la9310_dev_name);
+
 static struct class *la9310_class;
 
 static void la9310_pcidev_remove(struct pci_dev *pdev);
@@ -373,7 +375,9 @@ static struct la9310_dev *la9310_pci_priv_init(struct pci_dev *pdev)
 
 	la9310_dev->id = i;
 
-	sprintf(&la9310_dev->name[0], "%s%d", la9310_dev_name_prefix_g, la9310_dev->id);
+	sprintf(la9310_dev_name, "%s%d", LA9310_DEV_NAME_PREFIX, la9310_dev->id);
+	sprintf(&la9310_dev->name[0], "%s", la9310_dev_name);
+
 	/* Not allowed to create it */
 	if (i == -1) {
 		dev_err(&pdev->dev,
@@ -390,8 +394,6 @@ static struct la9310_dev *la9310_pci_priv_init(struct pci_dev *pdev)
 
 	dev_info(la9310_dev->dev, "Init - %s !\n", la9310_dev->name);
 
-	sprintf(&la9310_dev->name[0], "%s%d", la9310_dev_name_prefix_g,
-		la9310_dev->id);
 	/* Get the BAR resources and remap them into the driver memory */
 	for (i = 0; i < LA9310_MEM_REGION_BAR_END; i++) {
 		/* Read the hardware address */

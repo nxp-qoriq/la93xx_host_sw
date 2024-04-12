@@ -71,6 +71,8 @@ struct la9310_tvd_device_data {
 	struct cdev cdev;
 };
 
+char tvd_dev_name[TVD_DEVICE_NAME_LEN];
+
 void mtd_get_temp(struct tvd_dev *tvd_dev, uint32_t tvdid, struct mtdTemp *mtd_temp)
 {
 	int retry = 0, valid = 0, index = 0, temp = 0, ret = 0;
@@ -205,7 +207,7 @@ static int create_tvd_cdevs(struct la9310_tvd_device_data **tvd_dev_data, int id
 				NULL,
 				MKDEV(tvd_dev_major, id),
 				NULL,
-				"la9310tvddev%d", id)) == NULL) {
+				"%s%d", tvd_dev_name, id)) == NULL) {
 		pr_err("%s: Cannot create the tvd device(%d)\n", __func__, id);
 		ret = -1;
 	}
@@ -277,11 +279,13 @@ int tvd_init(void)
 
 	pr_debug("%s:TVD init called\n", __func__);
 
+	sprintf(tvd_dev_name, "%s%s",
+		LA9310_DEV_NAME_PREFIX, LA9310_TVD_DEV_NAME_PREFIX);
 	/*Allocating chardev region and assigning Major number */
 	ret = alloc_chrdev_region(&tvd_dev_num,
 					tvd_dev_minor,
 					MAX_MODEM,
-					"la9310tvddev");
+					tvd_dev_name);
 	if (ret < 0) {
 		pr_err("%s: Failed in getting major number\n",
 				 __func__);
@@ -299,7 +303,7 @@ int tvd_init(void)
 	memset(tvd_dev, 0, sizeof(struct tvd_dev));
 
 	/* sysfs class creation */
-	la9310_tvd_dev_class = class_create(THIS_MODULE, "la9310tvddev");
+	la9310_tvd_dev_class = class_create(THIS_MODULE, tvd_dev_name);
 	if (la9310_tvd_dev_class == NULL) {
 		pr_err("%s:Cannot allocate major number\n", __func__);
 		ret = -1;
