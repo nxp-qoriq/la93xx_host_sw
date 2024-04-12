@@ -19,8 +19,6 @@
 #include <sys/time.h>
 #include "la9310_modinfo.h"
 
-#define LA9310_DEV_NAME_PREFIX "nlm"
-
 long long find_time_diff(struct timeval *diff,
 		struct timeval *end_time,
 		struct timeval *start_time

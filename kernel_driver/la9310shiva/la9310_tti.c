@@ -34,6 +34,7 @@
 #include "la9310_base.h"
 
 #define SIGNAL_TO_USERSPACE	1
+char tti_dev_name[20];
 
 static struct tti_priv *tti_priv_g;
 
@@ -249,8 +250,8 @@ tti_device_dump(int id, char *buf)
 	priv = tti_dev_data[id].tti_dev;
 
 	sprintf(&buf[strlen(buf)],
-		" TTI:la9310ttidev%d irq %d irq status=%d\n",
-		id, priv->irq,
+		" TTI:%s%d irq %d irq status=%d\n",
+		tti_dev_name, id, priv->irq,
 		priv->tti_irq_status);
 	return 0;
 }
@@ -282,7 +283,6 @@ int tti_dev_start(struct la9310_dev *dev)
 	struct device_node *la9310_tti;
 	struct tti_priv *tti_dev = NULL;
 	int i, j, ret, tti_gpio;
-
 	j = dev->id;
 
 #ifndef RFNM
@@ -337,7 +337,7 @@ int tti_dev_start(struct la9310_dev *dev)
 
 	if (device_create(la9310_tti_dev_class, NULL,
 			MKDEV(tti_dev_major, j),
-			NULL, "la9310ttidev%d", j) == NULL) {
+			NULL, "%s%d", tti_dev_name, j) == NULL) {
 		dev_dbg(dev->dev,
 			"tti device_create failed :%d\n", j);
 		kfree(tti_dev);
@@ -363,14 +363,16 @@ int init_tti_dev(void)
 {
 	int err;
 
+	sprintf(tti_dev_name, "%s%s",
+		LA9310_DEV_NAME_PREFIX, LA9310_TTI_DEVNAME_PREFIX);
 	/*Allocating chardev region and assigning Major number*/
 	err = alloc_chrdev_region(&tti_dev_number, 0,
 				  MAX_MODEM,
-				  "la9310ttidev");
+				  tti_dev_name);
 	/* Device Major number*/
 	tti_dev_major = MAJOR(tti_dev_number);
 	/*sysfs class creation */
-	la9310_tti_dev_class = class_create(THIS_MODULE, "la9310ttidev");
+	la9310_tti_dev_class = class_create(THIS_MODULE, tti_dev_name);
 
 	tti_dev_data = kmalloc(MAX_MODEM * sizeof(*tti_dev_data), GFP_KERNEL);
 	if (tti_dev_data == NULL) {

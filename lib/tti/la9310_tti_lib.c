@@ -14,8 +14,6 @@
 #include <la9310_modinfo.h>
 #include <la9310_tti_ioctl.h>
 
-#define LA9310_TTI_DEVNAME_PREFIX "la9310ttidev"
-
 struct la9310_ccsr_info *ccsr_info[MAX_MODEM] = {NULL};
 void *addr[MAX_MODEM] = {NULL};
 static int tti_fd[MAX_MODEM];
@@ -25,8 +23,8 @@ static inline int open_devtti(struct tti *tti_t, int modem_id)
 	char tti_dev_name[50];
 	int devtti;
 
-	sprintf(tti_dev_name, "/dev/%s%d", LA9310_TTI_DEVNAME_PREFIX,
-					modem_id);
+	sprintf(tti_dev_name, "/dev/%s%s%d",
+		LA9310_DEV_NAME_PREFIX, LA9310_TTI_DEVNAME_PREFIX, modem_id);
 
 	printf("Trying to open device : %s\n", tti_dev_name);
 	devtti = open(tti_dev_name, O_RDWR);

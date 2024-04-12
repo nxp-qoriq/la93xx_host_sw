@@ -24,8 +24,7 @@
 #else
 #define pr_debug(...)
 #endif
-
-#define LA9310_TVD_DEV_NAME_PREFIX "la9310tvddev"
+#define LA9310_DEV_NAME_PREFIX	"shiva"
 
 static int modem_id;
 static bool modem_monitor;
@@ -80,7 +79,8 @@ void print_tvd_info(int id)
 	struct tvd tvd_t = {0};
 	struct tvd *tvd_ptr = &tvd_t;
 
-	sprintf(dev_name, "/dev/%s%d", LA9310_TVD_DEV_NAME_PREFIX, id);
+	sprintf(dev_name, "/dev/%s%s%d",
+		LA9310_DEV_NAME_PREFIX, LA9310_TVD_DEV_NAME_PREFIX, id);
 
 	fd = open(dev_name, O_RDWR);
 	if (fd < 0) {

@@ -34,8 +34,10 @@
 #include <linux/gpio.h>
 #include "la9310_wdog.h"
 #include "la9310_base.h"
+#include <la9310_wdog_ioctl.h>
 
 #define WDOG_DEVICE_NAME_LEN 16
+char wdog_dev_name[WDOG_DEVICE_NAME_LEN];
 
 struct wdog_priv {
 	int irq;
@@ -335,10 +337,12 @@ static int create_wdog_cdevs(struct wdog_dev *wdog_dev)
 	int i, ctr;
 	int ret;
 
+	sprintf(wdog_dev_name, "%s%s",
+		LA9310_DEV_NAME_PREFIX, LA9310_WDOG_DEVNAME_PREFIX);
 	if (alloc_chrdev_region(&(wdog_dev->wdog_dev_number),
 				0,
 				WDOG_ID_MAX,
-				"la9310wdog") < 0) {
+				wdog_dev_name) < 0) {
 		pr_err("%s: Cannot allocate major number\n",
 		       __func__);
 		goto err;
@@ -346,7 +350,7 @@ static int create_wdog_cdevs(struct wdog_dev *wdog_dev)
 
 	wdog_dev->wdog_dev_major = MAJOR(wdog_dev->wdog_dev_number);
 
-	wdog_dev->wdog_class = class_create(THIS_MODULE, "la9310wdog");
+	wdog_dev->wdog_class = class_create(THIS_MODULE, wdog_dev_name);
 	if (wdog_dev->wdog_class == NULL) {
 		pr_err("%s:Cannot allocate major number\n",
 		       __func__);
@@ -372,7 +376,7 @@ static int create_wdog_cdevs(struct wdog_dev *wdog_dev)
 				   MKDEV(wdog_dev->wdog_dev_major,
 					 i),
 				   NULL,
-				   "la9310wdog%d", i)) == NULL) {
+				   "%s%d", wdog_dev_name, i)) == NULL) {
 			pr_err("%s: Cannot create the device"
 			       , __func__);
 			goto err_device;

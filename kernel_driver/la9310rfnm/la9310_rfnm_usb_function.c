@@ -862,16 +862,16 @@ void rfnm_usb_gadget_init(struct la9310_dev *la9310_dev) {
 
 static int __init la9310_rfnm_init(void)
 {
-	int err = 0, i;
+	int err = 0;
 	struct la9310_dev *la9310_dev;
 	rfnm_dev = kzalloc(sizeof(struct rfnm_dev), GFP_KERNEL);
 
 	rfnm_dev->usb_config_buffer = kzalloc(CONFIG_DESCRIPTOR_MAX_SIZE, GFP_KERNEL);
 	
 
-	la9310_dev = get_la9310_dev_byname("nlm0");
+	la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 	if (la9310_dev == NULL) {
-		pr_err("No LA9310 device named nlm0\n");
+		pr_err("No LA9310 device named %s\n", la9310_dev_name);
 		return -ENODEV;
 	}
 
@@ -919,7 +919,7 @@ static int __init la9310_rfnm_init(void)
 static void  __exit la9310_rfnm_exit(void)
 {
 	int err = 0, i;
-	struct la9310_dev *la9310_dev = get_la9310_dev_byname("nlm0");
+	struct la9310_dev *la9310_dev = get_la9310_dev_byname(la9310_dev_name);
 
 	if (la9310_dev == NULL) {
 		pr_err("No LA9310 device name found during %s\n", __func__);

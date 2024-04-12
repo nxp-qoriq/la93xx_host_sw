@@ -54,6 +54,7 @@ extern uint64_t iq_mem_addr;
 extern uint64_t scratch_buf_phys_addr;
 extern char firmware_name[];
 extern char vspa_fw_name[];
+extern char la9310_dev_name[];
 
 struct la9310_global {
 	bool active;

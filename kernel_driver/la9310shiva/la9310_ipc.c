@@ -25,9 +25,9 @@
 #include "la9310_base.h"
 #include "la93xx_bbdev_ipc.h"
 
-#define DEVICE_NAME_LEN		32
+#define DEVICE_NAME_LEN	32
 #define IPC_NR_DEVICES		2
-#define IPC_MINOR_START		0
+#define IPC_MINOR_START	0
 
 #define LA9310_IPC_IRQ_NUM_TXT_SIZE	64
 #define SIGNAL_TO_CHANNEL_LISTENER	1
@@ -72,6 +72,8 @@ struct ipc_dev {
 
 	sys_map_t sys_map;
 };
+
+char ipc_dev_name[DEVICE_NAME_LEN];
 
 static int
 ipc_open(struct inode *inode, struct file *filp)
@@ -386,7 +388,7 @@ la9310_ipc_probe(struct la9310_dev *la9310_dev, int virq_count,
 	}
 
 	ipc_dev->ipc_devnr = MKDEV(ipc_major, ipc_minor_index);
-	sprintf(ipc_dev->name, "%s%s", LA9310_IPC_DEVNAME_PREFIX, la9310_dev->name);
+	sprintf(ipc_dev->name, "%s", ipc_dev_name);
 
 	ipc_class_dev = device_create(la9310_dev->class, NULL,
 				ipc_dev->ipc_devnr,
@@ -467,8 +469,11 @@ la9310_ipc_init(void)
 	ipc_minor = IPC_MINOR_START;
 	ipc_nr_dev = IPC_NR_DEVICES;
 
+	sprintf(ipc_dev_name, "%s%s",
+		LA9310_DEV_NAME_PREFIX, LA9310_IPC_DEVNAME_PREFIX);
+
 	ret = alloc_chrdev_region(&ipc_devnr, ipc_minor,
-			ipc_nr_dev, LA9310_IPC_DEVNAME_PREFIX);
+			ipc_nr_dev, ipc_dev_name);
 	if (ret < 0) {
 		printk(KERN_CRIT "la9310_ipc: Failed in getting major number\n");
 		return ret;

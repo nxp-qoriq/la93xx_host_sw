@@ -17,7 +17,6 @@
 #ifndef MAX_MODEM
 #define MAX_MODEM 4
 #endif
-#define LA9310_DEV_NAME_PREFIX "nlm"
 char modem_pci_id[15];
 int modem_pci_id_match;
 int modem_id = -1;
