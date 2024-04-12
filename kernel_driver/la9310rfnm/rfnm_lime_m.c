@@ -493,12 +493,12 @@ int rfnm_rx_ch_set(struct rfnm_dgb *dgb_dt, struct rfnm_api_rx_ch * rx_ch) {
 
 	if(freq <= 60) {
 		LMS7002M_rfe_set_path(lms, LMS_CHA, LMS7002M_RFE_LNAL);
-	} else if(freq <= 1000) {
-		LMS7002M_rfe_set_path(lms, LMS_CHA, LMS7002M_RFE_LNAH);
-		rfnm_fe_srb(dgb_dt, RFNM_LIME0_LRIM, 1);
-	} else {
+	} else if(freq <= 1400) {
 		LMS7002M_rfe_set_path(lms, LMS_CHA, LMS7002M_RFE_LNAW);
 		rfnm_fe_srb(dgb_dt, RFNM_LIME0_LRIM, 0);
+	} else {
+		LMS7002M_rfe_set_path(lms, LMS_CHA, LMS7002M_RFE_LNAH);
+		rfnm_fe_srb(dgb_dt, RFNM_LIME0_LRIM, 1);
 	}
 
 	
