@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-/* Copyright 2021-2022 NXP
+/* Copyright 2021-2024 NXP
  */
 
 #include <stdio.h>
@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include <string.h>
 #include <sched.h>
-#include <la9310_wdog.h>
+#include <la9310_wdog_api.h>
 
 
 /* Every modem can have one watchdog ID */
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (wdog_event_flag != 0) {
-		ret = libwdog_reinit_modem(&wdog_t, 300);
+		ret = libwdog_reinit_modem_rfnm(&wdog_t, 300);
 		if (ret < 0)
 			printf("modem reinit failed\n");
 	} else {
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 		libwdog_wait(wdog_t.dev_wdog_handle);
 		libwdog_deregister(&wdog_t);
 
-		ret = libwdog_reinit_modem(&wdog_t, 300);
+		ret = libwdog_reinit_modem_rfnm(&wdog_t, 300);
 		if (ret < 0)
 			printf("WDOG Event: modem reinit failed\n");
 		else

@@ -11,9 +11,17 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <poll.h>
+#include <string.h>
 
+#include <la9310_modinfo.h>
 #include <la9310_wdog_ioctl.h>
+
 #define LA9310_DEV_NAME_PREFIX	"shiva"
+#define PCI_DEVICE_PATH "readlink -f /sys/bus/pci/drivers/NXP-LA9310-Driver/"
+#define HOST_PCI_PATH "/sys/devices/platform/"
+#define DEFAULT_EXTRA_RMMOD_SCRIPT "/home/root/rmmod_rfnm_drivers.sh"
+#define xstr(s) str(s)
+#define str(s) #s
 
 struct pollfd pfd;
 
@@ -136,6 +144,19 @@ err:
 	return ret;
 }
 
+
+int libwdog_set_host_state(struct wdog *wdog_t, char *host_pci_status, char value)
+{
+	int fd;
+	char sys_name[160] = {'\0'};
+	int ret = MODEM_WDOG_OK;
+
+	sprintf(sys_name, "echo %c > %s\n", value, host_pci_status);
+	system(sys_name);
+	sleep(1);
+	return 0;
+}
+
 int libwdog_rescan_modem(void)
 {
 	int fd;
@@ -193,10 +214,57 @@ err:
 	return ret;
 }
 
+void get_pci_device_id(int modem_id, char *pci_driver_path) {
+	char dev_name[32];
+	int fd, ret = 0;
+	modinfo_t mil = {0};
+	modinfo_t *mi = &mil;
+	sprintf(dev_name, "/dev/%s%d", LA9310_DEV_NAME_PREFIX,modem_id);
+	fd = open(dev_name, O_RDONLY);
+	if (-1 == fd) {
+		perror("dev open failed:");
+		return;
+	}
+	ret = ioctl(fd, IOCTL_LA93XX_MODINFO_GET, (modinfo_t *) &mil);
+	if (ret < 0) {
+		printf("IOCTL_LA93XX_MODINFO_GET failed.\n");
+		close(fd);
+		return;
+	}
+
+	sprintf(pci_driver_path , "%s%s", PCI_DEVICE_PATH, mi->pci_addr);
+
+	close(fd);
+	return;
+}
+
+void get_pci_controller_path(char *host_pci_status, char *pci_driver_path) {
+	FILE *command = popen(pci_driver_path, "r");
+	char pci_device_path[256];
+	int i = 0, len = 0;
+
+	fgets(pci_device_path, sizeof(pci_device_path), command);
+
+	len += snprintf((host_pci_status + len), sizeof(HOST_PCI_PATH), "%s", HOST_PCI_PATH);
+
+	char *buf = strtok(pci_device_path, "/");
+	while (buf != NULL) {
+		if (i >= 3) {
+			len += sprintf((host_pci_status + len), "%s/", buf);
+		}
+		if (i == 4) {
+			len += sprintf((host_pci_status + len), "pcie_dis");
+			break;
+		}
+		buf = strtok(NULL, "/");
+		i++;
+	}
+	host_pci_status[len] = '\0';
+}
+
 int libwdog_reinit_modem(struct wdog *wdog_t, uint32_t timeout)
 {
 	int ret = MODEM_WDOG_OK;
-
 	/* Remove device from pci subsystem */
 	libwdog_remove_modem(wdog_t);
 
@@ -207,6 +275,55 @@ int libwdog_reinit_modem(struct wdog *wdog_t, uint32_t timeout)
 		goto err;
 	}
 	sleep(1);
+
+	/* Wait for modem to finish boot */
+	ret = libwdog_rescan_modem_blocking(wdog_t, timeout);
+	if (ret < 0) {
+		printf("Modem_wdog: modem rescan fail\n");
+		goto err;
+	}
+err:
+	return ret;
+}
+
+int libwdog_reinit_modem_rfnm(struct wdog *wdog_t, uint32_t timeout)
+{
+	int ret = MODEM_WDOG_OK;
+	char host_pci_status[64], pci_driver_path[128], rmmod_script[64];
+
+	get_pci_device_id(wdog_t->wdogid, pci_driver_path);
+	get_pci_controller_path(host_pci_status, pci_driver_path);
+
+	strcpy(rmmod_script,xstr(EXTRA_RMMOD_SCRIPT));
+
+	if (rmmod_script == NULL)
+		system(DEFAULT_EXTRA_RMMOD_SCRIPT);
+	else
+		system(rmmod_script);
+	/* Remove device from pci subsystem */
+	libwdog_remove_modem(wdog_t);
+	sleep(1);
+
+	ret = libwdog_set_host_state(wdog_t, host_pci_status, '1');
+	if (ret < 0) {
+		printf("Modem_wdog: host reset failed\n");
+		goto err;
+	}
+
+	/* Give reset pulse on MODEM_HRESET */
+	ret = libwdog_reset_modem(wdog_t);
+	if (ret < 0) {
+		printf("Modem_wdog: modem reset failed\n");
+		goto err;
+	}
+	sleep(1);
+
+	ret = libwdog_set_host_state(wdog_t, host_pci_status, '0');
+	if (ret < 0) {
+		printf("Modem_wdog: host reset failed\n");
+		goto err;
+	}
+
 	/* Wait for modem to finish boot */
 	ret = libwdog_rescan_modem_blocking(wdog_t, timeout);
 	if (ret < 0) {
