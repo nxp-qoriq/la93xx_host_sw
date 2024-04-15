@@ -44,6 +44,7 @@ struct wdog_priv {
 	int irq_status_flag;
 	int gpio;
 	int gpio_hrst;
+	int gpio_bootstrap;
 	int wdog_id;
 	int wdog_modem_status;
 	int domain_nr;
@@ -163,6 +164,27 @@ static int wdog_gpio_config(struct wdog_priv *wdog_pd)
 			goto err1;
 		}
 	}
+
+	if (wdog_pd->gpio_bootstrap != 0) {
+		ret = gpio_request(wdog_pd->gpio_bootstrap,
+				   "watchdog modem config reset");
+		if (ret) {
+			pr_err("%s: Can't request gpio %d, error: %d\n", __func__,
+			       wdog_pd->gpio_bootstrap, ret);
+			goto err;
+		}
+
+		ret = gpio_direction_output(wdog_pd->gpio_bootstrap, 1);
+		if (ret < 0) {
+			pr_err("%s: Can't configure gpio %d\n", __func__,
+			       wdog_pd->gpio_hrst);
+			gpio_free(wdog_pd->gpio_bootstrap);
+			goto err2;
+		}
+
+	}
+err2:
+	gpio_free(wdog_pd->gpio_bootstrap);
 err1:
 	gpio_free(wdog_pd->gpio_hrst);
 err:
@@ -177,10 +199,14 @@ static void wdog_reset_modem(struct wdog_priv *wdog_pd, struct wdog *wdog)
 	gpio_set_value_cansleep(wdog_pd->gpio, 0);
 	if (wdog_pd->gpio_hrst != 0)
 		gpio_set_value_cansleep(wdog_pd->gpio_hrst, 0);
+	if (wdog_pd->gpio_bootstrap != 0)
+		gpio_set_value_cansleep(wdog_pd->gpio_bootstrap, 0);
 	mdelay(1);
 	gpio_set_value_cansleep(wdog_pd->gpio, 1);
 	if (wdog_pd->gpio_hrst != 0)
 		gpio_set_value_cansleep(wdog_pd->gpio_hrst, 1);
+	if (wdog_pd->gpio_bootstrap != 0)
+		gpio_set_value_cansleep(wdog_pd->gpio_bootstrap, 1);
 }
 
 int wdog_set_modem_status(int wdog_id, int status)
@@ -459,9 +485,18 @@ int wdog_init(void)
 					rc = -EINVAL;
 					goto err;
 				}
+				wdog_dev->wdog_pd[i].gpio_bootstrap =
+					of_get_named_gpio(dn_wdog, "la9310-bootstrap-en-gpios", i);
+				if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio_bootstrap)) {
+					pr_err("rfnm: la9310-bootstarp-en-gpios %d not found\n", i);
+					rc = -EINVAL;
+					goto err;
+				}
 			}
+
 		} else {
 			wdog_dev->wdog_pd[i].gpio_hrst = 0;
+			wdog_dev->wdog_pd[i].gpio_bootstrap = 0;
 		}
 		if (wdog_gpio_config(&wdog_dev->wdog_pd[i])) {
 			rc = -EINVAL;
@@ -489,6 +524,8 @@ err:
 		gpio_free(wdog_dev->wdog_pd[j].gpio);
 		if (wdog_dev->wdog_pd[j].gpio_hrst)
 			gpio_free(wdog_dev->wdog_pd[j].gpio_hrst);
+		if (wdog_dev->wdog_pd[j].gpio_bootstrap)
+			gpio_free(wdog_dev->wdog_pd[j].gpio_bootstrap);
 	}
 	kfree(wdog_dev);
 	wdog_gdev = NULL;
@@ -506,6 +543,8 @@ int wdog_exit(void)
 		gpio_free(wdog_dev->wdog_pd[i].gpio);
 		if (wdog_dev->wdog_pd[i].gpio_hrst)
 			gpio_free(wdog_dev->wdog_pd[i].gpio_hrst);
+		if (wdog_dev->wdog_pd[i].gpio_bootstrap)
+			gpio_free(wdog_dev->wdog_pd[i].gpio_bootstrap);
 		if (wdog_dev->wdog_pd[i].irq_status_flag != 0)
 			free_irq(wdog_dev->wdog_pd[i].irq,
 				 &(wdog_dev->wdog_pd[i]));

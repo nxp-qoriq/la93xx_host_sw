@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2024 NXP
  */
 
-#ifndef __LA9310_WDOG__
-#define __LA9310_WDOG__
+#ifndef __LA9310_WDOG_API__
+#define __LA9310_WDOG_API__
 
 #include "la9310_wdog_ioctl.h"
 
@@ -61,6 +61,14 @@ int libwdog_close(struct wdog *wdog_t);
 int libwdog_get_modem_status(struct wdog *wdog_t);
 
 /**
+ * @brief Set host pci state. Used to reset host pci.
+ * @param[in] wdog_t reference to struct wdog
+ * 	      value  0/1 (shutdown/power up) host pci
+ * @return On success 0. On failure negative error number
+ */
+int libwdog_set_host_state(struct wdog *wdog_t, char value);
+
+/**
  * @brief Remove modem from linux pcie subsystem
  * @param[in] wdog_t reference to struct wdog
  * @return On success 0. On failure negative error number
@@ -94,6 +102,19 @@ int libwdog_rescan_modem_blocking(struct wdog *wdog_t, uint32_t timeout);
  */
 int libwdog_reinit_modem(struct wdog *wdog_t, uint32_t timeout);
 
+/**
+ * @brief Reinitalize modem. Performs 3 operations
+ * 1. Remove all rfnm modules
+ * 2. Remove modem from linux pci subsystem
+ * 3. Shutdown the host pci controller
+ * 4. Hard resets modem
+ * 5. Power up the host pci controller
+ * 6. Rescan the pci bus until modem becomes ready
+ * @param[in] wdog_t reference to struct wdog
+ * @param[in] timeout timeout in seconds
+ * @return On success 0. On failure negative error number
+ */
+int libwdog_reinit_modem_rfnm(struct wdog *wdog_t, uint32_t timeout);
 /** @} */
 #endif /* __LA9310_WDOG__ */
 

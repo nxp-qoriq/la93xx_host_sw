@@ -257,7 +257,7 @@ tti_device_dump(int id, char *buf)
 	return 0;
 }
 
-void tti_dev_stop(struct la9310_dev *dev)
+int tti_dev_stop(struct la9310_dev *dev)
 {
 	struct tti_priv *priv;
 	int j;
@@ -265,7 +265,7 @@ void tti_dev_stop(struct la9310_dev *dev)
 	j = dev->id;
 
 	if (tti_dev_data[j].tti_dev == NULL)
-		return;
+		return 0;
 	priv = tti_dev_data[j].tti_dev;
 	if (priv && priv->tti_irq_status) {
 		free_irq(priv->irq, priv);
@@ -277,6 +277,7 @@ void tti_dev_stop(struct la9310_dev *dev)
 	tti_priv_g = NULL;
 	kfree(tti_dev_data[j].tti_dev);
 	tti_dev_data[j].tti_dev = NULL;
+	return 0;
 }
 
 int tti_dev_start(struct la9310_dev *dev)
