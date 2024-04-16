@@ -130,11 +130,11 @@ void print_modem_info(int id)
 		mi->scratchbuf.host_phy_addr, mi->scratchbuf.size);
 	printf("DAC Mask: 0x%x  Rate: %s\n",
 			mi->dac_mask,
-			mi->dac_rate_mask ? "122.88 MHz": "61.44 MHz");
+			mi->dac_rate_mask ? "61.44 MHz":"122.88 MHz");
 	for (i = 0; i < 4; i++) {
 		printf("ADC-%d: %s  Rate : %s \n",
 			i, CHECK_BIT(mi->adc_mask,i) ? "ON": "OFF",
-			CHECK_BIT(mi->adc_rate_mask,i) ? "122.88 MHz": "61.44 MHz");
+			CHECK_BIT(mi->adc_rate_mask,i) ? "61.44 MHz":"122.88 MHz");
 	}
 
 	if (stats == 1)
