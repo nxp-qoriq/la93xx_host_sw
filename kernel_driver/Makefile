@@ -20,6 +20,9 @@ obj-y += la9310demo/
 ifeq ($(IMX_RFNM),1)
 obj-y += la9310rfnm/
 endif
+ifeq ($(IMX_RFGR),1)
+obj-y += la9310rfgr/
+endif
 
 all:
 	$(MAKE) ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) modules
