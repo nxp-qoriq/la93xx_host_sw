@@ -222,7 +222,8 @@ static irqreturn_t mxc_timer_interrupt(int irq, void *dev_id)
 static int __init mxc_clockevent_init(struct imx_timer *imxtm)
 {
 	return request_irq(imxtm->irq, mxc_timer_interrupt,
-			   IRQF_TIMER | IRQF_IRQPOLL /*| IRQF_TRIGGER_RISING | IRQF_EARLY_RESUME*/, "IMX TTI Tick", imxtm);
+		IRQF_NO_THREAD | IRQF_TIMER | IRQF_IRQPOLL /*| IRQF_TRIGGER_RISING | IRQF_EARLY_RESUME*/, 
+		 "IMX TTI Tick", imxtm);
 }
 
 static void imx6dl_gpt_setup_tctl(struct imx_timer *imxtm)
