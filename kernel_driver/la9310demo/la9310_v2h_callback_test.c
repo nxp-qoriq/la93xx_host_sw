@@ -19,18 +19,16 @@ void *cookie;
 static int pkt_ctr;
 #endif
 
-#ifdef RFNM
 volatile int countdown_to_print = 0;
 volatile int callback_cnt = 0;
 volatile int last_callback_cnt = 0;
 volatile int received_data = 0;
 volatile int last_received_data = 0;
 volatile long long int last_print_time = 0;
-#endif
 
-void callback_func(struct sk_buff *skb_ptr, void *cookie)
+
+void sdr_callback_func(struct sk_buff *skb_ptr, void *cookie)
 {
-#ifdef RFNM
 	long long int curr_time, time_diff;
 	int packet_count_diff, received_data_diff;
 
@@ -61,7 +59,10 @@ void callback_func(struct sk_buff *skb_ptr, void *cookie)
 	}
 
 	return;
-#else
+}
+
+void callback_func(struct sk_buff *skb_ptr, void *cookie)
+{
 #ifdef DEBUG_V2H_TEST
 	uint8_t *ptr;
 	int i;
@@ -82,7 +83,6 @@ void callback_func(struct sk_buff *skb_ptr, void *cookie)
 	} else {
 		dev_dbg(la9310_dev->dev, "V2H Callback: sk buffer is null\n");
 	}
-#endif
 }
 
 int v2h_callback_test_init(struct la9310_dev *la9310_dev)
@@ -90,11 +90,14 @@ int v2h_callback_test_init(struct la9310_dev *la9310_dev)
 	int ret = 0;
 
 	dev_info(la9310_dev->dev, "V2H Callback registered\n");
-	ret = register_v2h_callback(la9310_device_name, callback_func,
+	if (sdr_board) {
+		ret = register_v2h_callback(la9310_device_name, callback_func,
 				     la9310_dev);
-#ifdef RFNM
-	last_print_time = ktime_get();
-#endif
+		last_print_time = ktime_get();
+	} else {
+		ret = register_v2h_callback(la9310_device_name, sdr_callback_func,
+				     la9310_dev);
+	}
 	return ret;
 }
 

@@ -5,11 +5,6 @@ ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UA
 ccflags-y += -Wall
 #ccflags-y += -Wall -Werror
 
-ifeq ($(IMX_RFNM),1)
-ccflags-y += -DRFNM=1
-ccflags-y += -DVSPA_MUX_IRQ=1
-endif
-
 ifeq (${BOOTROM_USE_EDMA}, 1)
 ccflags-y += -DBOOTROM_USE_EDMA=1
 endif
