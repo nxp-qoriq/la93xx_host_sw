@@ -14,8 +14,13 @@
 #include <sys/epoll.h>
 #include <sys/mman.h>
 #include <sys/eventfd.h>
+#include <sys/syscall.h>
+#include <pthread.h>
 #include <fcntl.h>
 
+typedef struct tti_stats {
+	        suseconds_t micro_sec;
+} tti_stats_t;
 
 static int modem_id;
 static int tti_count;
@@ -28,6 +33,7 @@ static int tti_event_flag;
 #define MAX_COUNT		10
 #define	LA9310_RFIC_SCHED_PRIORITY	99
 #define MAX_EVENTS 1
+#define TTI_INTERRUPT_INTERVAL_USEC 500
 
 void print_usage_message(void)
 {
@@ -69,21 +75,42 @@ void validate_cli_args(int argc, char *argv[])
 	}
 }
 
+int rte_sys_gettid(void)
+{
+	return (int)syscall(SYS_gettid);
+}
+
 struct sched_param param = { .sched_priority = LA9310_RFIC_SCHED_PRIORITY };
 int main(int argc, char *argv[])
 {
 	struct tti tti_t;
 	ssize_t bytes_read;
-	struct timeval tv;
+	struct timeval tvCurr;
+	uint64_t pv_sec = 0, pv_usec = 0;
 	uint64_t eftd_ctr;
 	int ret = 0;
 	int index = 0;
-	void *la9310_tbgen_master_counter = NULL;
+	int diff, cnt_up=0, cnt_down = 0;
+	int min_t = 10000, max_t = -1, tid;
+	tti_stats_t *stats_arr;
+	char command[32];
 	/* Validate CLI Args */
 	validate_cli_args(argc, argv);
 	/* Raise app priority to RT */
 	/*sched_setscheduler(current, SCHED_FIFO, &param);*/
 	sched_setscheduler(0, SCHED_FIFO, &param);
+
+	tid = rte_sys_gettid();
+	sprintf(command, "chrt -p 99 %d", tid);
+	ret = system(command);
+
+	stats_arr = (tti_stats_t *)malloc((tti_count + 1) *
+			sizeof(tti_stats_t));
+	if (!stats_arr) {
+		printf("OOM while allocating stats array...\n");
+		goto error;
+	}
+	memset(stats_arr, 0, (tti_count + 1) * sizeof(tti_stats_t));
 
 	/* Register Modem & TTI as per command line params supplied */
 	tti_t.tti_eventfd = -1;
@@ -111,11 +138,16 @@ int main(int argc, char *argv[])
 			goto err;
 		}
 		for (index = 0; index < (tti_count + 1); index++) {
-			printf("Waiting for event\n");
 			nfds = epoll_wait(epollfd, events,
 					MAX_EVENTS, -1);
 			if (nfds == 1) {
-				gettimeofday(&tv, NULL);
+				gettimeofday(&tvCurr, NULL);
+				if (index == 0)
+					stats_arr[index].micro_sec = tvCurr.tv_usec;
+				else
+					stats_arr[index].micro_sec = ((tvCurr.tv_sec - pv_sec)*1000000L + tvCurr.tv_usec) - pv_usec;
+				pv_sec = tvCurr.tv_sec;
+				pv_usec = tvCurr.tv_usec;
 				fflush(stdout);
 				bytes_read = read(tti_t.tti_eventfd,
 						&eftd_ctr,
@@ -139,11 +171,36 @@ int main(int argc, char *argv[])
 			} else {
 				/* Extract timestamp in usecs and populate the
 				 *  data structure */
-				gettimeofday(&tv, NULL);
+				gettimeofday(&tvCurr, NULL);
+				if (index == 0)
+					stats_arr[index].micro_sec = tvCurr.tv_usec;
+				else
+					stats_arr[index].micro_sec = ((tvCurr.tv_sec - pv_sec)*1000000L + tvCurr.tv_usec) - pv_usec;
+				pv_sec = tvCurr.tv_sec;
+				pv_usec = tvCurr.tv_usec;
 				fflush(stdout);
 			}
 		}
 	}
+
+	for (index = 0; index < tti_count; index++) {
+		diff = stats_arr[index].micro_sec;
+		if (index <= 5)
+			continue;
+		if (diff > max_t)
+			max_t = diff;
+		else if (diff < min_t)
+			min_t = diff;
+		if (diff > (TTI_INTERRUPT_INTERVAL_USEC + 10))
+			cnt_up++;
+		else if (diff < (TTI_INTERRUPT_INTERVAL_USEC - 10))
+			cnt_down++;
+
+		printf("tti_count=%d\t" "interrupt freq: %d\n", index, diff);
+	}
+	printf("Max time=%d\t Min time: %d\t Up count:%d\t Down count:%d\n",
+			max_t, min_t, cnt_up, cnt_down);
+
 	/* Deregister TTI */
 	modem_tti_deregister(&tti_t);
 	exit(EXIT_SUCCESS);
