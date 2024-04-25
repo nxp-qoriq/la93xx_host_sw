@@ -46,7 +46,7 @@ extern int modem_host_data_size;
 extern int modem_rf_data_size;
 
 #define la9310_MODINFO_MINOR_CNT 1
-#define LA9310_BOARD_NAME "RFNM imx8mp"
+#define LA9310_BOARD_NAME "imx8mp-rfnm"
 
 static int la9310_modinfo_mmap(struct file *filp, struct vm_area_struct *vma)
 {

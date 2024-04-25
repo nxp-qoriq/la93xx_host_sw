@@ -700,9 +700,8 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 		goto out;
 	}
 
-#ifdef RFNM
-	la9310_create_rfnm_iqflood_outbound(la9310_dev);
-#endif
+	if (sdr_board)
+		la9310_create_rfnm_iqflood_outbound(la9310_dev);
 
 	rc = la9310_init_hif(la9310_dev);
 	if (rc)

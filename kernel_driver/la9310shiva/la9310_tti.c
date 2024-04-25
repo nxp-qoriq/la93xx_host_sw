@@ -87,28 +87,29 @@ int tti_register_irq(struct tti_priv *tti_priv_t, struct tti *tti_t)
 
 	tti_priv_t->evt_fd_ctxt = NULL;
 
-	if (tti_priv_t->irq != 0) {
-		if (tti_priv_t->tti_irq_status == 0) {
-		/* IRQ request */
-#ifndef RFNM
-			ret = request_irq(tti_priv_t->irq, tti_irq_handler,
+	if (sdr_board == 0) {
+		if (tti_priv_t->irq != 0) {
+			if (tti_priv_t->tti_irq_status == 0) {
+			/* IRQ request */
+
+				ret = request_irq(tti_priv_t->irq, tti_irq_handler,
 					tti_interrupt_flags, "tti_handler", tti_priv_t);
-			if (ret < 0) {
-				pr_err("%s request irq err - %d\n",
-							__func__, ret);
-				goto err;
+				if (ret < 0) {
+					pr_err("%s request irq err - %d\n",
+								__func__, ret);
+					goto err;
+				} else {
+					tti_priv_t->tti_irq_status = 1;
+				}
 			} else {
-				tti_priv_t->tti_irq_status = 1;
+				pr_err("%s TTI IRQ %d is busy\n",
+					__func__, tti_priv_t->irq);
 			}
-#endif
 		} else {
-			pr_err("%s TTI IRQ %d is busy\n",
-				__func__, tti_priv_t->irq);
-		}
-	} else {
-		pr_err("%s IRQ is invalid\n", __func__);
-		ret = -EINVAL;
-		goto err;
+			pr_err("%s IRQ is invalid\n", __func__);
+			ret = -EINVAL;
+			goto err;
+		} 
 	}
 
 	if (tti_t->tti_eventfd > 0) {
@@ -282,50 +283,50 @@ int tti_dev_start(struct la9310_dev *dev)
 {
 	struct device_node *la9310_tti;
 	struct tti_priv *tti_dev = NULL;
-	int i, j, ret, tti_gpio;
+	int i, j, ret, tti_gpio, irq;
 	j = dev->id;
 
-#ifndef RFNM
-	la9310_tti = of_find_node_by_name(NULL , "la9310_tti");
-	if (!la9310_tti) {
-		dev_err(dev->dev, "TTI node not available in the dtb.\n");
-		return -ENODATA;
-	}
 
-	tti_gpio = of_get_named_gpio(la9310_tti , "la9310-tti-gpio", i);
-	if (!tti_gpio) {
-		dev_err(dev->dev, "la9310-tti-gpio %d not found in the dtb\n",
-				i);
-		return -ENODATA;
-	}
+	if (sdr_board == 0) {
+		la9310_tti = of_find_node_by_name(NULL , "la9310_tti");
+		if (!la9310_tti) {
+			dev_err(dev->dev, "TTI node not available in the dtb.\n");
+			return -ENODATA;
+		}
 
-	ret = gpio_request(tti_gpio, "tti interrupt gpio");
-	if (ret) {
-		dev_err(dev->dev, "Can't request gpio %d, error: %d\n",
-				tti_gpio, ret);
-		return ret;
-	}
+		tti_gpio = of_get_named_gpio(la9310_tti , "la9310-tti-gpio", i);
+		if (!tti_gpio) {
+			dev_err(dev->dev, "la9310-tti-gpio %d not found in the dtb\n",
+					i);
+			return -ENODATA;
+		}
 
-	ret = gpio_direction_input(tti_gpio);
-	if (ret < 0) {
-		dev_err(dev->dev, "Can't configure gpio %d\n",	tti_gpio);
-		gpio_free(tti_gpio);
-		return ret;
-	}
-#endif
+		ret = gpio_request(tti_gpio, "tti interrupt gpio");
+		if (ret) {
+			dev_err(dev->dev, "Can't request gpio %d, error: %d\n",
+					tti_gpio, ret);
+			return ret;
+		}
 
+		ret = gpio_direction_input(tti_gpio);
+		if (ret < 0) {
+			dev_err(dev->dev, "Can't configure gpio %d\n",	tti_gpio);
+			gpio_free(tti_gpio);
+			return ret;
+		}
+
+		irq = gpio_to_irq(tti_gpio);
+		if (irq < 0) {
+			dev_dbg(dev->dev,
+				"ttidev: TTI IRQ not available%d\n", j+1);
+			goto err;
+		}
+	}
 	tti_dev = kmalloc(sizeof(struct tti_priv), GFP_KERNEL);
 	if (tti_dev == NULL)
 		return -ENOMEM;
-#ifndef RFNM
-	tti_dev->irq = gpio_to_irq(tti_gpio);
-	if (tti_dev->irq < 0) {
-		dev_dbg(dev->dev,
-			"ttidev: TTI IRQ not available%d\n", j+1);
-		kfree(tti_dev);
-		goto err;
-	}
-#endif
+
+	tti_dev->irq = irq;
 
 	tti_dev->tti_irq_status = 0;
 	/*simple wait queue init*/
@@ -355,8 +356,8 @@ int tti_dev_start(struct la9310_dev *dev)
 
 	return 0;
 
-	err:
-		return -ENODEV;
+err:
+	return -ENODEV;
 }
 
 int init_tti_dev(void)

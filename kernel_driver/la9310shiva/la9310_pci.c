@@ -30,15 +30,11 @@ EXPORT_SYMBOL(dac_mask);
 int adc_mask = 0xf;
 EXPORT_SYMBOL(adc_mask);
 
-#ifdef RFNM
-int adc_rate_mask;
-int dac_rate_mask;
-#else
 /*1 indicates the corresponding DCS at half sampling rate else full */
 /* 61.44MHz for half, 122.88MHz  for full */
-int adc_rate_mask = 0xf;
-int dac_rate_mask = 0x1;
-#endif
+int adc_rate_mask; 	/* = 0xf; */
+int dac_rate_mask; 	/* = 0x1; */
+
 EXPORT_SYMBOL(adc_rate_mask);
 EXPORT_SYMBOL(dac_rate_mask);
 
@@ -50,6 +46,8 @@ char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
 EXPORT_SYMBOL_GPL(firmware_name);
 char vspa_fw_name[FIRMWARE_NAME_SIZE] = VSPA_FW_NAME;
 EXPORT_SYMBOL(vspa_fw_name);
+int sdr_board = 1;
+EXPORT_SYMBOL(sdr_board);
 
 LIST_HEAD(pcidev_list);
 static int la9310_dev_id_g;
@@ -648,6 +646,8 @@ module_param_string(alt_firmware_name, firmware_name,
 		sizeof(firmware_name), 0400);
 MODULE_PARM_DESC(alt_firmware_name,
 	"Alternative shiva firmware name e.g la9310.bin");
+module_param(sdr_board, int, 0400);
+MODULE_PARM_DESC(sdr_board, "Board Type is IMX8MP-RFNM SDR");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("NXP");
 MODULE_DESCRIPTION("PCIe LA9310 Driver");

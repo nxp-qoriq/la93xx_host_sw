@@ -8,10 +8,6 @@ ifeq (${DEBUG}, 1)
 ccflags-y += -g -DDEBUG
 endif
 
-ifeq ($(IMX_RFNM),1)
-ccflags-y += -DRFNM=1
-endif
-
 ccflags-y += -I${LA9310_DRV_HEADER_DIR} -I${LA9310_COMMON_HEADERS}
 
 obj-m := la9310demo.o

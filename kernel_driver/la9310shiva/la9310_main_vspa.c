@@ -83,8 +83,6 @@ static const struct _vspa_sec_info
 	OVERLAY_2, ".CAL_ovl_ddr"}
 };
 
-/*VSPA IRQ Handler*/
-#ifdef VSPA_MUX_IRQ
 static irqreturn_t
 vspa_irq_handler(int irq, void *data)
 {
@@ -94,7 +92,7 @@ vspa_irq_handler(int irq, void *data)
 		 __func__, irq);
 	return IRQ_HANDLED;
 }
-#endif
+
 static ssize_t
 vspa_show_stats(void *vspa_stats, char *buf, struct la9310_dev *la9310_dev)
 {
@@ -1040,17 +1038,18 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 	val = vspa_reg_read(vspadev->regs + CONTROL_REG_OFFSET);
 	val = (val & CONTROL_REG_MASK) | CONTROL_PDN_EN;
 	vspa_reg_write(vspadev->regs + CONTROL_REG_OFFSET, val);
-#ifdef VSPA_MUX_IRQ
-	err = request_irq(vspa_virq_map->virq, vspa_irq_handler,
-			0, "vspa_handler", vspadev);
-	if (err < 0) {
-		dev_err(la9310_dev->dev, "ERR %s: request_irq() err = %d\n",
-				name, err);
-		goto err_out;
-	}
 
-	vspadev->vspa_irq_no = vspa_virq_map->virq;
-#endif
+	if (sdr_board) {
+		err = request_irq(vspa_virq_map->virq, vspa_irq_handler,
+				0, "vspa_handler", vspadev);
+		if (err < 0) {
+			dev_err(la9310_dev->dev, "ERR %s: request_irq() err = %d\n",
+					name, err);
+			goto err_out;
+		}
+
+		vspadev->vspa_irq_no = vspa_virq_map->virq;
+	}
 	/* Make sure all interrupts are disabled */
 	vspa_reg_write(vspadev->regs + IRQEN_REG_OFFSET, 0);
 	dev_info(la9310_dev->dev, "%s: hwver 0x%08x, %d AUs, dmem %d bytes\n",
@@ -1126,9 +1125,9 @@ vspa_remove(struct la9310_dev *la9310_dev)
 
 	/* shutdown timer cleanly */
 	vspadev->watchdog_interval_msecs = 0;
-#ifdef VSPA_MUX_IRQ
-	free_irq(vspadev->vspa_irq_no, vspadev);
-#endif
+	if (sdr_board)
+		free_irq(vspadev->vspa_irq_no, vspadev);
+
 	kfree(vspadev);
 out_remove:
 	return 0;
