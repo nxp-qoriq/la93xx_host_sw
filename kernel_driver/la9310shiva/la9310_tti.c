@@ -32,18 +32,61 @@
 #include <linux/of_irq.h>
 #include "la9310_tti_ioctl.h"
 #include "la9310_base.h"
+#include <linux/timekeeping.h>
 
 #define SIGNAL_TO_USERSPACE	1
+#define JITTER_RANGE 10000
+#define SPIKE_RANGE 100000
+#define AVG_TIME 500000
 char tti_dev_name[20];
 
 static struct tti_priv *tti_priv_g;
+#ifdef DEBUG_TTI
+static ktime_t time_cur = 0, time_prev = 0;
+static ktime_t time_diff = 0;
+static int cnt = 0;
+static int J_up_cnt = 0, J_down_cnt = 0, S_up_cnt = 0, S_down_cnt = 0;
+
+static void get_time(void) {
+	time_cur = ktime_get();
+	if (cnt > 0) {
+		time_diff = (time_cur - time_prev);
+		if (time_diff > (AVG_TIME + SPIKE_RANGE)) {
+			S_up_cnt++;
+			J_up_cnt++;
+		}
+		else if (time_diff < (AVG_TIME - SPIKE_RANGE)) {
+			S_down_cnt++;
+			J_down_cnt++;
+		}
+		else if (time_diff > (AVG_TIME + JITTER_RANGE))
+			J_up_cnt++;
+		else if (time_diff < (AVG_TIME - JITTER_RANGE))
+			J_down_cnt++;
+	}
+	time_prev = time_cur;
+	cnt++;
+
+	if (cnt >= 50000) {
+		pr_info("Total Cnt:%d\t Jitter_up_cnt:%d Spike_up_cnt:%d Jitter_down_cnt:%d Spike_down_cnt:%d\n",
+			cnt, J_up_cnt, S_up_cnt, J_down_cnt, S_down_cnt);
+		cnt = 0;
+		S_up_cnt = 0;
+		J_up_cnt = 0;
+		S_down_cnt = 0;
+		J_down_cnt = 0;
+	}
+}
+#endif
 
 /* TTI IRQ Handler */
 static irqreturn_t tti_irq_handler(int irq, void *data)
 {
 	struct tti_priv *tti_priv_t = (struct tti_priv *)data;
-
-	pr_info("%s: tti IRQ handler invoked\n", __func__);
+#ifdef DEBUG_TTI
+	get_time();
+#endif
+	pr_debug("%s: tti IRQ handler invoked\n", __func__);
 	/* Send signal to User space */
 	if (tti_priv_t) {
 		raw_spin_lock(&tti_priv_t->wq_lock);
@@ -59,6 +102,9 @@ static irqreturn_t tti_irq_handler(int irq, void *data)
 
 void tti_irq_api(void)
 {
+#ifdef DEBUG_TTI
+	get_time();
+#endif
 	/* Send signal to User space */
 	if (tti_priv_g) {
 		raw_spin_lock(&tti_priv_g->wq_lock);
@@ -267,7 +313,7 @@ int tti_dev_stop(struct la9310_dev *dev)
 	if (tti_dev_data[j].tti_dev == NULL)
 		return 0;
 	priv = tti_dev_data[j].tti_dev;
-	if (priv && priv->tti_irq_status) {
+	if (!sdr_board && priv && priv->tti_irq_status) {
 		free_irq(priv->irq, priv);
 		priv->tti_irq_status = 0;
 	}

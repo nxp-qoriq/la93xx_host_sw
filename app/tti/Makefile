@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #Copyright 2024 NXP
 
-CFLAGS  += -Wall -Werror
+CFLAGS  += -Wall -Werror -D_GNU_SOURCE
 LDFLAGS	 += -L${LIB_INSTALL_DIR}
 
 INCLUDES += -I${API_DIR}
