@@ -6,7 +6,7 @@ ccflags-y += -Wall -Wno-unused-function -Wno-unused-variable
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 LA9310_RFNM_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310rfnm/
-LMS7002M_MODULE_DIR ?= ../../../LMS7002M_kernel/
+LMS7002M_MODULE_DIR ?= ../../../lms7002m/
 LMS7002M_KERNEL_DIR ?= ${LA9310_DRV_HEADER_DIR}/${LMS7002M_MODULE_DIR}
 
 ifeq (${DEBUG}, 1)
