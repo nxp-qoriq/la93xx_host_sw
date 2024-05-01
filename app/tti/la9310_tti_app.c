@@ -25,19 +25,22 @@ typedef struct tti_stats {
 static int modem_id;
 static int tti_count;
 static int tti_event_flag;
+static int cpu_id = -1;
+cpu_set_t  mask;
 
 #ifndef MAX_MODEM
-#define MAX_MODEM 4
+#define MAX_MODEM 1
 #endif
 /* Every modem can have one to four TTI IDs */
-#define MAX_COUNT		10
+#define MAX_COUNT		1000000
+#define MAX_CPU			8
 #define	LA9310_RFIC_SCHED_PRIORITY	99
 #define MAX_EVENTS 1
 #define TTI_INTERRUPT_INTERVAL_USEC 500
 
 void print_usage_message(void)
 {
-	printf("Usage : ./app_name modem_id tti_count_max [options] \n");
+	printf("Usage : ./app_name modem_id tti_count_max -c cpu_id [options] \n");
 	printf("\n");
 	printf("options:\n");
 	printf("\n-e : eventMode\n");
@@ -45,6 +48,7 @@ void print_usage_message(void)
 	printf("mandatory:\n");
 	printf("\tmodem_id         -- decimal |	0..%d\n", MAX_MODEM-1);
 	printf("\ttti_count_max	 -- decimal |	0..%d\n", MAX_COUNT-1);
+	printf("\tcpu_id	 -- decimal |	0..%d\n", MAX_COUNT-1);
 	fflush(stdout);
 
 	exit(EXIT_SUCCESS);
@@ -52,7 +56,7 @@ void print_usage_message(void)
 
 void validate_cli_args(int argc, char *argv[])
 {
-
+	int opt;
 	if (argc <=1)
 		print_usage_message();
 
@@ -60,24 +64,40 @@ void validate_cli_args(int argc, char *argv[])
 			(strcmp(argv[1], "-H") == 0))
 		print_usage_message();
 
-	/* Check Total Argument count */
-	if (argc >= 3) {
-		modem_id	= atoi(argv[1]);
-		tti_count	= atoi(argv[2]);
-		if ((argc > 3) && ((strcmp(argv[3], "-e") == 0)  ||
-			(strcmp(argv[3], "-E") == 0))) {
-			tti_event_flag = 1;
-		} else {
-			tti_event_flag = 0;
-		}
-	} else {
+	if (argc < 3) {
 		print_usage_message();
+		return;
+	}
+
+	modem_id = atoi(argv[1]);
+	tti_count = atoi(argv[2]);
+	tti_event_flag = 0;
+
+	while((opt = getopt(argc, argv, ":c:eh")) != -1) {
+		switch (opt) {
+		case 'c':
+			cpu_id = atoi(optarg);
+			break;
+		case 'e':
+			tti_event_flag = 1;
+			break;
+		default:
+			print_usage_message();
+			break;
+		}
 	}
 }
 
 int rte_sys_gettid(void)
 {
 	return (int)syscall(SYS_gettid);
+}
+
+static inline void assign_to_core(int core_id)
+{
+	CPU_ZERO(&mask);
+	CPU_SET(core_id, &mask);
+	sched_setaffinity(0, sizeof(mask), &mask);
 }
 
 struct sched_param param = { .sched_priority = LA9310_RFIC_SCHED_PRIORITY };
@@ -96,6 +116,10 @@ int main(int argc, char *argv[])
 	char command[32];
 	/* Validate CLI Args */
 	validate_cli_args(argc, argv);
+
+	if (cpu_id > 0)
+		assign_to_core(cpu_id);
+
 	/* Raise app priority to RT */
 	/*sched_setscheduler(current, SCHED_FIFO, &param);*/
 	sched_setscheduler(0, SCHED_FIFO, &param);
