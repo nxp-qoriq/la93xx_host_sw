@@ -13,6 +13,9 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/delay.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_address.h>
 
 #include <la9310_host_if.h>
 #include "la9310_base.h"
@@ -290,7 +293,7 @@ la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
 	ccsr_region = &la9310_dev->mem_regions[LA9310_MEM_REGION_CCSR];
 
 	ls_pcie_iatu_outbound_set(ccsr_region->vaddr + PCIE_RHOM_DBI_BASE,
-			LA9310_IPC_OUTBOUND_WIN,
+			LA9310_V2H_OUTBOUND_WIN,
 			PCIE_ATU_TYPE_MEM,
 			LA9310_IQFLOOD_PHYS_ADDR,
 			iq_mem_addr,
@@ -689,6 +692,8 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	struct virq_evt_map *subdrv_virqmap_ptr;
 	u32    pci_abserr;
 	struct la9310_mem_region_info *ccsr_region;
+	struct device_node *np;
+	struct resource mem_addr;
 
 	la9310_dev->stats_control = LA9310_STATS_DEFAULT_ENABLE_MASK;
 
@@ -700,8 +705,22 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 		goto out;
 	}
 
-	if (sdr_board)
-		la9310_create_rfnm_iqflood_outbound(la9310_dev);
+	if (iq_mem_addr ==0) {
+		np = of_find_node_by_name(NULL, "iqflood");
+		if (!np)
+			np = of_find_node_by_name(NULL, "iq");
+
+		if (np) {
+			rc = of_address_to_resource(np, 0, &mem_addr);
+			if (!rc) {
+				iq_mem_addr = mem_addr.start;
+				iq_mem_size = resource_size(&mem_addr);
+			}
+			of_node_put(np);
+		}
+	}
+
+	la9310_create_rfnm_iqflood_outbound(la9310_dev);
 
 	rc = la9310_init_hif(la9310_dev);
 	if (rc)
