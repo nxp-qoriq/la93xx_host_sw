@@ -83,10 +83,9 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 {
 	int32_t idx;
 	struct la9310_mem_region_info *ep_buf;
-	int name_len = 2, ret = 0;
+	int name_len = 2;
 	char *brd_name = "NA";
-	struct device_node *root, *np;
-	struct resource mem_addr;
+	struct device_node *root;
 
 	sprintf(mi->name, "%s", la9310_dev->name);
 	mi->id = la9310_dev->id;
@@ -175,27 +174,9 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	mi->adc_rate_mask = adc_rate_mask;
 	mi->dac_rate_mask = dac_rate_mask;
 
-
-	np = of_find_node_by_name(NULL, "iqflood");
-	if (!np)
-		np = of_find_node_by_name(NULL, "iq");
-	if (!np)
-		goto err;
-	ret = of_address_to_resource(np, 0, &mem_addr);
-	if (ret) {
-		dev_err(la9310_dev->dev, "Failed to translate memory-region to a resource for node %s\n", np->name);
-		goto err;
-	}
-	mi->iqflood.host_phy_addr = mem_addr.start;
 	mi->iqflood.modem_phy_addr = LA9310_IQFLOOD_PHYS_ADDR;
-	mi->iqflood.size = resource_size(&mem_addr);
-	of_node_put(np);
-	return;
-err:
-	mi->iqflood.host_phy_addr = 0x0;
-	mi->iqflood.modem_phy_addr = 0x0;
-	mi->iqflood.size = 0x0;
-
+	mi->iqflood.host_phy_addr = iq_mem_addr;
+	mi->iqflood.size = iq_mem_size;
 }
 
 static long la9310_modinfo_ioctl(struct file *filp, unsigned int cmd,
