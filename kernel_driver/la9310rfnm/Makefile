@@ -27,6 +27,7 @@ obj-m += rfnm_daughterboard.o
 obj-m += rfnm_gpio.o
 obj-m += rfnm_tti.o
 #obj-m += rfnm_kasan.o
+obj-m += rfnm_lalib.o
 
 ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
 rfnm_lime-objs := rfnm_lime_m.o
