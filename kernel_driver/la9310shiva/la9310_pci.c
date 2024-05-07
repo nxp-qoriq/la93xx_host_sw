@@ -195,6 +195,8 @@ ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 			i, mi.dbg.host_phy_addr, (u64)mi.dbg.size);
 	sprintf(&buf[strlen(buf)], " IQ SAMPLES BAR:%d    addr:0x%llx len:0x%llx\n",
 			i, mi.iqr.host_phy_addr, (u64)mi.iqr.size);
+	sprintf(&buf[strlen(buf)], " IQ FLOOD BAR:%d      addr:0x%llx modem addr:0x%x len:0x%llx\n",
+			i, mi.iqflood.host_phy_addr, mi.iqflood.modem_phy_addr, (u64)mi.iqflood.size);
 	sprintf(&buf[strlen(buf)], " NLM OPS BAR:%d       addr:0x%llx len:0x%llx\n",
 			i, mi.nlmops.host_phy_addr, (u64)mi.nlmops.size);
 	sprintf(&buf[strlen(buf)], " STD FW BAR:%d        addr:0x%llx len:0x%llx\n",

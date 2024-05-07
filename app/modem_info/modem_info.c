@@ -122,6 +122,8 @@ void print_modem_info(int id)
 		mi->dbg.host_phy_addr, mi->dbg.size);
 	printf("IQ SAMPLES phys   0x%lx Size:0x%x\n",
 		mi->iqr.host_phy_addr, mi->iqr.size);
+	printf("IQ FLOOD phys     0x%lx	Modem phys:0x%x Size:0x%x\n",
+		mi->iqflood.host_phy_addr, mi->iqflood.modem_phy_addr, mi->iqflood.size);
 	printf("NLM OPS start     0x%lx Size:0x%x\n",
 		mi->nlmops.host_phy_addr, mi->nlmops.size);
 	printf("STD FW phys       0x%lx Size:0x%x\n",
