@@ -19,7 +19,7 @@ ccflags-y += -I${KERNEL_DIR}/../kernel-source/drivers/usb/gadget/
 ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
 ccflags-y += -I${LMS7002M_KERNEL_DIR}/include -I${LMS7002M_KERNEL_DIR}/interfaces -I${LMS7002M_KERNEL_DIR}/src
 
-la9310rfnm-objs := la9310_rfnm.o  cache.o #pack12bit.o unpack12bit.o
+la9310rfnm-objs := la9310_rfnm.o  cache.o
 obj-m := la9310rfnm.o
 obj-m += rfnm_usb_function.o
 obj-m += rfnm_usb.o 
@@ -30,6 +30,7 @@ obj-m += rfnm_tti.o
 obj-m += rfnm_lalib.o
 
 ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
+#la9310rfnm-objs += pack12bit.o unpack12bit.o
 rfnm_lime-objs := rfnm_lime_m.o
 rfnm_lime-objs += rfnm_fe_generic.o
 rfnm_lime-objs += rfnm_fe_lime0.o
