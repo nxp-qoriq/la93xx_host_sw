@@ -46,8 +46,8 @@ static struct usb_device_descriptor rfnm_device_desc = {
 #endif
 
 	/* Vendor and product id can be overridden by module parameters.  */
-	.idVendor =		0x5522,
-	.idProduct =		0x1199,
+	.idVendor =		0x15A2,
+	.idProduct =		0x8D,
 	.bNumConfigurations =	1,
 };
 
@@ -55,7 +55,7 @@ static const struct usb_descriptor_header *otg_desc[2];
 
 static struct usb_string strings_dev[] = {
 	[USB_GADGET_MANUFACTURER_IDX].s = "RFNM Inc",
-	[USB_GADGET_PRODUCT_IDX].s = "RFNM",
+	[USB_GADGET_PRODUCT_IDX].s = "RFNM Data Boost",
 	[USB_GADGET_SERIAL_IDX].s = "001",
 	{  } /* end of list */
 };
@@ -71,12 +71,9 @@ static struct usb_gadget_strings *dev_strings[] = {
 };
 
 static struct usb_function_instance *fi_rfnm;
-static struct usb_function_instance *fi_msg;
-static struct usb_function_instance *fi_ncm;
+
 
 static struct usb_function *f_rfnm;
-static struct usb_function *f_msg;
-static struct usb_function *f_ncm;
 
 
 static struct usb_configuration os_desc_config = {
@@ -132,23 +129,6 @@ static int rfnm_do_config(struct usb_configuration *c)
 	os_desc_config.interface[0] = f_rfnm;
 
 
-	f_msg = usb_get_function(fi_msg);
-	if (IS_ERR(f_msg))
-		return PTR_ERR(f_msg);
-
-	ret = usb_add_function(c, f_msg);
-	if (ret)
-		goto put_func;
-
-
-	f_ncm = usb_get_function(fi_ncm);
-	if (IS_ERR(f_ncm))
-		return PTR_ERR(f_ncm);
-
-	ret = usb_add_function(c, f_ncm);
-	if (ret)
-		goto put_func;
-
 	printk("callback ok\n");
 
 
@@ -156,36 +136,10 @@ static int rfnm_do_config(struct usb_configuration *c)
 
 put_func:
 	usb_put_function(f_rfnm);
-	usb_put_function(f_msg);
-	usb_put_function(f_ncm);
 	return ret;
 }
 
 
-static int msg_do_config(struct usb_configuration *c)
-{
-	int ret;
-#if 0
-	if (gadget_is_otg(c->cdev->gadget)) {
-		c->descriptors = otg_desc;
-		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
-	}
-#endif
-
-	f_msg = usb_get_function(fi_msg);
-	if (IS_ERR(f_msg))
-		return PTR_ERR(f_msg);
-
-	ret = usb_add_function(c, f_msg);
-	if (ret)
-		goto put_func;
-
-	return 0;
-
-put_func:
-	usb_put_function(f_msg);
-	return ret;
-}
 
 static struct usb_configuration rfnm_config_driver = {
 	.label			= "RFNM Temporary USB Driver",
@@ -232,63 +186,17 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	if (IS_ERR(fi_rfnm))
 		return PTR_ERR(fi_rfnm);
 
-	fi_msg = usb_get_function_instance("mass_storage");
-	if (IS_ERR(fi_msg))
-		return PTR_ERR(fi_msg);
-
-	fi_ncm = usb_get_function_instance("ncm");
-	if (IS_ERR(fi_ncm))
-		return PTR_ERR(fi_ncm);
-
-	fsg_config_from_params(&msg_config, &msg_mod_data, fsg_num_buffers);
-	msg_opts = fsg_opts_from_func_inst(fi_msg);
-
-	msg_opts->no_configfs = true;
-	status = fsg_common_set_num_buffers(msg_opts->common, fsg_num_buffers);
-	if (status)
-		goto fail;
-
-	status = fsg_common_set_cdev(msg_opts->common, cdev, msg_config.can_stall);
-	if (status)
-		goto fail;
-
-	fsg_common_set_sysfs(msg_opts->common, true);
-	status = fsg_common_create_luns(msg_opts->common, &msg_config);
-	if (status)
-		goto fail;
-
-	fsg_common_set_inquiry_string(msg_opts->common, msg_config.vendor_name,
-				      msg_config.product_name);
-
 	status = usb_string_ids_tab(cdev, strings_dev);
 	if (status < 0)
 		goto fail;
 
 	rfnm_device_desc.iProduct = strings_dev[USB_GADGET_PRODUCT_IDX].id;
-	rfnm_device_desc.iSerialNumber =1;
-#if 0
-	if (gadget_is_otg(cdev->gadget) && !otg_desc[0]) {
-		struct usb_descriptor_header *usb_desc;
-
-		printk("is OTG\n");
-
-		usb_desc = usb_otg_descriptor_alloc(cdev->gadget);
-		if (!usb_desc) {
-			status = -ENOMEM;
-			goto fail;
-		}
-		usb_otg_descriptor_init(cdev->gadget, usb_desc);
-		otg_desc[0] = usb_desc;
-		otg_desc[1] = NULL;
-	}
-#endif
+	rfnm_device_desc.iManufacturer = strings_dev[USB_GADGET_MANUFACTURER_IDX].id;
+	rfnm_device_desc.iSerialNumber = strings_dev[USB_GADGET_SERIAL_IDX].id;;
+	
 	status = usb_add_config(cdev, &rfnm_config_driver, rfnm_do_config);
 	if (status < 0)
 		goto fail;
-
-/*	status = usb_add_config(cdev, &msg_config_driver, msg_do_config);
-	if (status < 0)
-		goto fail;*/
 
 	usb_composite_overwrite_options(cdev, &coverwrite);
 	return 0;
@@ -297,7 +205,6 @@ fail:
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
 	usb_put_function_instance(fi_rfnm);
-	usb_put_function_instance(fi_msg);
 	return status;
 }
 
@@ -309,12 +216,6 @@ static int rfnm_unbind(struct usb_composite_dev *cdev)
 	if (!IS_ERR(fi_rfnm))
 		usb_put_function_instance(fi_rfnm);
 
-	if (!IS_ERR(f_msg))
-		usb_put_function(f_msg);
-
-	if (!IS_ERR(fi_msg))
-		usb_put_function_instance(fi_msg);
-
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
 
@@ -324,7 +225,8 @@ static int rfnm_unbind(struct usb_composite_dev *cdev)
 /****************************** Some noise ******************************/
 
 static struct usb_composite_driver rfnm_driver = {
-	.name		= "rfnm_usb",
+	.name		= "rfnm_usb_boost",
+	.udc_name = "38200000.usb",
 	.dev		= &rfnm_device_desc,
 	.max_speed	= USB_SPEED_SUPER_PLUS,
 	.needs_serial	= 1,
@@ -334,6 +236,9 @@ static struct usb_composite_driver rfnm_driver = {
 };
 
 module_usb_composite_driver(rfnm_driver);
+
+//module_driver(__usb_composite_driver, usb_composite_probe, usb_composite_unregister);
+
 
 MODULE_DESCRIPTION("Mass Storage Gadget");
 MODULE_AUTHOR("Michal Nazarewicz");
