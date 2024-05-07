@@ -29,6 +29,8 @@ obj-m += rfnm_gpio.o
 obj-m += rfnm_tti.o
 #obj-m += rfnm_kasan.o
 obj-m += rfnm_lalib.o
+rfnm_breakout-objs := rfnm_breakout_m.o 
+obj-m += rfnm_breakout.o
 
 ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
 #la9310rfnm-objs += pack12bit.o unpack12bit.o
