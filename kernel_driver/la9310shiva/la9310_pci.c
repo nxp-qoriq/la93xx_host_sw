@@ -38,9 +38,9 @@ int dac_rate_mask; 	/* = 0x1; */
 EXPORT_SYMBOL(adc_rate_mask);
 EXPORT_SYMBOL(dac_rate_mask);
 
-uint64_t iq_mem_addr = 0x96400000;
+uint64_t iq_mem_addr;
 EXPORT_SYMBOL_GPL(iq_mem_addr);
-int iq_mem_size = (1024 * 1024 * 20);
+int iq_mem_size;
 EXPORT_SYMBOL_GPL(iq_mem_size);
 char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
 EXPORT_SYMBOL_GPL(firmware_name);
