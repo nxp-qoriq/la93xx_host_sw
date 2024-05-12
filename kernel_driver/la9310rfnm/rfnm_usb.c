@@ -26,6 +26,9 @@
 #include <linux/kernel.h>
 #include <linux/usb/ch9.h>
 #include <linux/module.h>
+#include <linux/io.h>
+#include <linux/rfnm-shared.h>
+
 
 #include <function/f_mass_storage.h>
 
@@ -46,17 +49,19 @@ static struct usb_device_descriptor rfnm_device_desc = {
 #endif
 
 	/* Vendor and product id can be overridden by module parameters.  */
-	.idVendor =		0x5522,
-	.idProduct =		0x1199,
+	.idVendor =		0x15A2,
+	.idProduct =		0x8C,
 	.bNumConfigurations =	1,
 };
 
 static const struct usb_descriptor_header *otg_desc[2];
 
+char rfnm_serial[9] = "00000000\0";
+
 static struct usb_string strings_dev[] = {
 	[USB_GADGET_MANUFACTURER_IDX].s = "RFNM Inc",
 	[USB_GADGET_PRODUCT_IDX].s = "RFNM",
-	[USB_GADGET_SERIAL_IDX].s = "001",
+	[USB_GADGET_SERIAL_IDX].s = rfnm_serial,
 	{  } /* end of list */
 };
 
@@ -98,7 +103,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
 #endif
-
+#if 1
 	c->cdev->use_os_string = 1;
 	c->cdev->b_vendor_code = 0xca;
 
@@ -118,7 +123,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 	c->cdev->qw_sign[13] = 0;
 
 	c->cdev->os_desc_config = &os_desc_config;
-
+#endif
 	printk("Sending os driver data from callback\n");
 
 	f_rfnm = usb_get_function(fi_rfnm);
@@ -131,6 +136,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 
 	os_desc_config.interface[0] = f_rfnm;
 
+#if 1
 
 	f_msg = usb_get_function(fi_msg);
 	if (IS_ERR(f_msg))
@@ -139,6 +145,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 	ret = usb_add_function(c, f_msg);
 	if (ret)
 		goto put_func;
+#endif
 
 
 	f_ncm = usb_get_function(fi_ncm);
@@ -264,8 +271,26 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	if (status < 0)
 		goto fail;
 
+	struct resource mem_res;
+	char node_name[10];
+	int ret;
+	struct rfnm_bootconfig *cfg;
+
+	strncpy(node_name, "bootconfig", 10);
+	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
+	if(ret != RFNM_DTB_NODE_NOT_FOUND) {
+	        cfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
+	}
+	else {
+	        printk("RFNM: func %s Node name %s not found..\n",__func__,node_name);
+			goto fail;
+	}
+	memcpy(rfnm_serial, cfg->motherboard_eeprom.serial_number, 8);
+	memunmap(cfg);
+
 	rfnm_device_desc.iProduct = strings_dev[USB_GADGET_PRODUCT_IDX].id;
-	rfnm_device_desc.iSerialNumber =1;
+	rfnm_device_desc.iManufacturer = strings_dev[USB_GADGET_MANUFACTURER_IDX].id;
+	rfnm_device_desc.iSerialNumber = strings_dev[USB_GADGET_SERIAL_IDX].id;
 #if 0
 	if (gadget_is_otg(cdev->gadget) && !otg_desc[0]) {
 		struct usb_descriptor_header *usb_desc;
@@ -325,6 +350,7 @@ static int rfnm_unbind(struct usb_composite_dev *cdev)
 
 static struct usb_composite_driver rfnm_driver = {
 	.name		= "rfnm_usb",
+	.udc_name = "38100000.usb",
 	.dev		= &rfnm_device_desc,
 	.max_speed	= USB_SPEED_SUPER_PLUS,
 	.needs_serial	= 1,
