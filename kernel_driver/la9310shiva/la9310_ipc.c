@@ -224,8 +224,13 @@ static long ipc_ioctl(struct file *filp, unsigned int cmd,
 			return -EFAULT;
 
 		if (la9310_dev) {
-			if (LA9310_USER_HUGE_PAGE_PHYS_ADDR + sys_map.hugepg_start.size >= MAX_OUTBOUND_WINDOW) {
-				printk(KERN_INFO "IPC Outbound window size exceeds available outbound window size");
+			if (LA9310_USER_HUGE_PAGE_PHYS_ADDR + sys_map.hugepg_start.size >= PCI_OUTBOUND_WINDOW_BASE_ADDR + MAX_OUTBOUND_WINDOW) {
+				printk(KERN_INFO "IPC Outbound window size exceeds available outbound window size\n");
+				printk(KERN_INFO "Hugepage base addr:0x%x Huge size:0x%x Outbound base addr:0x%x Max window size:0x%x\n",
+					LA9310_USER_HUGE_PAGE_PHYS_ADDR,
+					sys_map.hugepg_start.size,
+					PCI_OUTBOUND_WINDOW_BASE_ADDR,
+					MAX_OUTBOUND_WINDOW);
 				return -ENOMEM;
 			}
 			la9310_create_ipc_hugepage_outbound(la9310_dev,
