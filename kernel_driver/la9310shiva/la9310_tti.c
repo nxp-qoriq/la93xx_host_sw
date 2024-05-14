@@ -317,6 +317,9 @@ int tti_dev_stop(struct la9310_dev *dev)
 		free_irq(priv->irq, priv);
 		priv->tti_irq_status = 0;
 	}
+
+	if (!sdr_board)
+		gpio_free(priv->gpio);
 	cdev_del(&tti_dev_data[j].cdev);
 	device_destroy(la9310_tti_dev_class, MKDEV(tti_dev_major,
 			j));
@@ -373,6 +376,7 @@ int tti_dev_start(struct la9310_dev *dev)
 	if (tti_dev == NULL)
 		return -ENOMEM;
 
+	tti_dev->gpio = tti_gpio;
 	tti_dev->irq = irq;
 
 	tti_dev->tti_irq_status = 0;
@@ -433,7 +437,7 @@ out:
 }
 EXPORT_SYMBOL_GPL(init_tti_dev);
 
-void remove_tti_dev(void)
+int remove_tti_dev(void)
 {
 
 	class_destroy(la9310_tti_dev_class);
@@ -441,5 +445,6 @@ void remove_tti_dev(void)
 	unregister_chrdev_region(tti_dev_number, MAX_MODEM);
 
 	kfree(tti_dev_data);
+	return 0;
 }
 EXPORT_SYMBOL_GPL(remove_tti_dev);

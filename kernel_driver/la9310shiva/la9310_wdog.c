@@ -536,6 +536,13 @@ int wdog_exit(void)
 {
 	int i;
 	struct wdog_dev *wdog_dev = wdog_gdev;
+	struct device_node *dn_wdog;
+
+	dn_wdog = of_find_node_by_name(NULL, "la9310_wdog");
+	if (!dn_wdog) {
+		pr_err("la9310_wdog: Node missing in DTB, skip wdog config\n");
+		return 0;
+	}
 
 	destroy_wdog_cdevs(wdog_dev);
 
