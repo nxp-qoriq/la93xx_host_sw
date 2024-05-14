@@ -271,6 +271,7 @@ struct irq_info {
 struct tti_priv {
 	int irq;
 	int tti_id;
+	int gpio;
 	uint64_t tti_count;
 	/* TBD Timestamp; */
 	struct swait_queue_head tti_wq;
