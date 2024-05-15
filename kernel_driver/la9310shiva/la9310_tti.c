@@ -179,8 +179,10 @@ void tti_deregister_irq(struct tti_priv *tti_priv_t, struct tti *tti_t)
 {
 	if (tti_priv_t != NULL) {
 		/* IRQ request */
-		free_irq(tti_priv_t->irq, tti_priv_t);
-		tti_priv_t->tti_irq_status = 0;
+		if (sdr_board == 0) {
+			free_irq(tti_priv_t->irq, tti_priv_t);
+			tti_priv_t->tti_irq_status = 0;
+		}
 
 		if (tti_priv_t->evt_fd_ctxt) {
 			eventfd_ctx_put(tti_priv_t->evt_fd_ctxt);
