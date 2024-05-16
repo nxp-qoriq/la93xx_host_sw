@@ -76,12 +76,24 @@ int rfnm_rx_ch_set(struct rfnm_dgb *dgb_dt, struct rfnm_api_rx_ch * rx_ch) {
 static int rfnm_breakout_probe(struct spi_device *spi)
 {
 	struct rfnm_bootconfig *cfg;
-	struct rfnm_eeprom_data *eeprom_data;
-	cfg = memremap(RFNM_BOOTCONFIG_PHYADDR, SZ_4M, MEMREMAP_WB);
-
-	struct spi_master *spi_master;
-	spi_master = spi->master;
+	struct resource mem_res;
+	char node_name[10];
+	int ret;
+	struct spi_master *spi_master = spi->master;
 	int dgb_id = spi_master->bus_num - 1;
+ 	struct device *dev = &spi->dev;
+	struct rfnm_dgb *dgb_dt;
+
+
+	strncpy(node_name, "bootconfig", 10);
+	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
+	if(ret != RFNM_DTB_NODE_NOT_FOUND) {
+	        cfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
+	}
+	else {
+	        printk("RFNM: func %s Node name %s not found..\n",__func__,node_name);
+	        return ret;
+	}
 
 	if(	cfg->daughterboard_present[dgb_id] != RFNM_DAUGHTERBOARD_PRESENT ||
 		cfg->daughterboard_eeprom[dgb_id].board_id != RFNM_DAUGHTERBOARD_BREAKOUT) {
@@ -92,13 +104,10 @@ static int rfnm_breakout_probe(struct spi_device *spi)
 	printk("RFNM: Loading Breakout (dummy) driver for daughterboard at slot %d\n", dgb_id);
 
 
-	struct device *dev = &spi->dev;
-	struct rfnm_dgb *dgb_dt;
-	
 	const struct spi_device_id *id = spi_get_device_id(spi);
-	int i, ret;
+	int i;
 
-	dgb_dt = devm_kzalloc(dev, sizeof(*dgb_dt), GFP_KERNEL);
+	dgb_dt = devm_kzalloc(dev, sizeof(struct rfnm_dgb), GFP_KERNEL);
 	if(!dgb_dt) {
 		return -ENOMEM;
 	}
