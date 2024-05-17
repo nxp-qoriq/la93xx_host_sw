@@ -36,4 +36,18 @@ install:
 	install  -D  la9310demo/la9310demo.ko ${MODULE_INSTALL_DIR}/la9310demo.ko
 ifeq ($(IMX_RFNM),1)
 	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
+	install  -D  la9310rfnm/rfnm_usb_boost.ko ${MODULE_INSTALL_DIR}/rfnm_usb_boost.ko
+	install  -D  la9310rfnm/rfnm_gpio.ko ${MODULE_INSTALL_DIR}/rfnm_gpio.ko
+	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
+	install  -D  la9310rfnm/rfnm_usb_function.ko ${MODULE_INSTALL_DIR}/rfnm_usb_function.ko
+	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
+	install  -D  la9310rfnm/rfnm_breakout.ko ${MODULE_INSTALL_DIR}/rfnm_breakout.ko
+	install  -D  la9310rfnm/rfnm_usb.ko ${MODULE_INSTALL_DIR}/rfnm_usb.ko
+	install  -D  la9310rfnm/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
+	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
+	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
+endif
+
+ifeq ($(IMX_RFGR),1)
+	install  -D la9310rfgr/rfnm_granita.ko ${MODULE_INSTALL_DIR}/rfnm_granita.ko
 endif
