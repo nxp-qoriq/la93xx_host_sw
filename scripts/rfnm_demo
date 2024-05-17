@@ -4,7 +4,7 @@
 echo tdd > /sys/kernel/rfnm_primary/rx0/enable
 echo sma_a > /sys/kernel/rfnm_primary/rx0/path
 echo 3100000000 > /sys/kernel/rfnm_primary/rx0/freq
-echo 100 > /sys/kernel/rfnm_primary/rx0/iq_lpf_bw
+echo 100 > /sys/kernel/rfnm_primary/rx0/rfic_lpf_bw
 echo 30 > /sys/kernel/rfnm_primary/rx0/gain
 
 echo 1 > /sys/kernel/rfnm_primary/rx0/apply
@@ -12,7 +12,7 @@ echo 1 > /sys/kernel/rfnm_primary/rx0/apply
 echo tdd > /sys/kernel/rfnm_primary/tx0/enable
 echo sma_b > /sys/kernel/rfnm_primary/tx0/path
 echo 3100000000 > /sys/kernel/rfnm_primary/tx0/freq
-echo 20 > /sys/kernel/rfnm_primary/tx0/iq_lpf_bw
+echo 20 > /sys/kernel/rfnm_primary/tx0/rfic_lpf_bw
 echo 100 > /sys/kernel/rfnm_primary/tx0/power
 
 echo 1 > /sys/kernel/rfnm_primary/tx0/apply
