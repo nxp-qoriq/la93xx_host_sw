@@ -33,7 +33,7 @@ rfnm_breakout-objs := rfnm_breakout_m.o
 obj-m += rfnm_breakout.o
 
 ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
-#la9310rfnm-objs += pack12bit.o unpack12bit.o
+la9310rfnm-objs += pack16to12.o unpack12to16.o
 rfnm_lime-objs := rfnm_lime_m.o
 rfnm_lime-objs += rfnm_fe_generic.o
 rfnm_lime-objs += rfnm_fe_lime0.o
