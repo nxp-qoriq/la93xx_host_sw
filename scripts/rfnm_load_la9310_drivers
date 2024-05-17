@@ -25,7 +25,7 @@ insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=0x4000000 
 insmod /lib/modules/$(uname -r)/extra/kpage_ncache.ko
 insmod /lib/modules/$(uname -r)/extra/la9310rfnm.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_gpio.ko
-
+insmod /lib/modules/$(uname -r)/extra/rfnm_lalib.ko 
 insmod /lib/modules/$(uname -r)/extra/rfnm_daughterboard.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_usb_function.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_usb.ko file=/home/root/backing_storage
