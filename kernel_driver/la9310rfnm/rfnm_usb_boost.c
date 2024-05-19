@@ -178,6 +178,11 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	struct fsg_config msg_config;
 	int status;
 
+	struct resource mem_res;
+	char node_name[10];
+	int ret;
+	struct rfnm_bootconfig *cfg;
+
 	int r, g, b;
 	r = 0xff;
 	g = 0xc0;
@@ -190,10 +195,10 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	if (IS_ERR(fi_rfnm))
 		return PTR_ERR(fi_rfnm);
 
-	struct resource mem_res;
-	char node_name[10];
-	int ret;
-	struct rfnm_bootconfig *cfg;
+	status = usb_string_ids_tab(cdev, strings_dev);
+	if (status < 0)
+		goto fail;
+
 
 	strncpy(node_name, "bootconfig", 10);
 	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
