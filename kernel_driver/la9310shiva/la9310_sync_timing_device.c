@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021 NXP
+ * Copyright 2021, 2024 NXP
  */
 
 #include "la9310_base.h"
@@ -43,7 +43,7 @@ int sync_timing_device_load_fw(struct la9310_dev *la9310_dev,
 						std_fw_region->size - offset,
 						std_fw_list[i]);
 		if (ret < 0) {
-			dev_err(la9310_dev->dev, "%s: udev firmware request failed\n",
+			dev_err(la9310_dev->dev, "%s: load_firmware request failed\n",
 				__func__);
 			return -1;
 		}
