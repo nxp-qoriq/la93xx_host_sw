@@ -905,7 +905,7 @@ vspa_get_fw_image(struct la9310_dev *la9310_dev)
 	ret = la9310_udev_load_firmware(la9310_dev, vspa_fw_region->vaddr,
 			buf_size, vspadev->eld_filename);
 	if (ret < 0) {
-		dev_err(la9310_dev->dev, "%s: udev firmware request failed\n",
+		dev_err(la9310_dev->dev, "%s: load_firmware request failed\n",
 				__func__);
 		goto OUT;
 	}

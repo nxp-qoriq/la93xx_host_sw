@@ -95,10 +95,8 @@ void print_tvd_info(int id)
 			close(fd);
 			return;
 		}
-
-		printf("Modem VSPA current temp: %d\n",
-				tvd_ptr->get_mtd_curr_temp.vspa_temp);
-		printf("Modem DCS current temp: %d\n",
+		printf("Modem current temp: VSPA : %d *C DCS: %d *C\n",
+				tvd_ptr->get_mtd_curr_temp.vspa_temp,
 				tvd_ptr->get_mtd_curr_temp.dcs_temp);
 	}
 
@@ -109,8 +107,8 @@ void print_tvd_info(int id)
 			close(fd);
 			return;
 		}
-
-		printf("Host probe1 current temp: %d\n", tvd_ptr->get_ctd_curr_temp);
+		printf("Host current temp: Probe1: %0.2f *C\n",
+			(float)tvd_ptr->get_ctd_curr_temp/1000);
 	}
 
 	close(fd);

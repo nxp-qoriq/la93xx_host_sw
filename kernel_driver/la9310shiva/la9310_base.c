@@ -59,7 +59,7 @@ host_handshake_handler(int irq, void *dev)
 	struct la9310_dev *la9310_dev = (struct la9310_dev *) dev;
 
 	dev_info(la9310_dev->dev,
-		 "Host Handshake interrupt boom!! irq num %d\n", irq);
+		 "Host Handshake interrupt done!! irq num %d\n", irq);
 	complete(&ScratchRegisterHandshake);
 	return IRQ_HANDLED;
 
@@ -232,17 +232,16 @@ la9310_create_outbound_msi(struct la9310_dev *la9310_dev)
 	msi_msg_addr = readl(ccsr_region->vaddr + pcie_offset) |
 		(((u64) readl(ccsr_region->vaddr + pcie_offset + 4)) << 32);
 
-	dev_info(la9310_dev->dev, "MSI:ATU: DBI 0x%px, DMA %llx, EP %x\n",
-			(ccsr_region->vaddr + pcie_offset),
-			msi_msg_addr, LA9310_EP_TOHOST_MSI_PHY_ADDR);
 	/* outbound iATU for MSI. From LA9310 to host */
 	ls_pcie_iatu_outbound_set(ccsr_region->vaddr + PCIE_RHOM_DBI_BASE,
 			LA9310_MSI_OUTBOUND_WIN,
 			PCIE_ATU_TYPE_MEM,
 			LA9310_EP_TOHOST_MSI_PHY_ADDR,
 			msi_msg_addr, PCIE_MSI_OB_SIZE);
-
-	dev_info(la9310_dev->dev, "MSI ATU done\n");
+	dev_info(la9310_dev->dev, "MSI:ATU: DBI 0x%px, DMA %llx, EP %x\n",
+			(ccsr_region->vaddr + pcie_offset),
+			msi_msg_addr, LA9310_EP_TOHOST_MSI_PHY_ADDR);
+	dev_dbg(la9310_dev->dev, "MSI ATU done\n");
 	return 0;
 }
 
@@ -319,9 +318,8 @@ la9310_init_subdrv_region(struct la9310_dev *la9310_dev,
 	ep_buf->phys_addr = dma_info->ep_pcie_addr + *offset;
 	ep_buf->size = size;
 
-	dev_info(la9310_dev->dev, "subdrv DMA region:[%d] offset %d\n", type,
-		 *offset);
-	dev_info(la9310_dev->dev, "Host virtual %px, EP Phys %llx, size %d",
+	dev_info(la9310_dev->dev, "subdrv DMA region:[%d] offset %d\n", type,  *offset);
+	dev_info(la9310_dev->dev, "Host virtual 0x%px, EP Phys 0x%llx, size %d",
 		 ep_buf->vaddr, ep_buf->phys_addr, (int) ep_buf->size);
 
 	/*Paint separator */
@@ -329,11 +327,9 @@ la9310_init_subdrv_region(struct la9310_dev *la9310_dev,
 	memset(host_vaddr, LA9310_DMA_SEPARATOR_PAINT_CHAR,
 	       LA9310_DMA_SEPARATOR_SIZE);
 
-	dev_info(la9310_dev->dev, "Paint addr %px, size %d\n", host_vaddr,
-		 LA9310_DMA_SEPARATOR_SIZE);
-
 	*offset += size + LA9310_DMA_SEPARATOR_SIZE;
-	dev_info(la9310_dev->dev, "New offset - %d\n", *offset);
+	dev_info(la9310_dev->dev, "Paint addr 0x%px, size %d New offset - 0x%x\n",
+		host_vaddr, LA9310_DMA_SEPARATOR_SIZE, *offset);
 }
 
 struct la9310_mem_region_info *
@@ -1251,7 +1247,7 @@ la9310_get_subdrv_virqmap(struct la9310_dev *la9310_dev,
 		goto out;
 	}
 
-	dev_info(la9310_dev->dev, "subdrv [%s] virqmap init", subdrv->name);
+	dev_dbg(la9310_dev->dev, "subdrv [%s] virqmap init", subdrv->name);
 	virq_count = __la9310_get_subdrv_virqmap(la9310_dev, subdrv_virqmap,
 						 subdrv_virqmap_size,
 						 virq_mask);

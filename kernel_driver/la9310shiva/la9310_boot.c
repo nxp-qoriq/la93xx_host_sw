@@ -102,12 +102,12 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 #endif
 	if (scratch_val != LA9310_HOST_START_DRIVER_INIT) {
 		dev_err(la9310_dev->dev,
-			"LA9310 Reset HSHAKE failed, scratch 0x%x\n",
+			"LA9310 Reset HandShake failed, scratch 0x%x\n",
 			scratch_val);
 		rc = -EINVAL;
 	} else {
 		dev_info(la9310_dev->dev,
-			 "LA9310 Reset HSHAKE done, scratch 0x%x",
+			 "LA9310 Reset HandShake done, scratch 0x%x",
 			 scratch_val);
 	}
 
@@ -184,7 +184,7 @@ int la9310_load_rtos_img(struct la9310_dev *la9310_dev)
 				     size, freertos_img);
 	la9310_dev_free_firmware(la9310_dev);
 	if (rc) {
-		dev_err(la9310_dev->dev, "udev Firmware [%s] request failed\n",
+		dev_err(la9310_dev->dev, "load_firmware [%s] request failed\n",
 			 freertos_img);
 		goto out;
 	}
@@ -200,7 +200,7 @@ int la9310_load_rtos_img(struct la9310_dev *la9310_dev)
 			fw_size, PCI_DMA_TODEVICE);
 #endif
  
-	dev_info(la9310_dev->dev, "udev Firmware [%s] - Addr %px, size %d\n",
+	dev_info(la9310_dev->dev, "load_firmware[%s] - Addr %px, size %d\n",
 		freertos_img, dma_region->vaddr, fw_size);
 
 	dev_dbg(la9310_dev->dev, "BootHDR: bl_src_offset [0x%p]: 0x%llx\n",
