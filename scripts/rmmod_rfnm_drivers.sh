@@ -6,5 +6,6 @@ rmmod rfnm_lime
 rmmod rfnm_usb
 rmmod rfnm_usb_function
 rmmod rfnm_daughterboard
+rmmod rfnm_lalib
 rmmod rfnm_gpio
 rmmod la9310rfnm
