@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2018,2021 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #include <linux/module.h>
