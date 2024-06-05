@@ -188,17 +188,13 @@ static long la9310_modinfo_ioctl(struct file *filp, unsigned int cmd,
 	int list_stats_len = 0, stats_len = 0;
 	char *buf;
 
-
-	modinfo_t *mil_user = (modinfo_t *)arg;
-	modinfo_t mil;
-	modinfo_t *mi = &mil;
-
-	modinfo_s *mil_user_s = (modinfo_s *)arg;
-	modinfo_s mil_s;
-	modinfo_s *mi_s = &mil_s;
-
 	switch (cmd) {
 	case IOCTL_LA93XX_MODINFO_GET:
+	{
+		modinfo_t *mil_user = (modinfo_t *)arg;
+		modinfo_t mil;
+		modinfo_t *mi = &mil;
+
 		ret = copy_from_user(&mil, (modinfo_t *)arg, sizeof(modinfo_t));
 		if (ret != 0) {
 			dev_err(NULL, "la9310modinfo: copyfromuser failed\n");
@@ -212,8 +208,13 @@ static long la9310_modinfo_ioctl(struct file *filp, unsigned int cmd,
 			dev_err(NULL, "la9310modinfo: copytouser failed\n");
 			return -EFAULT;
 		}
-		break;
+	}
+	break;
 	case IOCTL_LA93XX_MODINFO_GET_STATS:
+	{
+		modinfo_s *mil_user_s = (modinfo_s *)arg;
+		modinfo_s mil_s;
+		modinfo_s *mi_s = &mil_s;
 		ret = copy_from_user(&mil_s, (modinfo_s *)arg, sizeof(modinfo_s));
 		if (ret != 0) {
 			dev_err(NULL, "la9310modinfo: copyfromuser failed\n");
@@ -243,7 +244,8 @@ static long la9310_modinfo_ioctl(struct file *filp, unsigned int cmd,
 			dev_err(NULL, "la9310modinfo: copytouser failed\n");
 			return -EFAULT;
 		}
-		break;
+	}
+	break;
 	default:
 		dev_err(NULL, "INVALID ioctl for la9310modinfo\n");
 		return -EINVAL;
