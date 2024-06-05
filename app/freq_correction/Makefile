@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
+#Copyright 2024 NXP
+
+CFLAGS  += -Wall -Werror
+
+INCLUDES += -I${UAPI_DIR}
+
+SRCS_FREQ_CORRECTION:= freq_correction.c
+OBJS_FREQ_CORRECTION:= $(SRCS_FREQ_CORRECTION:.c =.o)
+BIN_FREQ_CORRECTION:= freq_correction
+
+all: $(BIN_FREQ_CORRECTION)
+
+$(BIN_FREQ_CORRECTION): ${OBJS_FREQ_CORRECTION}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $(BIN_FREQ_CORRECTION) ${OBJS_FREQ_CORRECTION} $(INCLUDES)
+
+%.o: %.c
+	${CC} -c ${CFLAGS} ${INCLUDES}  $< -o $@
+
+clean:
+	rm -rf *.o $(BIN_FREQ_CORRECTION)
+
+install:
+	install -D $(BIN_FREQ_CORRECTION) ${BIN_INSTALL_DIR}/$(BIN_FREQ_CORRECTION)
