@@ -289,12 +289,13 @@ err:
 int libwdog_reinit_modem_rfnm(struct wdog *wdog_t, uint32_t timeout)
 {
 	int ret = MODEM_WDOG_OK;
-	char host_pci_status[64], pci_driver_path[128], rmmod_script[64];
+	char host_pci_status[64], pci_driver_path[128];
+	char *rmmod_script = NULL;
 
 	get_pci_device_id(wdog_t->wdogid, pci_driver_path);
 	get_pci_controller_path(host_pci_status, pci_driver_path);
 
-	strcpy(rmmod_script,xstr(EXTRA_RMMOD_SCRIPT));
+	rmmod_script = getenv(xstr(EXTRA_RMMOD_SCRIPT));
 
 	if (rmmod_script == NULL)
 		system(DEFAULT_EXTRA_RMMOD_SCRIPT);
