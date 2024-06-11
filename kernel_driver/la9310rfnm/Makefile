@@ -21,7 +21,7 @@ ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
 ccflags-y += -I${LA9310_MT3812_HEADER_DIR}/
 ccflags-y += -I${LMS7002M_KERNEL_DIR}/include -I${LMS7002M_KERNEL_DIR}/interfaces -I${LMS7002M_KERNEL_DIR}/src
 
-la9310rfnm-objs := la9310_rfnm.o  cache.o
+la9310rfnm-objs := la9310_rfnm.o cache.o rfnm_neon.o
 obj-m := la9310rfnm.o
 obj-m += rfnm_usb_function.o
 obj-m += rfnm_usb.o
@@ -37,6 +37,9 @@ obj-m += rfnm_breakout.o
 ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
 la9310rfnm-objs += pack16to12.o unpack12to16.o
 rfnm_lime-objs := rfnm_lime_m.o
+
+CFLAGS_REMOVE_rfnm_neon.o += -mgeneral-regs-only
+
 rfnm_lime-objs += rfnm_fe_generic.o
 rfnm_lime-objs += rfnm_fe_lime0.o
 rfnm_lime-objs += dtoa.o
