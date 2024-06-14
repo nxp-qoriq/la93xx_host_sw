@@ -5,15 +5,32 @@
 
 print_usage()
 {
-  echo "usage ./txrx_en.sh <granita/limetx/limerx>"
+  echo "usage ./txrx_en.sh <granitatx/granitatxrx/granita2R/limetx/limerx>"
 }
 
 if [ $# -eq 0 ];then
   print_usage
   exit 1
 else
-  if [ $1 = granita ];then
-    echo "Setting up FDD "
+  if [ $1 = granitatx ];then
+    echo "Setting up FDD sma_b Tx "
+
+    echo on > /sys/kernel/rfnm_primary/tx0/enable
+    echo sma_b > /sys/kernel/rfnm_primary/tx0/path
+    echo 1850000000 > /sys/kernel/rfnm_primary/tx0/freq
+    echo 0 > /sys/kernel/rfnm_primary/tx0/rfic_lpf_bw
+    echo 1 > /sys/kernel/rfnm_primary/tx0/power
+    echo 1 > /sys/kernel/rfnm_primary/tx0/apply
+
+  elif [ $1 = granitatxrx ];then
+    echo "Setting up FDD sma_b Tx sma_a Rx"
+
+    echo on > /sys/kernel/rfnm_primary/tx0/enable
+    echo sma_b > /sys/kernel/rfnm_primary/tx0/path
+    echo 1850000000 > /sys/kernel/rfnm_primary/tx0/freq
+    echo 0 > /sys/kernel/rfnm_primary/tx0/rfic_lpf_bw
+    echo 1 > /sys/kernel/rfnm_primary/tx0/power
+    echo 1 > /sys/kernel/rfnm_primary/tx0/apply
 
     echo on > /sys/kernel/rfnm_primary/rx1/enable
     echo sma_a > /sys/kernel/rfnm_primary/rx1/path
@@ -22,14 +39,8 @@ else
     echo 20 > /sys/kernel/rfnm_primary/rx1/gain
     echo 1 > /sys/kernel/rfnm_primary/rx1/apply
 
-    echo on > /sys/kernel/rfnm_primary/tx0/enable
-    echo sma_b > /sys/kernel/rfnm_primary/tx0/path
-    echo 1850000000 > /sys/kernel/rfnm_primary/tx0/freq
-    echo 0 > /sys/kernel/rfnm_primary/tx0/rfic_lpf_bw
-    echo 1 > /sys/kernel/rfnm_primary/tx0/power
-    echo 1 > /sys/kernel/rfnm_primary/tx0/apply
   elif [ $1 = granita2R ];then
-    echo "Setting up FDD 2R"
+    echo "Setting up FDD 2R sma_a and sma_b Rx"
 
     echo on > /sys/kernel/rfnm_primary/rx1/enable
     echo sma_a > /sys/kernel/rfnm_primary/rx1/path

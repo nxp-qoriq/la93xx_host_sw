@@ -10,13 +10,6 @@ echo "usage: ./iq-replay.sh <capture file> <size num 4KB>"
 echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_2c.bin 300"
 }
 
-# check vspa suitable firmware
-#diff=`diff /lib/firmware/apm.eld /lib/firmware/apm-nlm.eld`
-#if [ "$diff" != ""  ];then
-#        echo "need to deploy nlm firmware i.e. [cp /lib/firmware/apm-nlm.eld /lib/firmware/apm.eld]"
-#        exit 1
-#fi
-
 # check parameters
 if [ $# -ne 2 ];then
         echo Arguments wrong.
