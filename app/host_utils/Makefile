@@ -6,6 +6,9 @@ SRCS_TEST := vspa_mbox.c
 OBJS_TEST := $(SRCS_TEST:.c =.o)
 BIN_TEST := vspa_mbox
 TONE_TEST := *
+SCRIPTS_INSTALL_DIR?=/home/root/host-utils
+BIN_INSTALL_DIR?=/usr/bin
+
 
 .PHONY: all
 

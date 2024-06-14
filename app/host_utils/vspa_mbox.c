@@ -173,7 +173,7 @@ static void usage(char *argv[])
 int main (int argc, char *argv[])
 {
     int fd, size;
-    uint64_t modem_ccsr_base, vspa_addr_phys, vspa_addr;
+    uint64_t vspa_addr_phys, vspa_addr;
     uint32_t core_id=0, mbox_id=0, msb32=0, lsb32=0;
 
     if(argc < 4) {

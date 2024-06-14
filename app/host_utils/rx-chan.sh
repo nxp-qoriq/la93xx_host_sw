@@ -19,13 +19,14 @@ if [ $# -ne 1 ];then
         exit 1
 fi
 
-# chanID                  0           1           2           3
+#                                                            >default<
+# chanID                  1           2           3           4
+# VSPA chanID             0           1           2           3
 # axi_ADC_FIFI_addr[4] = {0x44003000, 0x44004000, 0x44001000, 0x44002000};
 # LA9310 chan             RX0         RX1         RO0         RO1
 # RFNM slot_chan          RBB_RX2     RBA_RX2     RBB_RX1     RBA_RX1
 # GRANITA                 sma_a       sma_a       sma_b       sma_b
-# LIME                                    		  sma_a	      sma_a	
-# default                                                        *
+# LIME                                    		  sma_b	      sma_b	
 
 cmd=`printf "0x%X\n" $[0x0d000000]`
 #echo vspa_mbox send 0 0 $cmd $1
