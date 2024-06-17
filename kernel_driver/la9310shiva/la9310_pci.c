@@ -21,6 +21,11 @@
 #include "la9310_base.h"
 #include "la9310_wdog_ioctl.h"
 
+#define DCS_BASE_ADDR		0x1040000
+#define ADC_DAC_CLKCFG		0x300
+#define ADC_DAC_CLKCTRL		0x310
+#define DAC_CLK_MASK_BIT	16
+
 static const char *driver_name = "la9310-shiva";
 int scratch_buf_size;
 uint64_t scratch_buf_phys_addr;
@@ -57,6 +62,8 @@ EXPORT_SYMBOL(la9310_dev_name);
 static struct class *la9310_class;
 
 static void la9310_pcidev_remove(struct pci_dev *pdev);
+
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 static inline void __hexdump(unsigned long start, unsigned long end,
 		unsigned long p, size_t sz, const unsigned char *c)
@@ -156,12 +163,15 @@ static int pci_current_link_speed(struct pci_dev *pci_dev)
 
 ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 {
-	int i = 0;
+	int i = 0, adc_dac_hw_rate, adc_dac_hw_mask;
 	struct vspa_device *vspadev = (struct vspa_device *)dev->vspa_priv;
 	u16 linkstat;
 	modinfo_t mi;
 
 	la9310_modinfo_get(dev, &mi);
+	adc_dac_hw_rate = readl(dev->mem_regions[LA9310_MEM_REGION_CCSR].vaddr + DCS_BASE_ADDR + ADC_DAC_CLKCFG);
+	adc_dac_hw_mask = readl(dev->mem_regions[LA9310_MEM_REGION_CCSR].vaddr + DCS_BASE_ADDR + ADC_DAC_CLKCTRL);
+
 	sprintf(&buf[strlen(buf)],
 			" Board Name:%s, Modem ID=%d, Name:%s PCI-ID:%x, PCI_ADDR:%s\n",
 			mi.board_name, dev->id, dev->name, dev->pdev->device,
@@ -204,6 +214,21 @@ ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 	sprintf(&buf[strlen(buf)], "\n Scratch:  Phy      addr:0x%llx Size:0x%llx (%lldMB)\n",
 			mi.scratchbuf.host_phy_addr, (u64)mi.scratchbuf.size,
 			IN_MB((u64)mi.scratchbuf.size));
+	sprintf(&buf[strlen(buf)], " DAC HW Mask: 0x%x HW Rate: %s\n",
+			CHECK_BIT(adc_dac_hw_mask,DAC_CLK_MASK_BIT),
+			CHECK_BIT(adc_dac_hw_rate,DAC_CLK_MASK_BIT) ? "61.44 MHz":"122.88 MHz");
+	for (i = 0; i < 4; i++) {
+		if (i >= 2) {
+			sprintf(&buf[strlen(buf)], " ADC-%d: %s  HW Rate : %s \n",
+				i, CHECK_BIT(adc_dac_hw_mask,i) ? "ON": "OFF",
+				CHECK_BIT(adc_dac_hw_rate, ((1 << 3) + (i&1))) ? "61.44 MHz":"122.88 MHz");
+		}
+		else {
+			sprintf(&buf[strlen(buf)], " ADC-%d: %s  HW Rate : %s \n",
+				i, CHECK_BIT(adc_dac_hw_mask,i) ? "ON": "OFF",
+				CHECK_BIT(adc_dac_hw_rate, i) ? "61.44 MHz":"122.88 MHz");
+		}
+	}
 	sprintf(&buf[strlen(buf)], "\n %s", "-*-*-*-");
 	sprintf(&buf[strlen(buf)], "%ld\n", strlen(buf));
 	return strlen(buf);
