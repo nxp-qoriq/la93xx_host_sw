@@ -29,11 +29,11 @@ fi
 # build command
 if [ $1 == -1 ];then
        cmd=0x0f100000
-else 
+else
        cmd=`printf "0x%X\n" $[0x0f000000+$1]`
 fi
 
-#echo vspa_mbox send 0 0 $cmd 0 
+#echo vspa_mbox send 0 0 $cmd 0
 vspa_mbox send 0 0 $cmd 0
 vspa_mbox recv 0 0
 

@@ -26,19 +26,19 @@ insmod /lib/modules/$(uname -r)/extra/rfnm_granita.ko
 #mount -t hugetlbfs none /dev/hugepages
 #echo 24 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 #dpdk-dfe_app -c "fdd start"
-# workaround.. until dpdk-dfe_app enables all channels 
+# workaround.. until dpdk-dfe_app enables all channels
 
 la9310_ccsr_base=0x`dmesg | grep BAR:0|cut -f 2 -d "x"|cut -f 1 -d " "`
 phytimer_base=$[$la9310_ccsr_base + 0x1020000]
-devmem $[$phytimer_base + 0x0c] w 0x0000000a 
-devmem $[$phytimer_base + 0x14] w 0x0000000a 
-devmem $[$phytimer_base + 0x1c] w 0x0000000a 
-devmem $[$phytimer_base + 0x24] w 0x0000000a 
-devmem $[$phytimer_base + 0x5c] w 0x0000000a 
+devmem $[$phytimer_base + 0x0c] w 0x0000000a
+devmem $[$phytimer_base + 0x14] w 0x0000000a
+devmem $[$phytimer_base + 0x1c] w 0x0000000a
+devmem $[$phytimer_base + 0x24] w 0x0000000a
+devmem $[$phytimer_base + 0x5c] w 0x0000000a
 
 # check ADC/DAC clock
 #  memtool -32 0x19040300 1
 #  00010303 -> 61.44Mhz
 #  00000000 -> 122.88Mhz
- 
+
 

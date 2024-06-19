@@ -3,7 +3,7 @@
 #
 # Script compatible with VSPA firmware apm-nlm.eld
 # Script compatible with M4 firmware la9310_dfe.bin
-# 
+#
 
 # play single tone on granita
 ./load-nlm.sh
@@ -22,7 +22,7 @@
 # play and capture single tone on Granita
 ./load-nlm.sh
 ./enable_rf.sh granitatxrx
-./singleTone.sh 20 1 
+./singleTone.sh 20 1
 ./rx-chan.sh 2
 ./iq-capture.sh ./iqdata.bin 30
 
@@ -31,6 +31,6 @@
 mount -t hugetlbfs none /dev/hugepages
 echo 24 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 dpdk-dfe_app -c "axiq_lb enable"
-./singleTone.sh 20 1 
+./singleTone.sh 20 1
 ./iq-capture.sh ./iqdata.bin 30
 
