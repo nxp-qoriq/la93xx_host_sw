@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 ####################################################################
 # (python 2.7)
-# plot freq spectrum from 2cmp binray capture 
+# plot freq spectrum from 2cmp binray capture
 # python compute_tone_params.py -f 61440000 -i C:\Temp\iqdata.bin
 #
 
@@ -57,14 +57,14 @@ class MemMap:
 
 class RfValidationTool:
     def __init__(self,fs=122880000*2):
-			
+
         #upsamp = fs/122880000
         #self.sample_rate=upsamp*122880000
         #self.rx_sample_rate=upsamp*122880000
 
         self.sample_rate=fs
         self.rx_sample_rate=fs
- 
+
         self.length = 0
         self.dma_size = 0
         self.max_amplitude = 0.5
@@ -85,11 +85,11 @@ class RfValidationTool:
         rssi = 0
         samples = []
         max_amp_db = []
-            
+
         frequency = frequency_list
 
         print('fft_window ' + str(fft_window) )
-            
+
         logging_txt = open(ifile + ".csv", 'wb')
 
         # Parsing the captured bin file
@@ -204,7 +204,7 @@ class RfValidationTool:
                 psd[freq_position - 5:freq_position + 5] = 0
             sine_fft[freq_position] = 0
             psd[freq_position] = 0
-            
+
         # Amplitude difference calculation between two tones
         if len(frequency) > 1:
             # Plot Frequency vs Amplitude
@@ -253,7 +253,7 @@ def plot_figures(figures_list):
         plt.xlabel(figure['xlabel'])
         plt.ylabel(figure['ylabel'])
         plt.grid(True, linestyle='--')
-        
+
         if 'time' in figure['xlabel']:
             plt.ylim(-1, 1)
         figure_copy = copy.deepcopy(figure)
@@ -288,8 +288,8 @@ def main(argv):
          fs = int(arg)
       elif opt in ("-w", "--ws"):
          freq.append(int(arg))
-  
- 
+
+
    tone_type = 'complex_sinusoid'
    rf_val = RfValidationTool(fs)
    figures = rf_val.compute_tone_params(inputfile,tone_type, freq)

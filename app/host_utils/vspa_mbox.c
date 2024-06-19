@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
         usage(argv);
         return -1;
     }
-    
+
     if (!((strcmp(argv[1], "send") == 0) || (strcmp(argv[1], "recv") == 0))) {
         printf("command must be either 'send' or 'recv'\n");
         usage(argv);
