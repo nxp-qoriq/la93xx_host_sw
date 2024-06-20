@@ -13,7 +13,7 @@ void lime0_disable_all_pa(struct rfnm_dgb * dgb_dt) {
 
 void lime0_disable_all_lna(struct rfnm_dgb * dgb_dt) {
 	rfnm_fe_srb(dgb_dt, RFNM_LIME0_G1L, 0);
-	rfnm_fe_srb(dgb_dt, RFNM_LIME0_G2L, 1);
+	rfnm_fe_srb(dgb_dt, RFNM_LIME0_G2L, 0);
 	rfnm_fe_srb(dgb_dt, RFNM_LIME0_G2PL1, 0);
 	rfnm_fe_srb(dgb_dt, RFNM_LIME0_G2PL2, 0);
 }
