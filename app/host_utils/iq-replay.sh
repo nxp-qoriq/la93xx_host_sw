@@ -38,4 +38,5 @@ bin2mem -f $1 -a $ddrh
 cmd=`printf "0x%X\n" $[0x05100000 + $2]`
 #echo vspa_mbox send 0 0 $cmd $ddrep
 vspa_mbox send 0 0 $cmd $ddrep
+vspa_mbox recv 0 0
 
