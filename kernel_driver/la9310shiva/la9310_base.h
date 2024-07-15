@@ -223,6 +223,7 @@ struct la9310_dma_info {
 	struct la9310_mem_region_info host_buf;
 	phys_addr_t ep_pcie_addr;
 	struct la9310_mem_region_info ep_bufs[LA9310_DMA_REGIONS];
+	uint32_t dma_region_used;
 };
 
 #define LA9310_SUBDRV_DMA_REGION_IDX(i) (i - LA9310_MEM_REGION_BAR_END - 1)

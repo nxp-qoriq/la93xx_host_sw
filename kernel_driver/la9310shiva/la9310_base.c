@@ -304,8 +304,7 @@ la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
 static void
 la9310_init_subdrv_region(struct la9310_dev *la9310_dev,
 			  struct la9310_mem_region_info *ep_buf,
-			  int size, enum la9310_mem_region_t type,
-			  int *offset)
+			  int size, enum la9310_mem_region_t type)
 {
 
 	u8 *host_vaddr;
@@ -314,22 +313,23 @@ la9310_init_subdrv_region(struct la9310_dev *la9310_dev,
 
 	host_dma_region = &la9310_dev->dma_info.host_buf;
 
-	ep_buf->vaddr = host_dma_region->vaddr + *offset;
-	ep_buf->phys_addr = dma_info->ep_pcie_addr + *offset;
+	ep_buf->vaddr = host_dma_region->vaddr + dma_info->dma_region_used;
+	ep_buf->phys_addr = dma_info->ep_pcie_addr + dma_info->dma_region_used;
 	ep_buf->size = size;
 
-	dev_info(la9310_dev->dev, "subdrv DMA region:[%d] offset %d\n", type,  *offset);
+	dev_info(la9310_dev->dev, "subdrv DMA region:[%d] offset %d\n", type,
+			dma_info->dma_region_used);
 	dev_info(la9310_dev->dev, "Host virtual 0x%px, EP Phys 0x%llx, size %d",
 		 ep_buf->vaddr, ep_buf->phys_addr, (int) ep_buf->size);
 
 	/*Paint separator */
-	host_vaddr = host_dma_region->vaddr + size + *offset;
+	host_vaddr = host_dma_region->vaddr + size + dma_info->dma_region_used;
 	memset(host_vaddr, LA9310_DMA_SEPARATOR_PAINT_CHAR,
 	       LA9310_DMA_SEPARATOR_SIZE);
 
-	*offset += size + LA9310_DMA_SEPARATOR_SIZE;
+	dma_info->dma_region_used += size + LA9310_DMA_SEPARATOR_SIZE;
 	dev_info(la9310_dev->dev, "Paint addr 0x%px, size %d New offset - 0x%x\n",
-		host_vaddr, LA9310_DMA_SEPARATOR_SIZE, *offset);
+		host_vaddr, LA9310_DMA_SEPARATOR_SIZE, dma_info->dma_region_used);
 }
 
 struct la9310_mem_region_info *
@@ -350,43 +350,43 @@ la9310_init_subdrv_dma_buf(struct la9310_dev *la9310_dev)
 {
 
 	struct la9310_mem_region_info *ep_buf;
-	int idx, offset = 0;
+	int idx;
 
 	/*VSPA Overlay*/
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_VSPA_OVERLAY);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_VSPA_FW_SIZE,
-				  LA9310_VSPA_OVERLAY, &offset);
+				  LA9310_VSPA_OVERLAY);
 	/*VSPA */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_VSPA);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_VSPA_DMA_SIZE,
-				  LA9310_MEM_REGION_VSPA, &offset);
+				  LA9310_MEM_REGION_VSPA);
 
 	 /*FW*/ idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_FW);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_FW_DMA_SIZE,
-				  LA9310_MEM_REGION_FW, &offset);
+				  LA9310_MEM_REGION_FW);
 	/*LA9310 LOG buffer */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_DBG_LOG);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_DBUG_LOG_SIZE,
-				  LA9310_MEM_REGION_DBG_LOG, &offset);
+				  LA9310_MEM_REGION_DBG_LOG);
 	/*IQ Data samples*/
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_IQ_SAMPLES);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_IQ_SAMPLES_SIZE,
-				  LA9310_MEM_REGION_IQ_SAMPLES, &offset);
+				  LA9310_MEM_REGION_IQ_SAMPLES);
 	/* NLM Operations */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_NLM_OPS);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_NLM_OPS_SIZE,
-				  LA9310_MEM_REGION_NLM_OPS, &offset);
+				  LA9310_MEM_REGION_NLM_OPS);
 
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_STD_FW);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_STD_FW_SIZE,
-				  LA9310_MEM_REGION_STD_FW, &offset);
+				  LA9310_MEM_REGION_STD_FW);
 }
 
 static int
@@ -409,6 +409,7 @@ la9310_scratch_dma_buf(struct la9310_dev *la9310_dev)
 	host_region->phys_addr = scratch_buf_phys_addr;
 	host_region->size = scratch_buf_size;
 	memset_io(host_region->vaddr, 0, scratch_buf_size);
+	dma_info->dma_region_used = 0;
 
 	rc = la9310_scratch_outbound_create(la9310_dev);
 	if (rc) {
