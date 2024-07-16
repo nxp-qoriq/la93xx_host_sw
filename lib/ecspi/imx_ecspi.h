@@ -4,15 +4,7 @@
 #ifndef __IMX_ECSPI_H__
 #define __IMX_ECSPI_H__
 
-//#define ENABLE_ESPI_DEBUG 1
-#if ENABLE_ESPI_DEBUG
-#define pr_debug(...) printf(__VA_ARGS__)
-#else
-#define pr_debug(...)
-#endif
-#define pr_info(...) printf(__VA_ARGS__)
-#define ECSPI_ENABLE            1
-#define ECSPI_DISABLE           0
+#include <imx_ecspi_api.h>
 
 #define IMX8MP_CSPIRXDATA	0x00
 #define IMX8MP_CSPITXDATA	0x04
@@ -96,5 +88,8 @@
 #define IMX8MP_CCM_CCGR8_CLK_OFFSET 0x4080
 #define IMX8MP_CCM_CCGR9_CLK_OFFSET 0x4090
 #define IMX8MP_CCM_DOMAIN_CLK_ALWAYS 0x3
+#define IMX8MP_ECSPI1_CLK_ROOT_OFFSET 0xB280
+#define IMX8MP_ECSPI2_CLK_ROOT_OFFSET 0xB300
+#define IMX8MP_ECSPI3_CLK_ROOT_OFFSET 0xC180
 
 #endif /* __IMX_ECSPI_H__ */

@@ -9,12 +9,15 @@
 #include <linux/types.h>
 #include <unistd.h>
 #include "imx_ecspi.h"
-#include <imx_ecspi_api.h>
 
-void *ecspi_handle[IMX8MP_ECSPI_MAX_DEVICES] = {NULL, NULL};
-static int ecspi_fd[IMX8MP_ECSPI_MAX_DEVICES] = {-1, -1};
-static uint32_t ecspi_iomux_state[IMX8MP_ECSPI_MAX_DEVICES];
-static uint32_t ecspi_ccm_clk_state[IMX8MP_ECSPI_MAX_DEVICES];
+void *ecspi_handle[IMX8MP_ECSPI_MAX_DEVICES] = {NULL, NULL, NULL};
+static int ecspi_fd[IMX8MP_ECSPI_MAX_DEVICES] = {-1, -1, -1};
+static uint32_t ecspi_iomux_state[IMX8MP_ECSPI_MAX_DEVICES] = {0, 0, 0};
+static uint32_t ecspi_store_org_ccm_clk_state[IMX8MP_ECSPI_MAX_DEVICES] = {0, 0, 0};
+static uint32_t ecspi_store_org_ccm_clk_root[IMX8MP_ECSPI_MAX_DEVICES];
+static uint32_t ecspi_store_cur_ccm_clk_state[IMX8MP_ECSPI_MAX_DEVICES];
+static uint32_t ecspi_store_cur_ccm_clk_root[IMX8MP_ECSPI_MAX_DEVICES];
+static uint32_t ecspi_store_cur_ctrl_reg_val[IMX8MP_ECSPI_MAX_DEVICES];
 
 static inline uint32_t read_reg_ecspi(void *ecspi_base, uint32_t reg_addr)
 {
@@ -172,10 +175,10 @@ static int32_t config_ecspi_iomux_setting(uint32_t ecspi_chan, uint32_t enable)
 }
 
 
-static inline int32_t config_ecspi_clk_setting(uint32_t ecspi_chan, uint32_t enable)
+int32_t config_ecspi_clk_setting(uint32_t ecspi_chan, ecspi_clk_t clk, ecspi_state_t  state)
 {
 	void *ccm_clk_base;
-	uint32_t reg_addr, reg_read;
+	uint32_t reg_addr_CCM_CCGR, reg_addr_CLK_ROOT, reg_read;
 
 	ccm_clk_base = mmap(NULL,
 		IMX8MP_CCM_CLK_CTRL_CCSR_SIZE,
@@ -191,32 +194,65 @@ static inline int32_t config_ecspi_clk_setting(uint32_t ecspi_chan, uint32_t ena
 
 	switch (ecspi_chan) {
 	case IMX8MP_ECSPI_1:
-		reg_addr = IMX8MP_CCM_CCGR7_CLK_OFFSET;
+		reg_addr_CCM_CCGR = IMX8MP_CCM_CCGR7_CLK_OFFSET;
+		reg_addr_CLK_ROOT = IMX8MP_ECSPI1_CLK_ROOT_OFFSET;
 		break;
 	case IMX8MP_ECSPI_2:
-		reg_addr = IMX8MP_CCM_CCGR8_CLK_OFFSET;
+		reg_addr_CCM_CCGR = IMX8MP_CCM_CCGR8_CLK_OFFSET;
+		reg_addr_CLK_ROOT = IMX8MP_ECSPI2_CLK_ROOT_OFFSET;
 		break;
 	case IMX8MP_ECSPI_3:
-		reg_addr = IMX8MP_CCM_CCGR9_CLK_OFFSET;
+		reg_addr_CCM_CCGR = IMX8MP_CCM_CCGR9_CLK_OFFSET;
+		reg_addr_CLK_ROOT = IMX8MP_ECSPI3_CLK_ROOT_OFFSET;
 		break;
 	default:
 		/*Slot#i is default */
-		reg_addr = IMX8MP_CCM_CCGR7_CLK_OFFSET;
+		reg_addr_CCM_CCGR = IMX8MP_CCM_CCGR7_CLK_OFFSET;
+		reg_addr_CLK_ROOT = IMX8MP_ECSPI1_CLK_ROOT_OFFSET;
 		break;
 	}
 
-	if (enable) {
-		ecspi_ccm_clk_state[ecspi_chan] = *(volatile uint32_t *)(ccm_clk_base + reg_addr);
-		*(volatile uint32_t *)(ccm_clk_base + reg_addr) = ecspi_ccm_clk_state[ecspi_chan] | IMX8MP_CCM_DOMAIN_CLK_ALWAYS;
+	switch (state) {
+	case ECSPI_ENABLE:
+		ecspi_store_org_ccm_clk_state[ecspi_chan] = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR);
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR) = ecspi_store_org_ccm_clk_state[ecspi_chan] | IMX8MP_CCM_DOMAIN_CLK_ALWAYS;
+
+		ecspi_store_org_ccm_clk_root[ecspi_chan] = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CLK_ROOT);
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CLK_ROOT) = (1 << 28) | (clk.ecspi_root_clk << 24) | (clk.ecspi_ccm_target_root_pre_podf_div_clk << 16) | (clk.ecspi_ccm_target_root_post_podf_div_clk & 0x3f);
+		/* store current value of clock setting for debug and query by application*/
+		ecspi_store_cur_ccm_clk_state[ecspi_chan] = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR);
+		ecspi_store_cur_ccm_clk_root[ecspi_chan]  = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CLK_ROOT);
+
 		pr_debug("ECSPI clock enabled successfully..\r\n");
-	} else {
-		reg_read = *(volatile uint32_t *)(ccm_clk_base + reg_addr);
+		break;
+	case ECSPI_DISABLE:
+		reg_read = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR);
 		reg_read = reg_read & (~IMX8MP_CCM_DOMAIN_CLK_ALWAYS);
-		reg_read = reg_read | (ecspi_ccm_clk_state[ecspi_chan] & IMX8MP_CCM_DOMAIN_CLK_ALWAYS);
-		*(volatile uint32_t *)(ccm_clk_base + reg_addr) = reg_read;
+		reg_read = reg_read | (ecspi_store_org_ccm_clk_state[ecspi_chan] & IMX8MP_CCM_DOMAIN_CLK_ALWAYS);
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR) = reg_read;
+
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CLK_ROOT) = ecspi_store_org_ccm_clk_root[ecspi_chan];
 		pr_debug("ECSPI clock setting restored  successfully..\r\n");
+		break;
+	case ECSPI_SUSPEND:
+		reg_read = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR);
+		reg_read = reg_read & (~IMX8MP_CCM_DOMAIN_CLK_ALWAYS);
+		reg_read = reg_read | (ecspi_store_org_ccm_clk_state[ecspi_chan] & IMX8MP_CCM_DOMAIN_CLK_ALWAYS);
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR) = reg_read;
+		pr_debug("ECSPI clock suspended successfully..\r\n");
+		break;
+	case ECSPI_RESUME:
+		*(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR) = ecspi_store_org_ccm_clk_state[ecspi_chan] | IMX8MP_CCM_DOMAIN_CLK_ALWAYS;
+		pr_debug("ECSPI clock resumed successfully..\r\n");
+		break;
 	}
 
+#ifdef ENABLE_ESPI_DEBUG
+		reg_read = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CCM_CCGR);
+		pr_debug("Clk IMX8MP_CCM_CCGR7_CLK_OFFSET Reg 0x%X Val 0x%X\r\n", reg_addr_CCM_CCGR, reg_read);
+		reg_read = *(volatile uint32_t *)(ccm_clk_base + reg_addr_CLK_ROOT);
+		pr_debug("Clk IMX8MP_ECSPI_CLK_ROOT_OFFSET Reg 0x%X Val 0x%X\r\n", reg_addr_CLK_ROOT, reg_read);
+#endif
 	if (munmap(ccm_clk_base, IMX8MP_CCM_CLK_CTRL_CCSR_SIZE) == -1) {
 		pr_info("unmap memory from user space fail for ccm clk ctrl..\n");
 		return -1;
@@ -225,18 +261,31 @@ static inline int32_t config_ecspi_clk_setting(uint32_t ecspi_chan, uint32_t ena
 	return 0;
 }
 
-static void ecspi_int(void *ecspi_base)
+int32_t imx_spi_clk_suspend_resume(uint32_t ecspi_chan, ecspi_state_t  state)
+{
+	int32_t ret = -1;
+	ecspi_clk_t clk; //dummy clock to make function happy
+
+	if ((state == ECSPI_SUSPEND) || (state == ECSPI_RESUME))
+		ret = config_ecspi_clk_setting(ecspi_chan, clk, state);
+	else
+		pr_info("Invalid state %d \r\n", state);
+	return ret;
+}
+
+
+static void ecspi_int(void *ecspi_base, uint16_t ecspi_chan, ecspi_clk_t clk)
 {
 	uint32_t testreg;
 	uint32_t ctrl_reg_val = 0;
 	uint32_t config_reg_val = 0;
 	uint32_t period_reg_val = 0;
 
-	/*Disable Power Management for ECSPI */
-	config_ecspi_clk_setting(IMX8MP_ECSPI_1, ECSPI_ENABLE);
+	/*Disable Power Management  and configure clock for ECSPI */
+	config_ecspi_clk_setting(ecspi_chan, clk, ECSPI_ENABLE);
 
 	/*configure Pin mux setting for ECSPI */
-	config_ecspi_iomux_setting(IMX8MP_ECSPI_1, ECSPI_ENABLE);
+	config_ecspi_iomux_setting(ecspi_chan, ECSPI_ENABLE);
 
 	/*Disable ECSPI before re-enable to reset ecspi to default*/
 	ecspi_disable(ecspi_base);
@@ -246,8 +295,8 @@ static void ecspi_int(void *ecspi_base)
 	 * registers must not be written to.
 	 */
 	ctrl_reg_val = (0x01F << IMX8MP_ECSPI_CTRL_BL_OFFSET) | IMX8MP_ECSPI_CTRL_CS(0) | \
-		       IMX8MP_ECSPI_CTRL_DRCTL(0) | (0x9 << IMX8MP_ECSPI_CTRL_PREDIV_OFFSET)| \
-		       (0x3 << IMX8MP_ECSPI_CTRL_POSTDIV_OFFSET) | \
+		       IMX8MP_ECSPI_CTRL_DRCTL(0) | (clk.ecspi_ctrl_pre_div_clk << IMX8MP_ECSPI_CTRL_PREDIV_OFFSET)| \
+		       (clk.ecspi_ctrl_post_div_clk << IMX8MP_ECSPI_CTRL_POSTDIV_OFFSET) | \
 		       IMX8MP_ECSPI_CTRL_MODE_MASK | IMX8MP_ECSPI_CTRL_ENABLE;
 	config_reg_val = IMX8MP_ECSPI_CONFIG_SBBCTRL(0);
 	period_reg_val = IMX8MP_ECSPI_PERIODREG_CSDCTL(1);
@@ -265,11 +314,14 @@ static void ecspi_int(void *ecspi_base)
 	write_reg_ecspi(ecspi_base, IMX8MP_ECSPI_TESTREG, testreg);
 	/*Throw if any data in RX FIFO */
 	ecspi_reset_fifo(ecspi_base);
-/*Dump Regs*/
+	/*Store current ctrl reg value for debug and query by application if needed*/
+	ecspi_store_cur_ctrl_reg_val[ecspi_chan] = read_reg_ecspi(ecspi_base, IMX8MP_ECSPI_CTRL);
+
+	/*Dump Regs*/
 	ecspi_dump_regs(ecspi_base);
 }
 
-int32_t spi_imx_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t *val_p)
+int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t *val_p)
 {
 	uint32_t read_result;
 	uint32_t tranfer_val;
@@ -313,7 +365,7 @@ int32_t spi_imx_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 	return 0;
 }
 
-int32_t spi_imx_tx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t wr_val)
+int32_t imx_spi_tx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t wr_val)
 {
 	uint32_t read_result;
 	uint32_t tranfer_val;
@@ -351,7 +403,7 @@ int32_t spi_imx_tx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 	return 0;
 }
 
-void *imx_spi_init(uint32_t ecspi_chan)
+void *imx_spi_init_with_clk(uint32_t ecspi_chan, ecspi_clk_t clk)
 {
 	void *ecspi_base;
 
@@ -377,7 +429,8 @@ void *imx_spi_init(uint32_t ecspi_chan)
 			return NULL;
 		}
 		pr_info("ECSPI %d successfully memory mapped at address %p\r\n", (ecspi_chan + 1), ecspi_base);
-		ecspi_int(ecspi_base);
+
+		ecspi_int(ecspi_base, ecspi_chan, clk);
 		ecspi_handle[ecspi_chan] = ecspi_base;
 		return ecspi_base;
 	} else {
@@ -385,8 +438,31 @@ void *imx_spi_init(uint32_t ecspi_chan)
 	}
 }
 
+void *imx_spi_init(uint32_t ecspi_chan)
+{
+	ecspi_clk_t clk;
+
+	clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_SYSTEM_PLL1_CLK;
+	clk.ecspi_ccm_target_root_pre_podf_div_clk = 0; /* Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+	clk.ecspi_ccm_target_root_post_podf_div_clk = 0; /* Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5 */
+	clk.ecspi_ctrl_pre_div_clk = 0x5; /* Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+	clk.ecspi_ctrl_post_div_clk = 0x3; /* Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+	return imx_spi_init_with_clk(ecspi_chan, clk);
+}
+
+void imx_get_spi_clk_config(void *ecspi_base, uint16_t ecspi_chan, ecspi_clk_t *clk)
+{
+	clk->ecspi_root_clk = (ecspi_store_cur_ccm_clk_root[ecspi_chan] >>  24) & 0x7;
+	clk->ecspi_ccm_target_root_pre_podf_div_clk = (ecspi_store_cur_ccm_clk_root[ecspi_chan] >>  16) & 0x7;;
+	clk->ecspi_ccm_target_root_post_podf_div_clk = ecspi_store_cur_ccm_clk_root[ecspi_chan]  & 0x3f;;
+	clk->ecspi_ctrl_pre_div_clk = (ecspi_store_cur_ctrl_reg_val[ecspi_chan] >> 12) & 0xf;
+	clk->ecspi_ctrl_post_div_clk = (ecspi_store_cur_ctrl_reg_val[ecspi_chan] >> 8) & 0xf;
+}
+
 int32_t  imx_spi_deinit(uint32_t ecspi_chan)
 {
+	ecspi_clk_t clk;
+
 	if (ecspi_chan >= IMX8MP_ECSPI_MAX_DEVICES) {
 		pr_info("Invalid ecspi device..\r\n");
 		return -1;
@@ -397,7 +473,7 @@ int32_t  imx_spi_deinit(uint32_t ecspi_chan)
 		return -1;
 	}
 	config_ecspi_iomux_setting(ecspi_chan, ECSPI_DISABLE);
-	config_ecspi_clk_setting(ecspi_chan, ECSPI_DISABLE);
+	config_ecspi_clk_setting(ecspi_chan, clk, ECSPI_DISABLE);
 	if (munmap(ecspi_handle[ecspi_chan], IMX8MP_ECSPI_CCSR_SIZE) == -1) {
 		pr_info("unmap memory from user space fail for ecspi..\n");
 		return -1;
