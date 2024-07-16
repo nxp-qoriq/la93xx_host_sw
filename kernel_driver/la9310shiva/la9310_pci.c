@@ -20,6 +20,8 @@
 #include "la9310_vspa.h"
 #include "la9310_base.h"
 #include "la9310_wdog_ioctl.h"
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
 
 #define DCS_BASE_ADDR		0x1040000
 #define ADC_DAC_CLKCFG		0x300
@@ -53,6 +55,8 @@ char vspa_fw_name[FIRMWARE_NAME_SIZE] = VSPA_FW_NAME;
 EXPORT_SYMBOL(vspa_fw_name);
 int sdr_board = 1;
 EXPORT_SYMBOL(sdr_board);
+int modem_host_uart=0;
+EXPORT_SYMBOL(modem_host_uart);
 
 LIST_HEAD(pcidev_list);
 static int la9310_dev_id_g;
@@ -590,7 +594,7 @@ static struct pci_driver la9310_pcidev_driver = {
 
 static int __init la9310_pcidev_init(void)
 {
-	int err = 0;
+	int err = 0, ret;
 
 	pr_info("NXP PCIe LA9310 Driver: Init.\n");
 
@@ -613,6 +617,32 @@ static int __init la9310_pcidev_init(void)
 		pr_err("ERR %s: alt_vspa_fw_name empty", __func__);
 		err = -EINVAL;
 		goto out;
+	}
+
+	if (of_machine_is_compatible("fsl,imx8mp-rfnm")) {
+		ret = gpio_request(LA9310_UART_SEL_GPIO, "Gpio to select modem uart");
+		if (ret) {
+			pr_err("%s: Can't request gpio %d, error: %d\n", __func__,
+					LA9310_UART_SEL_GPIO, ret);
+			err = -EINVAL;
+			goto out;
+		}
+
+		ret = gpio_direction_output(LA9310_UART_SEL_GPIO, 1);
+		if (ret < 0) {
+			pr_err("%s: Can't configure gpio %d\n", __func__,
+					LA9310_UART_SEL_GPIO);
+			gpio_free(LA9310_UART_SEL_GPIO);
+			err = -EINVAL;
+			goto out;
+		}
+
+		if (modem_host_uart)
+			gpio_set_value_cansleep(LA9310_UART_SEL_GPIO, 0);
+		else
+			gpio_set_value_cansleep(LA9310_UART_SEL_GPIO, 1);
+
+		gpio_free(LA9310_UART_SEL_GPIO);
 	}
 
 	la9310_class = class_create(THIS_MODULE, driver_name);
@@ -675,6 +705,8 @@ MODULE_PARM_DESC(alt_firmware_name,
 	"Alternative shiva firmware name e.g la9310.bin");
 module_param(sdr_board, int, 0400);
 MODULE_PARM_DESC(sdr_board, "Board Type is IMX8MP-RFNM SDR");
+module_param(modem_host_uart, int, 0400);
+MODULE_PARM_DESC(modem_host_uart, "Enable modem log to host");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("NXP");
 MODULE_DESCRIPTION("PCIe LA9310 Driver");

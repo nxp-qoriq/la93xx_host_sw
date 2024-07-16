@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
 #ifndef _PCI_UTILITIES_H
@@ -21,5 +21,7 @@ extern struct list_head pcidev_list;
 
 #define GUL_MMAP_PEBM_OFFSET    0x200000
 #define GUL_MMAP_PEBM_SIZE      0x200000
+
+#define LA9310_UART_SEL_GPIO	1
 
 #endif /* _PCI_UTILITIES_H */
