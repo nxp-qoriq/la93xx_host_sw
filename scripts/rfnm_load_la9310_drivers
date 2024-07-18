@@ -6,9 +6,6 @@
 gpioget 2 9
 gpioget 2 14
 
-./rfnm_enable_la9310_uart_ext_port
-
-
 #lspci -vv | grep Addr
 #echo 1 > /sys/bus/pci/devices/0000\:01\:00.0/remove
 #sleep 1
