@@ -120,51 +120,65 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	mi->tcmu.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_TCMU].phys_addr;
 	mi->tcmu.size = la9310_dev->mem_regions[LA9310_MEM_REGION_TCMU].size;
 
+	mi->pciwin.modem_phy_addr = la9310_dev->pci_outbound_win_start_addr;
+	mi->pciwin.size = (uint32_t)(la9310_dev->pci_outbound_win_limit - la9310_dev->pci_outbound_win_start_addr);
+
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_VSPA_OVERLAY);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->ov.host_phy_addr = ep_buf->phys_addr;
+	mi->ov.modem_phy_addr = ep_buf->phys_addr;
 	mi->ov.size = ep_buf->size;
+	mi->ov.host_phy_addr = scratch_buf_phys_addr + mi->ov.modem_phy_addr
+		- mi->pciwin.modem_phy_addr;
 
 	/* VSPA */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_VSPA);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->vspa.host_phy_addr = ep_buf->phys_addr;
+	mi->vspa.modem_phy_addr = ep_buf->phys_addr;
 	mi->vspa.size = ep_buf->size;
+	mi->vspa.host_phy_addr = scratch_buf_phys_addr + mi->vspa.modem_phy_addr
+		- mi->pciwin.modem_phy_addr;
 
 	/* FW*/
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_FW);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->fw.host_phy_addr = ep_buf->phys_addr;
+	mi->fw.modem_phy_addr = ep_buf->phys_addr;
 	mi->fw.size = ep_buf->size;
+	mi->fw.host_phy_addr = scratch_buf_phys_addr + mi->fw.modem_phy_addr
+		- mi->pciwin.modem_phy_addr;
 
 	/* LA9310 LOG buffer */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_DBG_LOG);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->dbg.host_phy_addr = ep_buf->phys_addr;
+	mi->dbg.modem_phy_addr = ep_buf->phys_addr;
 	mi->dbg.size = ep_buf->size;
+	mi->dbg.host_phy_addr = scratch_buf_phys_addr + mi->dbg.modem_phy_addr
+		- mi->pciwin.modem_phy_addr;
 
 	/* IQ Data samples*/
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_IQ_SAMPLES);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->iqr.host_phy_addr = ep_buf->phys_addr;
+	mi->iqr.modem_phy_addr = ep_buf->phys_addr;
 	mi->iqr.size = ep_buf->size;
+	mi->iqr.host_phy_addr = scratch_buf_phys_addr + mi->iqr.modem_phy_addr
+		- mi->pciwin.modem_phy_addr;
 
 	/*  NLM Operations */
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_NLM_OPS);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->nlmops.host_phy_addr = ep_buf->phys_addr;
+	mi->nlmops.modem_phy_addr = ep_buf->phys_addr;
 	mi->nlmops.size = ep_buf->size;
+	mi->nlmops.host_phy_addr = scratch_buf_phys_addr +
+		mi->nlmops.modem_phy_addr - mi->pciwin.modem_phy_addr;
 
 	idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_STD_FW);
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
-	mi->stdfw.host_phy_addr = ep_buf->phys_addr;
+	mi->stdfw.modem_phy_addr = ep_buf->phys_addr;
 	mi->stdfw.size = ep_buf->size;
+	mi->stdfw.host_phy_addr = scratch_buf_phys_addr +
+		mi->stdfw.modem_phy_addr - mi->pciwin.modem_phy_addr;
 
 	mi->hif.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_TCML].phys_addr + LA9310_EP_HIF_OFFSET;
 	mi->hif.size = sizeof(struct la9310_hif);
-
-	mi->pciwin.host_phy_addr = la9310_dev->pci_outbound_win_start_addr;
-	mi->pciwin.size = (uint32_t)(la9310_dev->pci_outbound_win_limit - la9310_dev->pci_outbound_win_start_addr);
 
 	mi->scratchbuf.host_phy_addr = scratch_buf_phys_addr;
 	mi->scratchbuf.size = scratch_buf_size;

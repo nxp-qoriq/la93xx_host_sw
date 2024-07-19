@@ -112,24 +112,28 @@ void print_modem_info(int id)
 		mi->tcml.host_phy_addr, mi->tcml.size);
 	printf("TCMU phys         0x%lx Size:0x%x\n",
 		mi->tcmu.host_phy_addr, mi->tcmu.size);
-	printf("VSPA OVERLAY phys 0x%lx Size:0x%x\n",
-		mi->ov.host_phy_addr, mi->ov.size);
-	printf("VSPA start        0x%lx Size:0x%x\n",
-		mi->vspa.host_phy_addr, mi->vspa.size);
-	printf("FW start          0x%lx Size:0x%x\n",
-		mi->fw.host_phy_addr, mi->fw.size);
-	printf("DBG LOG phys      0x%lx Size:0x%x\n",
-		mi->dbg.host_phy_addr, mi->dbg.size);
-	printf("IQ SAMPLES phys   0x%lx Size:0x%x\n",
-		mi->iqr.host_phy_addr, mi->iqr.size);
-	printf("IQ FLOOD phys     0x%lx	Modem phys:0x%x Size:0x%x\n",
-		mi->iqflood.host_phy_addr, mi->iqflood.modem_phy_addr, mi->iqflood.size);
-	printf("NLM OPS start     0x%lx Size:0x%x\n",
-		mi->nlmops.host_phy_addr, mi->nlmops.size);
-	printf("STD FW phys       0x%lx Size:0x%x\n",
-		mi->stdfw.host_phy_addr, mi->stdfw.size);
-	printf("Scratch buf phys  0x%lx Size:0x%x\n",
+	printf("Scratch buf phys 0x%lx Size:0x%x\n",
 		mi->scratchbuf.host_phy_addr, mi->scratchbuf.size);
+
+	printf("Scrach Buf Regions\n");
+	printf("Region           | \tHost Phy Addr\t | \tModem Phy Addr\t | \tSize\n");
+	printf("VSPA OVERLAY phys| \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->ov.host_phy_addr, mi->ov.modem_phy_addr, mi->ov.size);
+	printf("VSPA start       | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->vspa.host_phy_addr, mi->vspa.modem_phy_addr, mi->vspa.size);
+	printf("FW start         | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->fw.host_phy_addr, mi->fw.modem_phy_addr, mi->fw.size);
+	printf("DBG LOG phys     | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->dbg.host_phy_addr, mi->dbg.modem_phy_addr, mi->dbg.size);
+	printf("IQ SAMPLES phys  | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->iqr.host_phy_addr, mi->iqr.modem_phy_addr, mi->iqr.size);
+	printf("IQ FLOOD phys    | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->iqflood.host_phy_addr, mi->iqflood.modem_phy_addr, mi->iqflood.size);
+	printf("NLM OPS start    | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->nlmops.host_phy_addr, mi->nlmops.modem_phy_addr, mi->nlmops.size);
+	printf("STD FW phys      | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+		mi->stdfw.host_phy_addr, mi->stdfw.modem_phy_addr, mi->stdfw.size);
+
 	printf("DAC Mask: 0x%x  Rate: %s\n",
 			mi->dac_mask,
 			mi->dac_rate_mask ? "61.44 MHz":"122.88 MHz");
