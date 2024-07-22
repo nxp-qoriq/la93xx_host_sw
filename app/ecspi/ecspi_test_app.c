@@ -63,33 +63,37 @@ void validate_cli_args(int argc, char *argv[])
 static void ecspi_read_write_test(void *ecspi_base, uint32_t chan)
 {
 	uint32_t addr_val, cnt;
-	uint16_t rx_val, tx_val;
+	uint16_t rx_val, tx_val, expected_read;
 	error_t ret;
 	int flag = 1;
 	volatile  uint64_t prev, curr, delta;
 
 	printf("\r\n====Test Receive=====\r\n");
-	for (cnt = 1; cnt <= 10; cnt++) {
-		addr_val  = 0x00A7; //read as 0x6565
+	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++) {
+		if (flag) {
+			addr_val  = 0x00A7;
+			expected_read = 0x6565;
+		} else {
+			addr_val  = 0x0086;
+			expected_read = 0x4905;
+		}
 		ret = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
-		if (ret == 0)
-			printf("RegAddr 0x%08X RcvdVal 0x%X\r\n", addr_val, rx_val);
-		addr_val  = 0x0086; //read as 0x4905
-		ret =  diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
-		if (ret == 0)
-			printf("RegAddr 0x%08X RcvdVal 0x%X\r\n", addr_val, rx_val);
+		if ((ret == 0) && (rx_val == expected_read))
+			printf("Success--> RegAddr 0x%08X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
+		else
+			printf("Fail--> RegAddr 0x%08X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
 	}
 
 	printf("\r\n====Test TX =====\r\n");
 	tx_val = 0xAAAA;
-	for (cnt = 1; cnt <= 10; cnt++) {
+	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++) {
 		addr_val = 0x002A;
 		ret = diora_phal_write16(ecspi_base, chan, addr_val, tx_val);
 		ret  = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
 		if ((rx_val & 0xffff) == (tx_val & 0xffff))
-			printf("Success:---> Tx 0x%X Rx 0x%X ==\r\n", tx_val, rx_val);
+			printf("Success:---> Tx 0x%X Rx 0x%X\r\n", tx_val, rx_val);
 		else
-			printf("Fail Tx:---> 0x%X Rx 0x%X ==\r\n", tx_val, rx_val);
+			printf("Fail Tx:---> 0x%X Rx 0x%X\r\n", tx_val, rx_val);
 
 		if (flag) {
 			tx_val = 0x5555;
@@ -168,11 +172,12 @@ int main(int argc, char *argv[])
 	ecspi_base = diora_phal_rw_init(ecspi_chan);
 #else
 	ecspi_clk_t clk;
+
 	clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_SYSTEM_PLL1_CLK;
-	clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x1; /* Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
-	clk.ecspi_ccm_target_root_post_podf_div_clk = 0x2; /* Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
-	clk.ecspi_ctrl_pre_div_clk = 3; /* 0x9 Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
-	clk.ecspi_ctrl_post_div_clk = 4; /* Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+	clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /* Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+	clk.ecspi_ccm_target_root_post_podf_div_clk = 0x0; /* Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+	clk.ecspi_ctrl_pre_div_clk = 0x5; /* 0x5 Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+	clk.ecspi_ctrl_post_div_clk = 0x3; /* 0x3 Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
 	ecspi_base = imx_spi_init_with_clk(ecspi_chan, clk);
 	memset(&clk, 0x00, sizeof(clk));
 	imx_get_spi_clk_config(ecspi_base, ecspi_chan, &clk);
