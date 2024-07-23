@@ -6,7 +6,7 @@ LDFLAGS  += -L${LIB_INSTALL_DIR}
 
 INCLUDES += -I${API_DIR}
 
-OBJ_LIB := imx_ecspi_lib.o
+OBJ_LIB := imx_ecspi_lib.o diora_ecspi_lib.o
 OUT_LIB := libecspi.a
 
 all: $(OUT_LIB)

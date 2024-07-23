@@ -14,9 +14,10 @@ typedef int32_t     error_t;
 typedef uint32_t    u32;
 typedef uint16_t    u16;
 
-#define diora_phal_read16  imx_spi_rx
-#define diora_phal_write16 imx_spi_tx
-#define diora_phal_rw_init imx_spi_init
-#define diora_phal_rw_deinit imx_spi_deinit
+
+void   *diora_phal_rw_init(u32 ecspi_chan);
+int32_t diora_phal_rw_deinit(u32 ecspi_chan);
+int32_t diora_phal_read16(void *handle, u16 ecspi_chan, u16  addr, u16 *val_p);
+int32_t diora_phal_write16(void *handle, u16 ecspi_chan, u16  addr, u16 val);
 
 #endif /* __DIORA_ECSPI_API_H__ */
