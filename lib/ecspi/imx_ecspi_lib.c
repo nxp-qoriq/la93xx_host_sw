@@ -321,10 +321,26 @@ static void ecspi_int(void *ecspi_base, uint16_t ecspi_chan, ecspi_clk_t clk)
 	ecspi_dump_regs(ecspi_base);
 }
 
+static inline void ecspi_set_brust_size(void *ecspi_base, uint16_t brust_size)
+{
+	uint32_t ctrl, store_ctrl;
+	uint32_t ctrl_reg_val = 0;
+
+	ctrl = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL);
+	store_ctrl = ctrl;
+	ctrl &= ~IMX8MP_ECSPI_CTRL_ENABLE;
+	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL) = ctrl;
+
+	store_ctrl &=  0x000FFFFF;
+	store_ctrl |= (brust_size << IMX8MP_ECSPI_CTRL_BL_OFFSET) | IMX8MP_ECSPI_CTRL_ENABLE;
+	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL) = store_ctrl;
+}
+
 int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t *val_p)
 {
 	uint32_t read_result;
-	uint32_t tranfer_val;
+	uint16_t tranfer_val, read_val;
+	uint16_t ctr;
 #ifdef ECSPI_ERROR_CHECK_ENABLE
 	if (ecspi_chan >= IMX8MP_ECSPI_MAX_DEVICES) {
 		pr_info("Invalid ecspi chan %d \r\n", ecspi_chan);
@@ -336,6 +352,29 @@ int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 		return 1;
 	}
 #endif
+#ifdef IMX_RFMT3812
+	ecspi_set_brust_size(ecspi_base, BURST_SIZE_16);
+
+	for (ctr = 0; ctr < 2; ctr++) {
+		if (!ctr) {
+			*(volatile uint16_t *)(ecspi_base + IMX8MP_CSPITXDATA) = addr_val;
+		} else {
+			/*Make sure to clean Rx FIFO */
+			ecspi_reset_fifo(ecspi_base);
+			/*Send dummy write */
+			*(volatile uint16_t *)(ecspi_base + IMX8MP_CSPITXDATA) = 0x00;
+		}
+		/*Set XCH*/
+		read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL);
+		read_result |= IMX8MP_ECSPI_CTRL_XCH;
+		 *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL) = read_result;
+		while (1) {
+			read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
+			if (read_result & IMX8MP_ECSPI_STAT_TC)
+				break;
+		}
+	}
+#else
 	tranfer_val =  (uint32_t) (addr_val << 16);
 	*(volatile uint32_t *)(ecspi_base + IMX8MP_CSPITXDATA) = tranfer_val;
 
@@ -348,20 +387,23 @@ int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 		if (read_result & IMX8MP_ECSPI_STAT_TC)
 			break;
 	}
+#endif
 	/*Check  RXFIFO for data*/
 	while (1) {
-		read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
-		if (read_result & IMX8MP_ECSPI_STAT_RR) {
+		if (ecspi_rx_available(ecspi_base)) {
 			/*ReadBack received data*/
-			*val_p  = *(volatile uint16_t *)(ecspi_base + IMX8MP_CSPIRXDATA);
-			if (!ecspi_rx_available(ecspi_base))
-				break;
-		}
+			*val_p = *(volatile uint16_t *)(ecspi_base + IMX8MP_CSPIRXDATA);
+		} else
+			break;
 	}
 	//clear Transfer Completed Status and RXFIFO Overflow.
 	read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
 	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT) = read_result;
 
+#ifdef IMX_RFMT3812
+	/*Restore frame size 32 bit*/
+	ecspi_set_brust_size(ecspi_base, BURST_SIZE_32);
+#endif
 	return 0;
 }
 

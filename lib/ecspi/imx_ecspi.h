@@ -6,6 +6,8 @@
 
 #include <imx_ecspi_api.h>
 
+#define BURST_SIZE_16 0x00F
+#define BURST_SIZE_32 0x01F
 #define IMX8MP_CSPIRXDATA	0x00
 #define IMX8MP_CSPITXDATA	0x04
 

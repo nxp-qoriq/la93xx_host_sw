@@ -13,9 +13,13 @@
 #include <string.h>
 #include <sched.h>
 #include <signal.h>
-#include <diora_ecspi_api.h>
 
-#define DIORA_TEST 1
+#ifdef IMX_RFMT3812
+#include <diora_ecspi_api.h>
+#else
+#include <imx_ecspi_api.h>
+#endif
+
 #define MAX_SPI_FRAME  100
 static uint32_t ecspi_ch_id;
 static int cpu_to_affine = -1;
@@ -64,51 +68,83 @@ static void ecspi_read_write_test(void *ecspi_base, uint32_t chan)
 {
 	uint32_t addr_val, cnt;
 	uint16_t rx_val, tx_val, expected_read;
-	error_t ret;
 	int flag = 1;
 	volatile  uint64_t prev, curr, delta;
+	#ifdef IMX_RFMT3812
+	error_t ret;
+	#else
+	int32_t ret;
+	#endif
 
 	printf("\r\n====Test Receive=====\r\n");
 	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++) {
-		if (flag) {
-			addr_val  = 0x00A7;
-			expected_read = 0x6565;
-		} else {
-			addr_val  = 0x0086;
-			expected_read = 0x4905;
-		}
+		#ifdef IMX_RFMT3812
+		addr_val  = 0x4100;
+		expected_read = 0x01a0;
+		#else
+		addr_val  = 0x00A7;
+		expected_read = 0x6565;
+		#endif
+
+		#ifdef IMX_RFMT3812
 		ret = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
+		#else
+		ret = imx_spi_rx(ecspi_base, chan, addr_val, &rx_val);
+		#endif
 		if ((ret == 0) && (rx_val == expected_read))
-			printf("Success--> RegAddr 0x%08X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
+			printf("Success--> RegAddr 0x%X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
 		else
-			printf("Fail--> RegAddr 0x%08X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
+			printf("Fail--> RegAddr 0x%X RcvdVal 0x%X Expected 0x%X \r\n", addr_val, rx_val, expected_read);
 	}
 
 	printf("\r\n====Test TX =====\r\n");
-	tx_val = 0xAAAA;
 	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++) {
-		addr_val = 0x002A;
-		ret = diora_phal_write16(ecspi_base, chan, addr_val, tx_val);
-		ret  = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
-		if ((rx_val & 0xffff) == (tx_val & 0xffff))
-			printf("Success:---> Tx 0x%X Rx 0x%X\r\n", tx_val, rx_val);
-		else
-			printf("Fail Tx:---> 0x%X Rx 0x%X\r\n", tx_val, rx_val);
-
 		if (flag) {
-			tx_val = 0x5555;
+			#ifdef IMX_RFMT3812
+			addr_val = 0x0001;
+			#else
+			addr_val = 0x002A;
+			#endif
+			tx_val = 0xABBA;
 			flag = 0;
 		} else {
-			tx_val = 0xAAAA;
+			#ifdef IMX_RFMT3812
+			addr_val = 0x0002;
+			#else
+			addr_val = 0x002A;
+			#endif
+			tx_val = 0x55AA;
 			flag = 1;
 		}
+
+		#ifdef IMX_RFMT3812
+		ret = diora_phal_write16(ecspi_base, chan, addr_val, tx_val);
+		ret  = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
+		#else
+		ret = imx_spi_tx(ecspi_base, chan, addr_val, tx_val);
+		ret  = imx_spi_rx(ecspi_base, chan, addr_val, &rx_val);
+		#endif
+		if ((rx_val & 0xffff) == (tx_val & 0xffff))
+			printf("Success:---> RegAddr 0x%X Tx 0x%X Rx 0x%X\r\n", addr_val, tx_val, rx_val);
+		else
+			printf("Fail Tx:---> RegAddr 0x%X 0x%X Rx 0x%X\r\n", addr_val, tx_val, rx_val);
 	}
 
+	#ifdef IMX_RFMT3812
+	addr_val  = 0x4100; //read as 0x01a0
+	#else
 	addr_val  = 0x00A7; //read as 0x6565
+	#endif
+
 	/*Get pmu counter cpu cycles before test start */
 	asm volatile("isb;mrs %0, pmccntr_el0" : "=r"(prev));
-	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++)
+	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++) {
+		#ifdef IMX_RFMT3812
 		ret = diora_phal_read16(ecspi_base, chan, addr_val, &rx_val);
+		#else
+		ret = imx_spi_rx(ecspi_base, chan, addr_val, &rx_val);
+		#endif
+	}
 	/*Get pmu counter cpu cycles after test  */
 	asm volatile("isb;mrs %0, pmccntr_el0" : "=r"(curr));
 
@@ -119,12 +155,20 @@ static void ecspi_read_write_test(void *ecspi_base, uint32_t chan)
 	else
 		printf("Read No diff , something wrong\r\n");
 
+	#ifdef IMX_RFMT3812
+	addr_val = 0x0001;
+	#else
 	addr_val = 0x002A;
+	#endif
 	tx_val = 0x5555;
 	/*Get pmu counter cpu cycles before test start */
 	asm volatile("isb;mrs %0, pmccntr_el0" : "=r"(prev));
 	for (cnt = 1; cnt <= MAX_SPI_FRAME; cnt++)
+		#ifdef IMX_RFMT3812
 		ret = diora_phal_write16(ecspi_base, chan, addr_val, tx_val);
+		#else
+		ret = imx_spi_tx(ecspi_base, chan, addr_val, tx_val);
+		#endif
 	/*Get pmu counter cpu cycles after test  */
 	asm volatile("isb;mrs %0, pmccntr_el0" : "=r"(curr));
 
@@ -144,8 +188,13 @@ void sigint_handler(int signum)
 	printf("===> CTRL ^ C, Invoke cleanup handler....\r\n");
 	signal(SIGINT, SIG_DFL);
 
-	for (ecspi_chan = 0;  ecspi_chan < IMX8MP_ECSPI_MAX_DEVICES; ecspi_chan++)
+	for (ecspi_chan = 0;  ecspi_chan < IMX8MP_ECSPI_MAX_DEVICES; ecspi_chan++) {
+		#ifdef IMX_RFMT3812
 		diora_phal_rw_deinit(ecspi_chan);
+		#else
+		imx_spi_deinit(ecspi_chan);
+		#endif
+	}
 	exit(0);
 }
 
@@ -168,7 +217,7 @@ int main(int argc, char *argv[])
 			return IMX_ECSPI_FAIL;
 		}
 	}
-#ifdef DIORA_TEST
+#ifdef IMX_RFMT3812
 	ecspi_base = diora_phal_rw_init(ecspi_chan);
 #else
 	ecspi_clk_t clk;
@@ -222,7 +271,11 @@ printf("ecspi_ctrl_post_div_clk = 0x%X \r\n", clk.ecspi_ctrl_post_div_clk);
 	else
 		return IMX_ECSPI_FAIL;
 
+	#ifdef IMX_RFMT3812
 	diora_phal_rw_deinit(ecspi_chan);
+	#else
+	imx_spi_deinit(ecspi_chan);
+	#endif
 
 	exit(EXIT_SUCCESS);
 }
