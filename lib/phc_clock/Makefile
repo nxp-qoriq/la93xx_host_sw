@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
+
+CFLAGS  += -Wall -Werror -g -O -fPIC
+
+LDFLAGS  += -L${LIB_INSTALL_DIR}
+
+INCLUDES += -I${API_DIR}
+
+OBJ_LIB := imx_phc_time_lib.o
+
+OUT_LIB := libphc_clock.a
+
+all: $(OUT_LIB)
+
+$(OUT_LIB): ${OBJ_LIB}
+	echo ${OBJ_LIB}
+	${AR} rcs  $(OUT_LIB) ${OBJ_LIB}
+	install -D $(OUT_LIB) ${LIB_INSTALL_DIR}/$(OUT_LIB)
+
+%.o: %.c
+	${CC} -c ${CFLAGS} ${INCLUDES}  $< -o $@
+
+clean:
+	rm -rf *.o *.a
+
+install:
+	install -D $(OUT_LIB) ${LIB_INSTALL_DIR}/$(OUT_LIB)
