@@ -472,12 +472,10 @@ void *imx_spi_init_with_clk(uint32_t ecspi_chan, ecspi_clk_t clk)
 		}
 		pr_info("ECSPI %d successfully memory mapped at address %p\r\n", (ecspi_chan + 1), ecspi_base);
 
-		ecspi_int(ecspi_base, ecspi_chan, clk);
-		ecspi_handle[ecspi_chan] = ecspi_base;
-		return ecspi_base;
-	} else {
-		return ecspi_handle[ecspi_chan];
+		ecspi_handle[ecspi_chan] = ecspi_base + (ecspi_chan * IMX8MP_ECSPI_CHANNEL_OFFSET);
+		ecspi_int(ecspi_handle[ecspi_chan], ecspi_chan, clk);
 	}
+	return ecspi_handle[ecspi_chan];
 }
 
 void *imx_spi_init(uint32_t ecspi_chan)
