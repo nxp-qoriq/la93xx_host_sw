@@ -3,20 +3,11 @@
 
 CFLAGS  += -Wall -Werror -g -O -fPIC
 
-ifeq (${IMX_RFMT3812}, 1)
-CFLAGS += -DIMX_RFMT3812=1
-endif
-
 LDFLAGS  += -L${LIB_INSTALL_DIR}
 
 INCLUDES += -I${API_DIR}
 
 OBJ_LIB := imx_ecspi_lib.o diora_ecspi_lib.o
-ifeq (${IMX_RFMT3812}, 1)
-	OBJ_LIB := imx_ecspi_lib.o diora_ecspi_lib.o
-else
-	OBJ_LIB := imx_ecspi_lib.o
-endif
 
 OUT_LIB := libecspi.a
 

@@ -9,6 +9,7 @@
 #include <linux/types.h>
 #include <unistd.h>
 #include "imx_ecspi.h"
+#include "diora_ecspi_api.h"
 
 void *ecspi_handle[IMX8MP_ECSPI_MAX_DEVICES] = {NULL, NULL, NULL};
 static int ecspi_fd[IMX8MP_ECSPI_MAX_DEVICES] = {-1, -1, -1};
@@ -339,6 +340,50 @@ static inline void ecspi_set_brust_size(void *ecspi_base, uint16_t brust_size)
 int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t *val_p)
 {
 	uint32_t read_result;
+	uint32_t tranfer_val;
+#ifdef ECSPI_ERROR_CHECK_ENABLE
+	if (ecspi_chan >= IMX8MP_ECSPI_MAX_DEVICES) {
+		pr_info("Invalid ecspi chan %d \r\n", ecspi_chan);
+		return 1;
+	}
+	ecspi_base = ecspi_handle[ecspi_chan];
+	if (ecspi_handle[ecspi_chan] == NULL) {
+		pr_info("ecspi device not initialized..\r\n");
+		return 1;
+	}
+#endif
+	tranfer_val =  (uint32_t) (addr_val << 16);
+	*(volatile uint32_t *)(ecspi_base + IMX8MP_CSPITXDATA) = tranfer_val;
+
+	/* Set XCH*/
+	read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL);
+	read_result |= IMX8MP_ECSPI_CTRL_XCH;
+	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL) = read_result;
+	while (1) {
+		read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
+		if (read_result & IMX8MP_ECSPI_STAT_TC)
+			break;
+	}
+	/* Check  RXFIFO for data*/
+	while (1) {
+		read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
+		if (read_result & IMX8MP_ECSPI_STAT_RR) {
+			/* ReadBack received data*/
+			*val_p  = *(volatile uint16_t *)(ecspi_base + IMX8MP_CSPIRXDATA);
+			if (!ecspi_rx_available(ecspi_base))
+				break;
+		}
+	}
+	//clear Transfer Completed Status and RXFIFO Overflow.
+	read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
+	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT) = read_result;
+
+	return 0;
+}
+
+int32_t diora_phal_read16(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uint16_t *val_p)
+{
+	uint32_t read_result;
 	uint16_t tranfer_val, read_val;
 	uint16_t ctr;
 #ifdef ECSPI_ERROR_CHECK_ENABLE
@@ -352,7 +397,6 @@ int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 		return 1;
 	}
 #endif
-#ifdef IMX_RFMT3812
 	ecspi_set_brust_size(ecspi_base, BURST_SIZE_16);
 
 	for (ctr = 0; ctr < 2; ctr++) {
@@ -374,20 +418,6 @@ int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 				break;
 		}
 	}
-#else
-	tranfer_val =  (uint32_t) (addr_val << 16);
-	*(volatile uint32_t *)(ecspi_base + IMX8MP_CSPITXDATA) = tranfer_val;
-
-	/*Set XCH*/
-	read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL);
-	read_result |= IMX8MP_ECSPI_CTRL_XCH;
-	 *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_CTRL) = read_result;
-	while (1) {
-		read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
-		if (read_result & IMX8MP_ECSPI_STAT_TC)
-			break;
-	}
-#endif
 	/*Check  RXFIFO for data*/
 	while (1) {
 		if (ecspi_rx_available(ecspi_base)) {
@@ -400,10 +430,8 @@ int32_t imx_spi_rx(void *ecspi_base, uint16_t ecspi_chan, uint16_t addr_val, uin
 	read_result = *(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT);
 	*(volatile uint32_t *)(ecspi_base + IMX8MP_ECSPI_STAT) = read_result;
 
-#ifdef IMX_RFMT3812
 	/*Restore frame size 32 bit*/
 	ecspi_set_brust_size(ecspi_base, BURST_SIZE_32);
-#endif
 	return 0;
 }
 
@@ -478,15 +506,60 @@ void *imx_spi_init_with_clk(uint32_t ecspi_chan, ecspi_clk_t clk)
 	return ecspi_handle[ecspi_chan];
 }
 
-void *imx_spi_init(uint32_t ecspi_chan)
+void *imx_spi_init(uint32_t ecspi_chan, uint32_t clock_frequency)
 {
 	ecspi_clk_t clk;
+	switch (clock_frequency) {
+	case 1:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_24M_REF_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x17; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x0; /*   Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x0; /*  Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("1 MHz Clock  Selected\r\n");
+		break;
+	case 4:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_24M_REF_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x5; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x0; /*   Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x0; /*   Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("4 MHz Clock  Selected\r\n");
+		break;
+	case 8:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_24M_REF_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x2; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x0; /*   Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x0; /*   Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("8 MHz Clock  Selected\r\n");
+		break;
+	case 16:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_SYSTEM_PLL1_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x0; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x5; /*   Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x3; /*  Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("16 MHz Clock  Selected\r\n");
+		break;
+	case 24:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_24M_REF_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x0; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x0; /*  0x5 Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x0; /*  0x3 Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("24 MHz Clock  Selected\r\n");
+		break;
+	default:
+		clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_SYSTEM_PLL1_CLK;
+		clk.ecspi_ccm_target_root_pre_podf_div_clk = 0x0; /*  Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
+		clk.ecspi_ccm_target_root_post_podf_div_clk = 0x0; /*  Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5  */
+		clk.ecspi_ctrl_pre_div_clk = 0x5; /*  0x5 Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
+		clk.ecspi_ctrl_post_div_clk = 0x3; /*  0x3 Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
+		printf("Setting default 16 MHZ clock\r\n");
+		break;
+	}
 
-	clk.ecspi_root_clk = IMX8MP_ECSPI_CLK_SYSTEM_PLL1_CLK;
-	clk.ecspi_ccm_target_root_pre_podf_div_clk = 0; /* Pre divider, Target Register (CCM_TARGET_ROOTn) bit 16 to 18 */
-	clk.ecspi_ccm_target_root_post_podf_div_clk = 0; /* Post divider, Target Register (CCM_TARGET_ROOTn) bit 0 to 5 */
-	clk.ecspi_ctrl_pre_div_clk = 0x5; /* Pre divider, Control Register (ECSPIx_CONREG) bit 12 to 15. */
-	clk.ecspi_ctrl_post_div_clk = 0x3; /* Post divider Control Register (ECSPIx_CONREG) bit 8 to 11. */
 	return imx_spi_init_with_clk(ecspi_chan, clk);
 }
 

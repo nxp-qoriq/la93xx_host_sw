@@ -16,6 +16,7 @@ typedef uint16_t    u16;
 
 
 void   *diora_phal_rw_init(u32 ecspi_chan);
+void	diora_phal_clk_freq(u32 clock_frequency);
 int32_t diora_phal_rw_deinit(u32 ecspi_chan);
 int32_t diora_phal_read16(void *handle, u16 ecspi_chan, u16  addr, u16 *val_p);
 int32_t diora_phal_write16(void *handle, u16 ecspi_chan, u16  addr, u16 val);

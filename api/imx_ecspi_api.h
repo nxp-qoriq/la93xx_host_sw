@@ -60,7 +60,7 @@ typedef enum ecspi_imx_clk {
 
 int32_t imx_spi_rx(void *handle, u16 ecspi_chan, u16  addr, u16 *val_p);
 int32_t imx_spi_tx(void *handle, u16 ecspi_chan, u16  addr, u16 val);
-void   *imx_spi_init(u32 ecspi_chan);
+void   *imx_spi_init(u32 ecspi_chan, u32 clock_frequency);
 void *imx_spi_init_with_clk(uint32_t ecspi_chan, ecspi_clk_t clk);
 int32_t imx_spi_deinit(u32 ecspi_chan);
 int32_t imx_spi_clk_suspend_resume(uint32_t ecspi_chan, ecspi_state_t  state);

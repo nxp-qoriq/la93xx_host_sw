@@ -3,9 +3,6 @@
 
 CFLAGS  += -Wall -Werror
 
-ifeq (${IMX_RFMT3812}, 1)
-CFLAGS += -DIMX_RFMT3812=1
-endif
 
 LDFLAGS  += -L${LIB_INSTALL_DIR} -static
 
