@@ -1,32 +1,27 @@
 # SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
 #Copyright 2024 NXP
-CFLAGS  +=  -g -O0 -Wall -Werror
 
-SRCS_TEST := vspa_mbox.c
-OBJS_TEST := $(SRCS_TEST:.c =.o)
-BIN_TEST := vspa_mbox
-TONE_TEST := *
-SCRIPTS_INSTALL_DIR?=/home/root/host-utils
-BIN_INSTALL_DIR?=/usr/bin
+#Add host_utils directories here
 
+UTIL_DIRS := iq_streamer vspa_mbox
 
-.PHONY: all
+CLEAN_UTIL_DIRS = $(patsubst %, %_clean, ${UTIL_DIRS})
+INSTALL_UTIL_DIRS = $(patsubst %, %_install, ${UTIL_DIRS})
 
-all: $(BIN_TEST)
+.PHONY: subdirs ${UTIL_DIRS} ${CLEAN_UTIL_DIRS} ${INSTALL_UTIL_DIRS}
 
-$(BIN_TEST): ${OBJS_TEST}
-	${CC} ${CFLAGS} ${LDFLAGS} -o $(BIN_TEST) ${OBJS_TEST} $(INCLUDES)
+subdirs: ${UTIL_DIRS}
+${UTIL_DIRS}:
+	${MAKE} -C $@
 
-%.o: %.c
-	${CC} -c ${CFLAGS} ${INCLUDES}  $< -o $@
+${CLEAN_UTIL_DIRS}:
+	${MAKE} -C $(patsubst %_clean, %, $@) clean
 
-clean:
-	rm -rf *.o $(BIN_TEST)
+${INSTALL_UTIL_DIRS}:
+	${MAKE} -C $(patsubst %_install, %, $@) install
 
-install:
-	install -D $(BIN_TEST) ${BIN_INSTALL_DIR}/$(BIN_TEST)
-	install -m 0755 -d ${SCRIPTS_INSTALL_DIR}
-	install -D $(TONE_TEST) ${SCRIPTS_INSTALL_DIR}
-	rm -rf "${SCRIPTS_INSTALL_DIR}/Makefile"
-	rm -rf "${SCRIPTS_INSTALL_DIR}/vspa_mbox.c"
-	rm -rf "${SCRIPTS_INSTALL_DIR}/vspa_mbox"
+all: ${UTIL_DIRS}
+
+clean: ${CLEAN_UTIL_DIRS}
+
+install: ${INSTALL_UTIL_DIRS}

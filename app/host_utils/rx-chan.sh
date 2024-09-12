@@ -26,7 +26,7 @@ fi
 # LA9310 chan             RX0         RX1         RO0         RO1
 # RFNM slot_chan          RBB_RX2     RBA_RX2     RBB_RX1     RBA_RX1
 # GRANITA                 sma_a       sma_a       sma_b       sma_b
-# LIME                                    		  sma_b	      sma_b
+# LIME                                    		  sma_b	      sma_b	
 
 cmd=`printf "0x%X\n" $[0x0d000000]`
 #echo vspa_mbox send 0 0 $cmd $1

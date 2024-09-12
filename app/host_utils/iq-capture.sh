@@ -6,7 +6,7 @@
 
 print_usage()
 {
-echo "usage: ./iq-replay.sh <capture file> <size num 4KB>"
+echo "usage: ./iq-capture.sh <capture file> <size num 4KB> [c]"
 echo "ex : ./iq-capture.sh ./iqdata.bin 300"
 }
 

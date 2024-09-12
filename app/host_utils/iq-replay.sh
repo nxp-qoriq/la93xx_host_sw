@@ -8,6 +8,7 @@ print_usage()
 {
 echo "usage: ./iq-replay.sh <capture file> <size num 4KB>"
 echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_2c.bin 300"
+echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_signM.bin 300"
 }
 
 # check parameters
