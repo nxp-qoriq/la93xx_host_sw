@@ -5,8 +5,9 @@
 #ifndef __PCI_IMX8MP_H__
 #define __PCI_IMX8MP_H__
 
-int PCI_DMA_READ_transfer(uint32_t pci_src,uint32_t ddr_dst,uint32_t size,uint32_t ant);
-int PCI_DMA_WRITE_transfer(uint32_t ddr_src,uint32_t pci_dst,uint32_t size,uint32_t ant);
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uint32_t ant);
+int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, uint32_t ant);
+void dma_perf_test(void);
 
 #define PCIE_DMA_BASE (uint64_t)PCIE1_addr
 #define DMA_READ_ENGINE_EN_OFF          (PCIE_DMA_BASE + 0x38002C)
@@ -29,6 +30,10 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src,uint32_t pci_dst,uint32_t size,uint3
 #define DMA_DAR_HIGH_OFF_WRCH_0         (PCIE_DMA_BASE + 0x380218)
 #define DMA_WRITE_DOORBELL_OFF          (PCIE_DMA_BASE + 0x380010)
 #define DMA_WRITE_INT_CLEAR_OFF         (PCIE_DMA_BASE + 0x380058)
-#define DMA_WRITE_INT_STATUS_OFF 		(PCIE_DMA_BASE + 0x38004c)
+#define DMA_WRITE_INT_STATUS_OFF		(PCIE_DMA_BASE + 0x38004c)
+
+#define DMA_WRITE_LINKED_LIST_ERR_EN_OFF (PCIE_DMA_BASE + 0x380090)
+#define DMA_LLP_LOW_OFF_RDCH_0			 (PCIE_DMA_BASE + 0x38031c)
+#define DMA_LLP_HIGH_OFF_RDCH_0			 (PCIE_DMA_BASE + 0x380320)
 
 #endif

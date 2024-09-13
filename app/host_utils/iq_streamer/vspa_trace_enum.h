@@ -1,14 +1,14 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright 2024 NXP
+* Copyright 2024 NXP
  */
-/* File generated based on apm.eld md5sum b06f14ccbf8e5e4323e8e2fe2588a5a5 ../../Debug_IQPLAYER/apm-iqplayer.eld */
+/* File generated based on apm.eld md5sum e8a855c70082784f367caa26fccb4ab1 ../../Debug_IQPLAYER/apm-iqplayer.eld */
 l1_trace_code_t l1_trace_code[] ={
 { 0x100 ,"L1_TRACE_MSG_DMA_XFR "},
 { 0x101 ,"L1_TRACE_MSG_DMA_CFGERR "},
 { 0x102 ,"L1_TRACE_MSG_DMA_AXIQ_RX_START "},
 { 0x103 ,"L1_TRACE_MSG_DMA_AXIQ_TX_START "},
-{ 0x104 ,"L1_TRACE_MSG_DMA_AXIQ_RX_ERR "},
-{ 0x105 ,"L1_TRACE_MSG_DMA_AXIQ_TX_ERR "},
+{ 0x104 ,"L1_TRACE_MSG_DMA_AXIQ_RX_OVER "},
+{ 0x105 ,"L1_TRACE_MSG_DMA_AXIQ_TX_UNDER "},
 { 0x106 ,"L1_TRACE_MSG_DMA_AXIQ_RX_COMP "},
 { 0x107 ,"L1_TRACE_MSG_DMA_AXIQ_TX_COMP "},
 { 0x108 ,"L1_TRACE_MSG_DMA_AXIQ_RX_XFER_ERROR "},

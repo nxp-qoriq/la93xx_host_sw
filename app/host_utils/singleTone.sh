@@ -39,6 +39,7 @@ fi
 
 if [ $2 == 1 ];then
        cmd=0x01100000
+       #cmd=0x01500000 // bank swap
 else 
        cmd=0x01000000
 fi

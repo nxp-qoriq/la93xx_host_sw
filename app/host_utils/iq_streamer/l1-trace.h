@@ -39,8 +39,8 @@ enum l1_trace_msg_axiq {
     /* 0x101 */ L1_TRACE_MSG_DMA_CFGERR,
     /* 0x102 */ L1_TRACE_MSG_DMA_AXIQ_RX_START,
     /* 0x103 */ L1_TRACE_MSG_DMA_AXIQ_TX_START,
-    /* 0x104 */ L1_TRACE_MSG_DMA_AXIQ_RX_ERR,
-    /* 0x105 */ L1_TRACE_MSG_DMA_AXIQ_TX_ERR,
+    /* 0x104 */ L1_TRACE_MSG_DMA_AXIQ_RX_OVER,
+    /* 0x105 */ L1_TRACE_MSG_DMA_AXIQ_TX_UNDER,
     /* 0x106 */ L1_TRACE_MSG_DMA_AXIQ_RX_COMP,
     /* 0x107 */ L1_TRACE_MSG_DMA_AXIQ_TX_COMP,
     /* 0x108 */ L1_TRACE_MSG_DMA_AXIQ_RX_XFER_ERROR,
@@ -131,17 +131,30 @@ enum l1_trace_msg_common {
     /* 0xD04 */ L1_TRACE_MSG_DL_B2A_UL_MSG,
 };
 
-#if defined(__VSPA__)
+#ifndef __VSPA__
+
+typedef struct l1_trace_data_s {
+    uint64_t cnt;
+    uint32_t msg;
+    uint32_t param;
+} l1_trace_data_t;
+
+typedef struct l1_trace_code_s {
+    uint32_t msg;
+    char text[100];
+} l1_trace_code_t;
+
+void l1_trace(uint32_t msg, uint32_t param);
+void l1_trace_clear(void);
+
+#else
 #include "ccnt.h"
 
-struct l1_trace_data_t {
+typedef struct l1_trace_data_s {
     ccnt_t cnt;
     uint32_t msg;
     uint32_t param;
-};
-
-extern struct l1_trace_data_t l1_trace_data[] __attribute__ ((aligned (64)));
-extern volatile uint32_t l1_trace_disable;
+} l1_trace_data_t;
 
 #pragma cplusplus on
 #if L1_TRACE
@@ -191,4 +204,8 @@ inline void l1_trace_dbg(uint32_t)
 #endif //__DEBUG__
 #pragma cplusplus reset
 #endif
+
+extern l1_trace_data_t l1_trace_data[] __attribute__ ((aligned (64)));
+extern volatile uint32_t l1_trace_disable;
+
 #endif // __L1_TRACE_H__

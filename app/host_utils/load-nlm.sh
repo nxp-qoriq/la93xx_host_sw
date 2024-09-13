@@ -8,6 +8,13 @@ scratch_addr=0x`ls /sys/firmware/devicetree/base/reserved-memory/ |grep la93|cut
 [ -f /lib/firmware/la9310_dfe.bin ] || { echo "***ERROR: missing /lib/firmware/la9310_dfe.bin. You are using old BSP, upgrade to BSP 0.4 or above, or rename la9310.bin to la9310_dfe.bin. Boot failed"; exit 1; }
 [ -f /lib/firmware/apm-iqplayer.eld ] || { echo "***ERROR: missing /lib/firmware/apm-iqplayer.eld. You are using old BSP, upgrade to BSP 0.4.3 or above, or rename la9310.bin to la9310_dfe.bin. Boot failed"; exit 1; }
 
+eld_md5sum="$(md5sum /lib/firmware/apm-iqplayer.eld | cut -f 1 -d " ")"
+iq_streamer_version="$(./iq_streamer/iq_streamer -v|cut -f 1 -d " ")"
+if [[ "$eld_md5sum" != "$iq_streamer_version" ]]; then
+        echo "***ERROR: mismatch between apm-iqplayer.eld md5sum and iq_streamer :" $eld_md5sum "!=" $iq_streamer_version
+	exit 1;
+fi
+
 # load la9310
 echo 7 > /proc/sys/kernel/printk
 echo insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=0x4000000 scratch_buf_phys_addr=$scratch_addr adc_mask=0xf adc_rate_mask=0xf dac_mask=0x1 dac_rate_mask=0x1 alt_firmware_name=la9310_dfe.bin alt_vspa_fw_name=apm-iqplayer.eld
@@ -19,6 +26,7 @@ insmod /lib/modules/$(uname -r)/extra/rfnm_lalib.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_daughterboard.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_lime.ko
 insmod /lib/modules/$(uname -r)/extra/rfnm_granita.ko
+insmod /lib/modules/$(uname -r)/extra/pmu_el0_cycle_counter.ko
 
 # enable ADC/DAC always on
 

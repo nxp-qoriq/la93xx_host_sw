@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
 ####################################################################
@@ -14,13 +14,17 @@ while read in; do
 	grep "$in" ./$1.symbol.txt|grep GLOBAL >> ./$1_vspa_exported_symbols_addr.txt
 done < ./vspa_exported_symbols.txt
 
-eld_md5sum=$(md5sum ./$1)
+echo "/* SPDX-License-Identifier: BSD-3-Clause" > ./vspa_exported_symbols.h
+echo "* Copyright 2024 NXP">> ./vspa_exported_symbols.h 
+echo " */">> ./vspa_exported_symbols.h 
 
-echo "/* SPDX-License-Identifier: BSD-3-Clause" > ./vspa_exported_symbols.h 
-echo " * Copyright 2024 NXP" > ./vspa_exported_symbols.h 
-echo "*/" > ./vspa_exported_symbols.h 
 
-echo "/* File generated based on apm.eld md5sum" $eld_md5sum "*/" > ./vspa_exported_symbols.h 
+eld_md5sum=$(md5sum ./$1 | cut -f 1 -d " ")
+echo "#define IQ_STREAMER_VERSION \""$eld_md5sum"\"" >> ./vspa_exported_symbols.h 
+
+grep "#define TX_NUM_BUF" ../../Sources/*.c | cut -f 2 -d ":" >> ./vspa_exported_symbols.h
+grep "#define RX_NUM_BUF" ../../Sources/*.c |  cut -f 2 -d ":" >> ./vspa_exported_symbols.h
+grep "#define DMA_TXR_size" ../../Sources/*.c | cut -f 2 -d ":" >> ./vspa_exported_symbols.h
 
 md5sum ./$1 
 
@@ -28,7 +32,7 @@ while read in; do
 	symbol=$(echo $in |  cut -f 7 -d ' ') 
 	addr=$(echo $in |   cut -f 1 -d ' ')
 	size=$(echo $in |   cut -f 2 -d ' ')
-        if [[ $addr -ge 0x4000 ]]; then
+	if [[ $addr -ge 0x4000 ]]; then
 		start=0x500000;
 	else
  		start=0x400000;

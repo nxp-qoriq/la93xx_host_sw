@@ -6,16 +6,23 @@
 
 print_usage()
 {
-echo "usage: ./iq-replay.sh <capture file> <size num 4KB>"
-echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_2c.bin 300"
-echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_signM.bin 300"
+echo "usage: ./iq-replay.sh <iq sample file> <size num 4KB> [half duplex]"
+echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200"
+echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200 1"
+echo "ex : ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_signM.bin 1200"
 }
 
 # check parameters
-if [ $# -ne 2 ];then
+if [ $# -lt 2 ];then
         echo Arguments wrong.
         print_usage
         exit 1
+fi
+
+if [ $3 -eq 1 ];then
+       cmd=0x05500000
+else 
+       cmd=0x05100000
 fi
 
 (ls $1 >> /dev/null 2>&1)||echo $1 file not found
@@ -36,7 +43,7 @@ fi
 
 echo bin2mem -f $1 -a $ddrh
 bin2mem -f $1 -a $ddrh
-cmd=`printf "0x%X\n" $[0x05100000 + $2]`
+cmd=`printf "0x%X\n" $[$cmd + $2]`
 #echo vspa_mbox send 0 0 $cmd $ddrep
 vspa_mbox send 0 0 $cmd $ddrep
 vspa_mbox recv 0 0

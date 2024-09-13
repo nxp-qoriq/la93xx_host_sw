@@ -6,7 +6,7 @@
 
 print_usage()
 {
-echo "usage: ./iq-capture.sh <capture file> <size num 4KB> [c]"
+echo "usage: ./iq-capture.sh <DDR buff size nb 4KB>"
 echo "ex : ./iq-capture.sh ./iqdata.bin 300"
 }
 
@@ -22,19 +22,20 @@ fi
 ddrh=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 2 -d "-"|cut -f 1 -d "["`
 ddrep=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 1 -d "-"|cut -f 1 -d "["`
 maxsize=`dmesg |grep IQFLOOD |cut -f 2 -d ","|cut -f 2 -d " "`
+buff=`printf "0x%X\n" $[$maxsize/2 + $ddrh]`
+buffep=`printf "0x%X\n" $[$maxsize/2 + $ddrep]`
 if [[ "$ddrh" -eq "" ]];then
         echo can not retrieve IQFLOOD region, is LA9310 shiva started ?
         exit 1
 fi
-if [ $2 -gt $[$maxsize/4096] ];then
+if [ $2 -gt $[$maxsize/2/4096] ];then
         echo $2 x4KB too large to fit in IQFLOOD region $maxsize bytes
         exit 1
 fi
 
 cmd=`printf "0x%X\n" $[0x06100000 + $2]`
-#echo vspa_mbox send 0 0 $cmd $ddrep
-vspa_mbox send 0 0 $cmd $ddrep
+vspa_mbox send 0 0 $cmd $buffep
 vspa_mbox recv 0 0
-echo bin2mem -f $1 -a $ddrh -r $[4096 * $2]
-bin2mem -f $1 -a $ddrh -r $[4096 * $2]
+echo bin2mem -f $1 -a $buff -r $[4096 * $2]
+bin2mem -f $1 -a $buff -r $[4096 * $2]
 

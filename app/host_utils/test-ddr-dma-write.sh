@@ -6,8 +6,8 @@
 
 print_usage()
 {
-echo "usage: ./iq-capture-ddr.sh <DDR buff size nb 4KB>"
-echo "ex : ./iq-capture-ddr.sh 300"
+echo "usage: ./test-ddr-dma-write.sh <on/off>"
+echo "ex : ./test-ddr-dma-write.sh 1"
 }
 
 # check parameters
@@ -22,20 +22,19 @@ fi
 ddrh=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 2 -d "-"|cut -f 1 -d "["`
 ddrep=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 1 -d "-"|cut -f 1 -d "["`
 maxsize=`dmesg |grep IQFLOOD |cut -f 2 -d ","|cut -f 2 -d " "`
-buff=`printf "0x%X\n" $[$maxsize/2 + $ddrh]`
-buffep=`printf "0x%X\n" $[$maxsize/2 + $ddrep]`
 if [[ "$ddrh" -eq "" ]];then
         echo can not retrieve IQFLOOD region, is LA9310 shiva started ?
         exit 1
 fi
-if [ $1 -gt $[$maxsize/2/4096] ];then
-        echo $1 x4KB too large to fit in IQFLOOD region $maxsize bytes
-        exit 1
+
+# build command
+if [ $1 == 0 ];then
+       cmd=0x06000000
+else 
+		cmd=`printf "0x%X\n" $[0x06300300]`
 fi
 
-cmd=`printf "0x%X\n" $[0x06900000 + $1]`
-vspa_mbox send 0 0 $cmd $buffep
+vspa_mbox send 0 0 $cmd $ddrep
 vspa_mbox recv 0 0
 echo running until ./iq-stop.sh and 
-echo bin2mem -f iqdata.bin -a $buff -r $[4096 * $1]
 

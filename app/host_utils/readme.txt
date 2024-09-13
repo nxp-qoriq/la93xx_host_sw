@@ -16,7 +16,7 @@
 # capture (one time) iq samples into file
 ./load-nlm.sh
 ./enable_rf.sh granitarx
-./iq-capture.sh ./iqdata.bin 30
+./iq-capture.sh ./iqdata.bin 300
 
 # capture (repeat) in DDR buffer 
 ./load-nlm.sh
@@ -31,38 +31,37 @@ mount -t hugetlbfs none /dev/hugepages
 echo 24 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 dpdk-dfe_app -c "axiq_lb enable"
 ./singleTone.sh 20 1 
-./iq-capture.sh ./iqdata.bin 30
+./iq-capture.sh ./iqdata.bin 300
 
 # Select granita channels
 ./rx-chan.sh 4
 ./rx-chan.sh 2
 
 # get vspa stats
-./iq-streamer/iq_streamer -m
-for i in {0..11} ; do ./stats.sh $i;done | grep MSB
+./iq_streamer/iq_streamer -m
 
 #clear stats
  ./stats.sh -1
 
-#######################################################
-## Max perf using host DMA helper agents "iq_streamer" 
+# get vspa trace
+./iq_streamer/iq_streamer -d
 
-# All same scipts/command, just need to start DMA helper agents "iq_streamer -r/-t" 
+#################################################################
+## 122.88 MSPS TX is achievable with VSPA DMA only in half duplex  
 
-ex: 
-./iq-stop.sh
-taskset 0x4 ./iq-streamer/iq_streamer -r &
-./iq-capture.sh ./iqdata2.bin 30
-./iq-capture-ddr.sh 30
-
-taskset 0x8 ./iq-streamer/iq_streamer -t &
-taskset 0x4 ./iq-streamer/iq_streamer -r &
-./iq-capture-ddr.sh 30
+./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB300_2c.bin 1200 1
 
 
-# get iq-streamer stats
-kill -USR1 <iq-streamer PID>
+#############################################
+## 122.88+ MSPS full duplex requires imx DMA 
 
+taskset 0x8 ./iq_streamer/iq_streamer -r &
+taskset 0x8 ./iq_streamer/iq_streamer -t &
+./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_signM.bin 1200
+./iq-capture-ddr.sh 300
+
+# get iq_streamer trace
+kill -USR1 <iq_streamer PID>
 
 ##########################
 ### debug tips and tricks 
@@ -89,3 +88,12 @@ check ADC/DAC clock
   memtool -32 0x19040300 1
   00010303 -> 61.44Mhz
   00000000 -> 122.88Mhz
+
+Steps to Generate vspa_exported_symbols.h vspa_trace_enum.h from apm-iqplayer.eld
+---------------------------------------------------------------
+cd iq_streamer
+./vspa_symbols_extract.sh ../fw_iqplayer/apm-iqplayer.eld 
+
+copy the include/l1-trace.h to iq_streamer direcory
+./vspa_trace_code_extract.sh
+
