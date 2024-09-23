@@ -23,6 +23,9 @@ endif
 ifeq ($(IMX_RFGR),1)
 obj-y += la9310rfgr/
 endif
+ifeq ($(IMX_RFMT3812),1)
+obj-y += la9310mt3812/
+endif
 
 all:
 	$(MAKE) ARCH=$(ARCH) -C $(KERNEL_DIR) M=$(PWD) modules
@@ -50,4 +53,7 @@ endif
 
 ifeq ($(IMX_RFGR),1)
 	install  -D la9310rfgr/rfnm_granita.ko ${MODULE_INSTALL_DIR}/rfnm_granita.ko
+endif
+ifeq ($(IMX_RFMT3812),1)
+	install  -D la9310mt3812/rfnm_mt3812.ko ${MODULE_INSTALL_DIR}/rfnm_mt3812.ko
 endif

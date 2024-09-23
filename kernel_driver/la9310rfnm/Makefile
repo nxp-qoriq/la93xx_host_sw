@@ -6,6 +6,7 @@ ccflags-y += -Wall -Wno-unused-function -Wno-unused-variable
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
 
 LA9310_RFNM_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310rfnm/
+LA9310_MT3812_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310mt3812/
 LMS7002M_MODULE_DIR ?= ../../../lms7002m/
 LMS7002M_KERNEL_DIR ?= ${LA9310_DRV_HEADER_DIR}/${LMS7002M_MODULE_DIR}
 
@@ -17,6 +18,7 @@ ccflags-y += -I${LA9310_DRV_HEADER_DIR} -I${LA9310_COMMON_HEADERS}
 ccflags-y += -I${KERNEL_DIR}/drivers/usb/gadget/
 ccflags-y += -I${KERNEL_DIR}/../kernel-source/drivers/usb/gadget/
 ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
+ccflags-y += -I${LA9310_MT3812_HEADER_DIR}/
 ccflags-y += -I${LMS7002M_KERNEL_DIR}/include -I${LMS7002M_KERNEL_DIR}/interfaces -I${LMS7002M_KERNEL_DIR}/src
 
 la9310rfnm-objs := la9310_rfnm.o  cache.o
