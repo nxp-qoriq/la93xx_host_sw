@@ -24,6 +24,8 @@ typedef enum {
 	ERROR_AXIQ_DMA_RX_CMD_OVERRUN,  // 0xB
 	ERROR_DMA_CONFIG_ERROR,         // 0xC
 	ERROR_DMA_XFER_ERROR,           // 0xD
+	ERROR_EXT_DMA_DDR_RD_UNDERRUN,  // 0xE
+	ERROR_EXT_DMA_DDR_WR_OVERRUN,   // 0xF
 	STATS_MAX
 } stats_e;
 

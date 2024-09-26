@@ -18,7 +18,11 @@
 #include "vspa_exported_symbols.h"
 #include "iq_streamer.h"
 #include "stats.h"
+#ifndef IMX8DXL
 #include "pci_imx8mp.h"
+#else
+#include "pci_imx8dxl.h"
+#endif
 #include "l1-trace.h"
 
 void dma_perf_test(void)
@@ -277,28 +281,28 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uin
     }
 	/* build PCI DMA desc list in memory v_scratch_ddr_addr */
 
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x0) = 0x00000001;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x4) = 0x00000008;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x8) = 0x19000098;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0xC) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x10) = 0x92400100;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x14) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x18) = 0x00000001;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x1c) = 0x8000;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x20) = pci_src;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x24) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x28) = ddr_dst;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x2c) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x30) = 0x00000009;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x34) = 0x00000008;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x38) = 0x19000098;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x3c) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x40) = 0x92400110;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x44) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x48) = 0x00000006;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x4c) = 0;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x50) = 0x92400000;
-	*(uint32_t*)((uint64_t)v_scratch_ddr_addr + 0x54) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x0) = 0x00000001;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x4) = 0x00000008;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x8) = 0x19000098;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0xC) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x10) = 0x92400100;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x14) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x18) = 0x00000001;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x1c) = 0x8000;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x20) = pci_src;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x24) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x28) = ddr_dst;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x2c) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x30) = 0x00000009;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x34) = 0x00000008;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x38) = 0x19000098;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x3c) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x40) = 0x92400110;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x44) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x48) = 0x00000006;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x4c) = 0;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x50) = 0x92400000;
+	*(uint32_t *)((uint64_t)v_scratch_ddr_addr + 0x54) = 0;
 
 
 

@@ -26,9 +26,9 @@ sed 's/,/ /g' vspa_trace_enum_2.txt > ./vspa_trace_enum.txt
 while read in; do
 	code=$(echo $in | cut -f 2  -d "*" | cut -f 1 -d " ")
 	text=$(echo $in | cut -f 3  -d "*"| cut -f 2 -d " ")
-	echo "{ "$code ",\""$text "\"}," >> ./vspa_trace_enum.h  
+	echo "{ "$code", \""$text "\"}," >> ./vspa_trace_enum.h  
 done < ./vspa_trace_enum.txt
-	echo "{ 0xFFFF,\"MAX_CODE_TRACE\"}" >> ./vspa_trace_enum.h  
+	echo "{ 0xFFFF, \"MAX_CODE_TRACE\"}" >> ./vspa_trace_enum.h  
 
 echo "};" >> ./vspa_trace_enum.h 
 

@@ -8,6 +8,10 @@
 int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uint32_t ant);
 int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, uint32_t ant);
 void dma_perf_test(void);
+extern uint32_t *PCIE1_addr;
+
+#define IMX8MP_PCIE1_ADDR   0x33800000
+#define IMX8MP_PCIE1_SIZE  0x400000
 
 #define PCIE_DMA_BASE (uint64_t)PCIE1_addr
 #define DMA_READ_ENGINE_EN_OFF          (PCIE_DMA_BASE + 0x38002C)
@@ -37,3 +41,5 @@ void dma_perf_test(void);
 #define DMA_LLP_HIGH_OFF_RDCH_0			 (PCIE_DMA_BASE + 0x380320)
 
 #endif
+
+

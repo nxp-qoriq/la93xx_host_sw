@@ -4,7 +4,7 @@
 CFLAGS  +=  -g -O3 -Wall -D_GNU_SOURCE -Werror
 LDFLAGS += -pthread -lpthread -lrt
 
-SRCS_TEST := iq_streamer.c pci_imx8mp.c stats.c l1-trace-host.c 
+SRCS_TEST := iq_streamer.c pci_imx8.c stats.c l1-trace-host.c 
 OBJS_TEST := $(SRCS_TEST:.c =.o)
 BIN_TEST := iq_streamer
 BIN_INSTALL_DIR?=/usr/bin

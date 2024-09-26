@@ -44,13 +44,13 @@ enum l1_trace_msg_axiq {
     /* 0x106 */ L1_TRACE_MSG_DMA_AXIQ_RX_COMP,
     /* 0x107 */ L1_TRACE_MSG_DMA_AXIQ_TX_COMP,
     /* 0x108 */ L1_TRACE_MSG_DMA_AXIQ_RX_XFER_ERROR,
-    /* 0x109 */ L1_TRACE_MSG_DMA_AXIQ_TX_XFER_ERROR ,
-    /* 0x10A */ L1_TRACE_MSG_DMA_XFR_SIZE ,
-    /* 0x10B */ L1_TRACE_MSG_DMA_DDR_RD_START ,
-    /* 0x10C */ L1_TRACE_MSG_DMA_DDR_RD_COMP ,
+    /* 0x109 */ L1_TRACE_MSG_DMA_AXIQ_TX_XFER_ERROR,
+    /* 0x10A */ L1_TRACE_MSG_DMA_XFR_SIZE,
+    /* 0x10B */ L1_TRACE_MSG_DMA_DDR_RD_START,
+    /* 0x10C */ L1_TRACE_MSG_DMA_DDR_RD_COMP,
     /* 0x10D */ L1_TRACE_MSG_DMA_DDR_RD_UNDERRUN,
-    /* 0x10E */ L1_TRACE_MSG_DMA_DDR_WR_START ,
-    /* 0x10F */ L1_TRACE_MSG_DMA_DDR_WR_COMP ,
+    /* 0x10E */ L1_TRACE_MSG_DMA_DDR_WR_START,
+    /* 0x10F */ L1_TRACE_MSG_DMA_DDR_WR_COMP,
     /* 0x110 */ L1_TRACE_MSG_DMA_DDR_WR_OVERRUN,
 };
 
@@ -80,11 +80,11 @@ enum l1_trace_msg_l1app {
     /* 0x302 */ L1_TRACE_L1APP_TX_QEC_COMP,
     /* 0x303 */ L1_TRACE_L1APP_RX_QEC_START,
     /* 0x304 */ L1_TRACE_L1APP_RX_QEC_COMP,
-    /* 0x305 */ L1_TRACE_L1APP_BUFF_ID_HS,    
+    /* 0x305 */ L1_TRACE_L1APP_BUFF_ID_HS,
     /* 0x306 */ L1_TRACE_L1APP_SLOT_ID,
-    /* 0x307 */ L1_TRACE_L1APP_SYM_ID,    
-    /* 0x308 */ L1_TRACE_L1APP_LAST_SYM,    
-    /* 0x309 */ L1_TRACE_L1APP_BUFF_ID_OUT,    
+    /* 0x307 */ L1_TRACE_L1APP_SYM_ID,
+    /* 0x308 */ L1_TRACE_L1APP_LAST_SYM,
+    /* 0x309 */ L1_TRACE_L1APP_BUFF_ID_OUT,
 };
 
 /**
@@ -205,7 +205,7 @@ inline void l1_trace_dbg(uint32_t)
 #pragma cplusplus reset
 #endif
 
-extern l1_trace_data_t l1_trace_data[] __attribute__ ((aligned (64)));
+extern l1_trace_data_t l1_trace_data[] __attribute__ ((aligned(64)));
 extern volatile uint32_t l1_trace_disable;
 
 #endif // __L1_TRACE_H__

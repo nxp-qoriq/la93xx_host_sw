@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
 ####################################################################
@@ -22,9 +22,9 @@ echo " */">> ./vspa_exported_symbols.h
 eld_md5sum=$(md5sum ./$1 | cut -f 1 -d " ")
 echo "#define IQ_STREAMER_VERSION \""$eld_md5sum"\"" >> ./vspa_exported_symbols.h 
 
-grep "#define TX_NUM_BUF" ../../Sources/*.c | cut -f 2 -d ":" >> ./vspa_exported_symbols.h
-grep "#define RX_NUM_BUF" ../../Sources/*.c |  cut -f 2 -d ":" >> ./vspa_exported_symbols.h
-grep "#define DMA_TXR_size" ../../Sources/*.c | cut -f 2 -d ":" >> ./vspa_exported_symbols.h
+grep "#define TX_NUM_BUF" ../../Sources/*.c | cut -f 2 -d ":"|sed 's/^M//g' >> ./vspa_exported_symbols.h
+grep "#define RX_NUM_BUF" ../../Sources/*.c |  cut -f 2 -d ":"|sed 's/^M//g' >> ./vspa_exported_symbols.h
+grep "#define DMA_TXR_size" ../../Sources/*.c | cut -f 2 -d ":"|sed 's/^M//g' >> ./vspa_exported_symbols.h
 
 md5sum ./$1 
 
@@ -37,9 +37,9 @@ while read in; do
 	else
  		start=0x400000;
 	fi	       
-	echo "#define " v$symbol "(volatile uint32_t *)((uint64_t)BAR2_addr + " $start " + " $addr ")" >> ./vspa_exported_symbols.h
-	echo "#define " p$symbol "(uint32_t)(0x1F000000 + " $start " + " $addr ")" >> ./vspa_exported_symbols.h
-	echo "#define " s$symbol "(uint32_t)(" $size ")" >> ./vspa_exported_symbols.h
+	echo "#define " v$symbol "(volatile uint32_t *)((uint64_t)BAR2_addr + "$start" + "$addr")" >> ./vspa_exported_symbols.h
+	echo "#define " p$symbol "(uint32_t)(0x1F000000 + "$start" + "$addr")" >> ./vspa_exported_symbols.h
+	echo "#define " s$symbol "(uint32_t)("$size")" >> ./vspa_exported_symbols.h
 done < ./$1_vspa_exported_symbols_addr.txt
 
 rm ./vspa_exported_symbols0.txt ./vspa_exported_symbols.txt ./$1.symbol.txt ./$1_vspa_exported_symbols_addr.txt 

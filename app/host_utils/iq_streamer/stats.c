@@ -70,7 +70,7 @@ void la9310_hexdump(const void *ptr, size_t sz)
 	__hexdump(start, end, p, sz, c);
 }
 
-char * VSPA_stat_string[] = {
+char *VSPA_stat_string[STATS_MAX+1] = {
 	"DMA_AXIQ_WRTIE\t",
 	"DMA_AXIQ_READ\t",
 	"DMA_DDR_RD\t",
@@ -85,6 +85,8 @@ char * VSPA_stat_string[] = {
 	"DMA_RX_CMD_OVR\t",
 	"CONFIG_ERROR\t",
 	"XFER_ERROR\t",
+	"EXT_DMA_DDR_RD_UDR",
+	"EXT_DMA_DDR_WR_OVR",   // 0xF
 	"STATS_MAX"
 	};
 
@@ -95,7 +97,7 @@ char * VSPA_stat_string[] = {
 //VSPA_EXPORT(rx_busy_size)
 
 uint32_t vspa_stats[2][s_g_stats/4];
-uint32_t vspa_stats_tab = 0;
+uint32_t vspa_stats_tab;
 volatile uint32_t *_VSPA_DMA_regs, *_GP_IN0;
 void print_vspa_stats(void)
 {
@@ -107,7 +109,7 @@ void print_vspa_stats(void)
 		vspa_stats_tab = 0;
 		cur_stats = vspa_stats[0];
 		prev_stats = vspa_stats[1];
-	} else{ 
+	} else {
 		vspa_stats_tab = 1;
 		cur_stats = vspa_stats[1];
 		prev_stats = vspa_stats[0];
@@ -119,8 +121,8 @@ void print_vspa_stats(void)
 	}
 	for (i = 0; i < STATS_MAX; i++) {
 		printf("\n %s \t0x%08x \t (%08d)  ", VSPA_stat_string[i], cur_stats[i], (uint32_t)(cur_stats[i]-prev_stats[i]));
-//		if(i<4)
-		printf("(%08d MB/s)  ", (uint32_t)((uint64_t)(cur_stats[i]-prev_stats[i])*2048/1000000));
+		if (i < ERROR_DMA_DDR_RD_UNDERRUN)
+			printf("(%08d MB/s)  ", (uint32_t)((uint64_t)(cur_stats[i]-prev_stats[i])*2048/1000000));
 	}
 	printf("\n");
 
@@ -130,10 +132,10 @@ void print_vspa_stats(void)
 
 	_VSPA_DMA_regs = (volatile uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + DMA_DMEM_PRAM_ADDR);
 	printf("VSPA DMA regs (IP reg 0xB0):\n");
-	la9310_hexdump((void*)_VSPA_DMA_regs, 0x30);
+	la9310_hexdump((void *)_VSPA_DMA_regs, 0x30);
 	_GP_IN0 = (volatile uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + GP_IN0);
 	printf("VSPA AXI regs (GP_IN0-9 IPREG 0x580):\n");
-	la9310_hexdump((void*)_GP_IN0, 0x30);
+	la9310_hexdump((void *)_GP_IN0, 0x30);
 	printf("\n");
 
 	return;
