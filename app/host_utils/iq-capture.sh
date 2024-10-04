@@ -6,12 +6,13 @@
 
 print_usage()
 {
-echo "usage: ./iq-capture.sh <DDR buff size nb 4KB>"
+echo "usage: ./iq-capture.sh <DDR buff size nb 4KB> [half duplex]"
 echo "ex : ./iq-capture.sh ./iqdata.bin 300"
+echo "ex : ./iq-capture.sh ./iqdata.bin 300 1"
 }
 
 # check parameters
-if [ $# -ne 2 ];then
+if [ $# -lt 2 ];then
         echo Arguments wrong.
         print_usage
         exit 1
@@ -33,7 +34,16 @@ if [ $2 -gt $[$maxsize/2/4096] ];then
         exit 1
 fi
 
-cmd=`printf "0x%X\n" $[0x06100000 + $2]`
+if [ $# -gt 2 ];then
+	if [ $3 -eq 1 ];then
+		cmd=`printf "0x%X\n" $[0x06120000 + $2]`
+	else 
+		cmd=`printf "0x%X\n" $[0x06100000 + $2]`
+	fi
+else
+	cmd=`printf "0x%X\n" $[0x06100000 + $2]`
+fi
+
 vspa_mbox send 0 0 $cmd $buffep
 vspa_mbox recv 0 0
 echo bin2mem -f $1 -a $buff -r $[4096 * $2]

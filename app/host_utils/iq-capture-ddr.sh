@@ -6,12 +6,13 @@
 
 print_usage()
 {
-echo "usage: ./iq-capture-ddr.sh <DDR buff size nb 4KB>"
+echo "usage: ./iq-capture-ddr.sh <DDR buff size nb 4KB> [half duplex]"
 echo "ex : ./iq-capture-ddr.sh 300"
+echo "ex : ./iq-capture-ddr.sh 300 1"
 }
 
 # check parameters
-if [ $# -ne 1 ];then
+if [ $# -lt 1 ];then
         echo Arguments wrong.
         print_usage
         exit 1
@@ -33,7 +34,16 @@ if [ $1 -gt $[$maxsize/2/4096] ];then
         exit 1
 fi
 
-cmd=`printf "0x%X\n" $[0x06900000 + $1]`
+if [ $# -gt 1 ];then
+	if [ $2 -eq 1 ];then
+		cmd=`printf "0x%X\n" $[0x06920000 + $1]`
+	else 
+		cmd=`printf "0x%X\n" $[0x06900000 + $1]`
+	fi
+else
+	cmd=`printf "0x%X\n" $[0x06900000 + $1]`
+fi
+
 vspa_mbox send 0 0 $cmd $buffep
 vspa_mbox recv 0 0
 echo running until ./iq-stop.sh and 

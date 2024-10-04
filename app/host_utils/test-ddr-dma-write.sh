@@ -6,12 +6,15 @@
 
 print_usage()
 {
-echo "usage: ./test-ddr-dma-write.sh <on/off>"
+echo "usage: ./test-ddr-dma-write.sh <on/off> [dma config]"
 echo "ex : ./test-ddr-dma-write.sh 1"
+echo "ex : ./test-ddr-dma-write.sh 0"
+echo "ex : dma config : 1-2 nb "
+echo "ex : ./test-ddr-dma-read 1 2"
 }
 
 # check parameters
-if [ $# -ne 1 ];then
+if [ $# -lt 1 ];then
         echo Arguments wrong.
         print_usage
         exit 1

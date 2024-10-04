@@ -5,8 +5,11 @@
 # File size is num of 4KB buffer
 ###################################################
 
-#######################################################
-## Standard perf using , standalone vspa using VSPA DMA
+################################################################################
+## Basic enablement : “How to transmit/receive waveform from/to binary files ?”
+#  iq_streamer is only used to display statistics, debug and host/vspa traces. 
+#  So far VSPA firmware is self-content  and we are using VSPA DMAs only, so no need for imx agent/DMA
+
 
 # play (repeat) single tone on granita
 ./load-nlm.sh
@@ -48,25 +51,36 @@ iq_streamer -d
 
 #################################################################
 ## 122.88 MSPS TX is achievable with VSPA DMA only in half duplex  
-
 # no change on iq-capture.sh, but one change on iq-reaplay.sh which
 # need to pass additional parameter to ask half duplex mode 
-# It will use 4x VSPA DMA to increase DDR read throughput but impact
-# the rx path. So it is no more possible to do boath TX and RX at the same time
+# It will use 4x VSPA DMA and 2x VSPA DMA to increase xfer throuput 
+# But it is no more possible to do both TX and RX at the same time
 
 ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200 1
+./iq-capture.sh ./iqdata.bin 300 1
+./iq-capture-ddr.sh 300 1
 
+
+########################################################################
+## Advanced use cases 1 : “How to connect upper app/stack to IQ Flow ?”
+# iq_streamer can be used as Rx/Tx streaming application.  
+# iq_streamer streaming feature, intends to demonstrate how to connect higher 
+# app/stack/phy with VSPA firmware and IQ samples flow. 
+# VSPA firmware will use a single free running buffer in memory DDR (or other memory TCM/OCRAM), 
+# same script/config as “basic enablement” are used. The buffers will play role of intermediate sizeable TX/RX FIFO between app and VSPA firmware. The streaming application will fill/consume data on the go. Handshake for now is based on VSPA exported symbols TX_total_consumed_size or RX_total_produced_size. There will be 2 modes in iq_streamer, streaming_ddr and streaming_tcm, where intermediate FIFO is either on host DDR or on EP TCM memory, same principle but require different DMAs. As of Today only “tx_streaming_tcm” is provided. The example is streaming a large input file loaded in host DDR, streaming it into Tx FIFO in LA9310 TCM. At startup, user provide address size for the large file and the tcm fifo. User can replace the large file in DDR by output of an upper stack.
+
+taskset 0x8 iq_streamer -t -a 0x96400000 4915200 -T 0x20001000 32768 &
+./iq-replay-streamer.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200
+
+# get iq_streamer trace
+kill -USR1 <iq_streamer PID>
 
 #############################################
-## experimental external imx DMA agent 
-
-# This intend to support 160MSP which requires 640MB/s
-# hence VSPA DMA with 590MB/s is too short
-# This code use imx pci DMA instead of VSPA DMA
-# in RX iq_streamer will do DMA from dmem to DDR
-# in TX iq_streamer will do DMA from DDR to TCM and VSPA DMA from TCM to DMEM
-# This is example code which only works at 61.44MSPS due to real time limit of
-# userspace app.. such approach is proven to work in RX in M7 core (RFNM)
+## Advanced use cases 2 : “How to support higher sampling rate 160MSPS ?”
+# iq_streamer can be used as external dma helper agent to replace VSPA DMAs with external DMA engines.  
+# iq_streamer external dma agent is used to perform DMEM firmware fifo transfer using external DMA such as imx PCI DMA instead of VSPA DMAs. This turns to be useful to overcome imx8 pci limitations in current RFNM firmware. Write bandwidth from PCI EP into Imx8 DDR as known limitation in imx8 PCI block. Throughput is higher if you read from imx8 instead of writing from EP. Therefore it could be useful to use an agent running imx to perform DMA read from DMEM and write into DDR, instead of VSPA DMA writing directly DDR. This agent, has strong real time constraint, because it needs to keep pace with the small DMEM FIFO. As of Today, this turns to be overkill. Despite i.mx limitation, VSPA DMA can sustain 530MB/s DDR write which is enough to support 122.88MSPS. External DMA may reach PCI line rate at 800MB/s, which may be needed only to support 160MSPS. iq_streamer supports this mode but can only sustain 375MB/s when running in linux user space with isolcu/noHz, this would need to move to i.mx8 M7 core to reach max throughput. Proven to work in RFNM firmware.   
+# The way to start this “ext DMA” mode is to start the agent by doing “taskset 0x8 iq_streamer -t &” or/and “taskset 0x4 iq_streamer -r &”. 
+# The agents will update VSPA shared flag RX/TX_ext_dma_enabled, indicating VSPA to skip VSPA DMA and let agent to managed DMEM FIFOs.
 
 taskset 0x4 iq_streamer -r &
 ./iq-capture-ddr.sh 300
@@ -80,6 +94,21 @@ taskset 0x8 iq_streamer -t -a 0x96400000 4915200 -T 0x20001000 32768 &
 # get iq_streamer trace
 kill -USR1 <iq_streamer PID>
 
+#############################################
+## Know issues, limitations 
+
+ a)	Current firmware support 61.44MSPS full duplex and only 122.88MSPS half duplex
+  
+              
+#############################################
+## Next steps :
+
+ •	Debug sporadic Tx Fifo overrun in FD 61.44MSPS
+ •	Add multi channel Rx , decimation x2 , x4
+ •	Add Rx ddr streaming
+ •	Enhance buffer handshake with meta data buffer descriptor instead of share variables
+ •	Look at possible FD 122.88MSPS
+
 ##########################
 ### debug tips and tricks 
 
@@ -89,11 +118,11 @@ This code can be used on Rx buffer while VSPA is streaming samples,
 this should print trace of captured data changes on exit when used with "i"
 and should not if used without "-i" (invalidate cahe data) 
 
-# ./load-nlm.sh
-# ./iq-capture-ddr.sh 300
+ ./load-nlm.sh
+ ./iq-capture-ddr.sh 300
   running until ./iq-stop.sh and
   bin2mem -f iqdata.bin -a 0x9CC00000 -r 1228800
-# ./memtest -a 0x9CC00000 -s 2097152 -i
+ ./memtest -a 0x9CC00000 -s 2097152 -i
 
 imx_dma
 -------
@@ -127,7 +156,7 @@ check ADC/DAC clock
   00000000 -> 122.88Mhz
 
 Steps to Generate vspa_exported_symbols.h vspa_trace_enum.h from apm-iqplayer.eld
----------------------------------------------------------------
+---------------------------------------------------------------------------------
 cd iq_streamer
 ./vspa_symbols_extract.sh ../fw_iqplayer/apm-iqplayer.eld 
 

@@ -520,7 +520,7 @@ restart_tx_tcm:
 			}
 			local_TX_total_consumed_size =  *v_TX_total_consumed_size;
 			busy_size = local_TX_total_produced_size - local_TX_total_consumed_size;
-			empty_size = tcm_fifo_size - busy_size; // fifo size - data in dmem
+			empty_size = tcm_fifo_size - busy_size; // fifo size - data in tcm
 			if (empty_size >= TX_DDR_STEP) {
 				break;
 			}
