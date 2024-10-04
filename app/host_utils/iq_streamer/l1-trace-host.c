@@ -33,7 +33,38 @@ uint64_t ccnt_read(void)
 	asm volatile("isb;mrs %0, pmccntr_el0" : "=r"(time));
 	return time;
 }
-#define rte_get_tsc_hz() (1800000000)
+
+int rte_get_tsc_hz_init=0; 
+
+static inline uint64_t rte_get_tsc_hz(void)
+{
+    FILE *fp;
+    char path[1035], *stopstring;
+    uint64_t val = 0;
+
+	if(0==rte_get_tsc_hz_init){
+		/*Get CPU freq */
+		fp = popen("/sys/kernel/debug/clk/arm_a*_core/clk_rate", "r");
+		if (fp == NULL) {
+			printf("Failed to run command\n");
+			exit(1);
+		}
+
+		/* Read the output a line at a time - output it. */
+		while (fgets(path, sizeof(path), fp) != NULL) {
+			rte_get_tsc_hz_init = strtoull(path, &stopstring, 16);
+			//printf("\n%lx\n", rte_get_tsc_hz_init);
+		}
+
+		if (val == 0) {
+		printf("default device not match, use the default freq.\n");
+		rte_get_tsc_hz_init = 1600000000;
+		}
+		//printf("%s: CPU freq %ld \n", __func__, val);
+	}
+	
+    return rte_get_tsc_hz_init;
+}
 
 l1_trace_data_t l1_trace_data[L1_TRACE_SIZE] __attribute__ ((aligned(64)));
 uint32_t l1_trace_index;
@@ -78,7 +109,7 @@ void print_host_trace(void)
 		entry = (l1_trace_data_t *)l1_trace_data + j;
 		k = 0;
 		while (l1_trace_code[k].msg != 0xffff) { if (l1_trace_code[k].msg == entry->msg) break; k++; }
-		printf("\n%4d, counter: %016ld (+%08ld ns), param: 0x%08x, (0x%03x)%s", i, entry->cnt, (entry->cnt-prev)*10/18, entry->param, entry->msg, l1_trace_code[k].text);
+		printf("\n%4d, counter: %016ld (+%08ld ns), param: 0x%08x, (0x%03x)%s", i, entry->cnt, (entry->cnt-prev)*1000000000/rte_get_tsc_hz(), entry->param, entry->msg, l1_trace_code[k].text);
 		prev = entry->cnt;
 	}
 	printf("\n");
@@ -94,6 +125,7 @@ void print_host_trace(void)
 
 // format
 //146, counter: 0000045638347355, param: 0x0B003000, L1_TRACE_MSG_DMA_AXIQ_TX
+#ifdef v_l1_trace_data
 void print_vspa_trace(void)
 {
 	uint32_t i, j, k;
@@ -115,5 +147,11 @@ void print_vspa_trace(void)
 
 	return;
 }
+#else
+void print_vspa_trace(void)
+{
+printf("\n VSPA trace disabled \n");
+}
+#endif
 
 

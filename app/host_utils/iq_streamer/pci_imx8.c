@@ -32,7 +32,7 @@ void dma_perf_test(void)
 
 static int tx_first_dma = 1;
 #define PCI_WR_DMA_NB 1
-int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, uint32_t ant)
+int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size)
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
@@ -112,7 +112,7 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, ui
 
 static int rx_first_dma = 1;
 #define PCI_RD_DMA_NB 1
-int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uint32_t ant)
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
@@ -236,7 +236,7 @@ memtool -32  0x33b80030=0			// DMA_READ_DOORBELL_OFF
 memtool -32 0x92400000 100
 */
 
-int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uint32_t ant)
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
 {
     volatile uint32_t *reg;
     volatile int cnt = 0;

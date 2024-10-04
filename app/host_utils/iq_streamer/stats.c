@@ -71,7 +71,7 @@ void la9310_hexdump(const void *ptr, size_t sz)
 }
 
 char *VSPA_stat_string[STATS_MAX+1] = {
-	"DMA_AXIQ_WRTIE\t",
+	"DMA_AXIQ_WRITE\t",
 	"DMA_AXIQ_READ\t",
 	"DMA_DDR_RD\t",
 	"DMA_DDR_WR\t",
@@ -80,6 +80,8 @@ char *VSPA_stat_string[STATS_MAX+1] = {
 	"DMA_DDR_RD_UDR\t",
 	"DMA_DDR_WR_OVR\t",
 	"FIFO_TX_UDR\t",
+	"FIFO_TX_OVR\t",
+	"FIFO_RX_UDR\t",
 	"FIFO_RX_OVR\t",
 	"DMA_TX_CMD_UDR\t",
 	"DMA_RX_CMD_OVR\t",

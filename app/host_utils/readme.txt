@@ -71,7 +71,10 @@ iq_streamer -d
 taskset 0x4 iq_streamer -r &
 ./iq-capture-ddr.sh 300
 
-taskset 0x8 iq_streamer -t -a 0x96400000 -s 4915200 &
+taskset 0x8 iq_streamer -t &
+./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200
+
+taskset 0x8 iq_streamer -t -a 0x96400000 4915200 -T 0x20001000 32768 &
 ./iq-replay-streamer.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200
 
 # get iq_streamer trace

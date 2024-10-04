@@ -29,10 +29,14 @@ fi
 
 # build command
 if [ $1 == 0 ];then
-       cmd=0x06000000
+	cmd=0x06000000
 else 
-		cmd=`printf "0x%X\n" $[0x06300300]`
+	cmd=`printf "0x%X\n" $[0x06300300]`
+	if [ $# -eq 2 ];then
+		cmd=`printf "0x%X\n" $[0x06300300 + $2*0x10000]`
+	fi
 fi
+
 
 vspa_mbox send 0 0 $cmd $ddrep
 vspa_mbox recv 0 0

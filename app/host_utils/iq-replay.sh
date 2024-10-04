@@ -20,7 +20,7 @@ fi
 
 if [ $# -gt 2 ];then
 	if [ $3 -eq 1 ];then
-       		cmd=0x05500000
+       		cmd=0x051a0000
 	else 
        		cmd=0x05100000
 	fi
