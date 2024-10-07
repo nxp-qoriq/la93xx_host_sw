@@ -5,6 +5,7 @@
 #include <linux/kernel.h>
 #include <linux/pid.h>
 #include <linux/sched.h>
+#include <linux/swait.h>
 #include <linux/fdtable.h>
 #include <linux/rcupdate.h>
 #include <linux/eventfd.h>
@@ -33,7 +34,6 @@
 #include "la9310_tti_ioctl.h"
 #include "la9310_base.h"
 #include <linux/timekeeping.h>
-
 #define SIGNAL_TO_USERSPACE	1
 #define JITTER_RANGE 10000
 #define SPIKE_RANGE 100000
@@ -79,6 +79,16 @@ static void get_time(void) {
 }
 #endif
 
+void tti_swake_up_all_locked(struct swait_queue_head *q)
+{
+	while (!list_empty(&q->task_list))
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
+		swake_up_locked(q, 0);
+#else
+		swake_up_locked(q);
+#endif
+}
+
 /* TTI IRQ Handler */
 static irqreturn_t tti_irq_handler(int irq, void *data)
 {
@@ -90,7 +100,7 @@ static irqreturn_t tti_irq_handler(int irq, void *data)
 	/* Send signal to User space */
 	if (tti_priv_t) {
 		raw_spin_lock(&tti_priv_t->wq_lock);
-		swake_up_all_locked(&tti_priv_t->tti_wq);
+		tti_swake_up_all_locked(&tti_priv_t->tti_wq);
 		raw_spin_unlock(&tti_priv_t->wq_lock);
 		if (tti_priv_t->evt_fd_ctxt) {
 			eventfd_signal(tti_priv_t->evt_fd_ctxt,
@@ -108,7 +118,7 @@ void tti_irq_api(void)
 	/* Send signal to User space */
 	if (tti_priv_g) {
 		raw_spin_lock(&tti_priv_g->wq_lock);
-		swake_up_all_locked(&tti_priv_g->tti_wq);
+		tti_swake_up_all_locked(&tti_priv_g->tti_wq);
 		raw_spin_unlock(&tti_priv_g->wq_lock);
 		if (tti_priv_g->evt_fd_ctxt) {
 			eventfd_signal(tti_priv_g->evt_fd_ctxt,
@@ -426,8 +436,11 @@ int init_tti_dev(void)
 	/* Device Major number*/
 	tti_dev_major = MAJOR(tti_dev_number);
 	/*sysfs class creation */
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
+	la9310_tti_dev_class = class_create( tti_dev_name);
+#else
 	la9310_tti_dev_class = class_create(THIS_MODULE, tti_dev_name);
-
+#endif
 	tti_dev_data = kmalloc(MAX_MODEM * sizeof(*tti_dev_data), GFP_KERNEL);
 	if (tti_dev_data == NULL) {
 		pr_err("TTI device data array alloc failed\n");

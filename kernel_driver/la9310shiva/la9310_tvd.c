@@ -28,7 +28,9 @@
 #include <linux/platform_device.h>
 #include <linux/swait.h>
 #include <linux/delay.h>
+#ifdef CONFIG_IMX8MM_THERMAL_MONITOR
 #include <linux/imx8mm_thermal.h>
+#endif
 #include <linux/eventfd.h>
 #include "la9310_base.h"
 #include "la9310_tvd_ioctl.h"
@@ -144,6 +146,8 @@ static long la9310_tvd_dev_ioctl(struct file *filp, unsigned int cmd,
 	struct tvd_dev *tvd_dev = NULL;
 	struct mtdTemp mtd_temp;
 	int temp = 0;
+
+	(void)(temp);
 	tvd_dev_data = (struct la9310_tvd_device_data *)filp->private_data;
 	tvd_dev = tvd_dev_data->tvd_dev;
 
@@ -160,7 +164,9 @@ static long la9310_tvd_dev_ioctl(struct file *filp, unsigned int cmd,
 		put_user(mtd_temp, &tvd_ptr->get_mtd_curr_temp);
 		break;
 
+#ifdef CONFIG_IMX8MM_THERMAL_MONITOR
 	case IOCTL_LA9310_TVD_CTD_GET_TEMP:
+
 		ret = copy_from_user(&tvd_t,
 					(struct tvd *)arg,
 					sizeof(struct tvd));
@@ -175,6 +181,7 @@ static long la9310_tvd_dev_ioctl(struct file *filp, unsigned int cmd,
 		put_user(tvd_dev_data->tvd_dev->tvd_priv_d[tvd_ptr->tvdid].get_ctd_cur_temp,
 					&tvd_ptr->get_ctd_curr_temp);
 		break;
+#endif
 	default:
 		ret = -ENOTTY;
 	}
@@ -303,7 +310,11 @@ int tvd_init(void)
 	memset(tvd_dev, 0, sizeof(struct tvd_dev));
 
 	/* sysfs class creation */
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
+	la9310_tvd_dev_class = class_create( tvd_dev_name);
+#else
 	la9310_tvd_dev_class = class_create(THIS_MODULE, tvd_dev_name);
+#endif
 	if (la9310_tvd_dev_class == NULL) {
 		pr_err("%s:Cannot allocate major number\n", __func__);
 		ret = -1;

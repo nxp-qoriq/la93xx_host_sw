@@ -645,7 +645,11 @@ static int __init la9310_pcidev_init(void)
 		gpio_free(LA9310_UART_SEL_GPIO);
 	}
 
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
+	la9310_class = class_create(driver_name);
+#else
 	la9310_class = class_create(THIS_MODULE, driver_name);
+#endif
 	if (IS_ERR(la9310_class)) {
 		pr_err("%s:%d Error in creating (%s) class\n",
 			__func__, __LINE__, driver_name);

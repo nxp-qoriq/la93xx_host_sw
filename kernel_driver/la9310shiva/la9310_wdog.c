@@ -375,8 +375,11 @@ static int create_wdog_cdevs(struct wdog_dev *wdog_dev)
 	}
 
 	wdog_dev->wdog_dev_major = MAJOR(wdog_dev->wdog_dev_number);
-
+#if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
+	wdog_dev->wdog_class = class_create(wdog_dev_name);
+#else
 	wdog_dev->wdog_class = class_create(THIS_MODULE, wdog_dev_name);
+#endif
 	if (wdog_dev->wdog_class == NULL) {
 		pr_err("%s:Cannot allocate major number\n",
 		       __func__);
