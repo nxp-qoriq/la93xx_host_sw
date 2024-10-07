@@ -54,7 +54,7 @@ static struct usb_interface_assoc_descriptor iad_desc = {
 	.bFunctionProtocol = 0,
 };
 
-static struct usb_interface_descriptor source_sink_intf_hs0 = {
+struct usb_interface_descriptor source_sink_intf_hs0 = {
 	.bLength =		USB_DT_INTERFACE_SIZE,
 	.bDescriptorType =	USB_DT_INTERFACE,
 
@@ -95,7 +95,7 @@ static struct usb_endpoint_descriptor fs_sink_desc_proto = {
 static struct usb_endpoint_descriptor fs_source_desc[RFNM_EP_CNT];
 static struct usb_endpoint_descriptor fs_sink_desc[RFNM_EP_CNT];
 
-static struct usb_endpoint_descriptor fs_loop_sink_desc = {
+struct usb_endpoint_descriptor fs_loop_sink_desc = {
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 
@@ -382,7 +382,7 @@ sourcesink_free_func(struct usb_function *f)
 }
 
 /* optionally require specific source/sink data patterns  */
-static int check_read_data(struct f_sourcesink *ss, struct usb_request *req)
+int check_read_data(struct f_sourcesink *ss, struct usb_request *req)
 {
 	unsigned		i;
 	u8			*buf = req->buf;
@@ -420,7 +420,7 @@ static int check_read_data(struct f_sourcesink *ss, struct usb_request *req)
 	return 0;
 }
 
-static void reinit_write_data(struct usb_ep *ep, struct usb_request *req)
+void reinit_write_data(struct usb_ep *ep, struct usb_request *req)
 {
 	unsigned	i;
 	u8		*buf = req->buf;
@@ -440,7 +440,7 @@ static void reinit_write_data(struct usb_ep *ep, struct usb_request *req)
 	}
 }
 
-static void source_sink_complete(struct usb_ep *ep, struct usb_request *req)
+void source_sink_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct usb_composite_dev	*cdev;
 	struct f_sourcesink		*ss = ep->driver_data;
@@ -485,7 +485,7 @@ static void source_sink_complete(struct usb_ep *ep, struct usb_request *req)
 					 */
 
 		DBG(cdev, "%s EOVERFLOW (%d), %d/%d\n", ep->name, status, req->actual, req->length);
-
+		break;
 	default:
 #if 1
 		DBG(cdev, "%s complete --> %d, %d/%d\n", ep->name, status, req->actual, req->length);
@@ -505,8 +505,8 @@ static void source_sink_complete(struct usb_ep *ep, struct usb_request *req)
 	}
 }
 
-static void rfnm_submit_usb_req_in(struct usb_ep *ep, struct usb_request *req);
-static void rfnm_submit_usb_req_out(struct usb_ep *ep, struct usb_request *req);
+void rfnm_submit_usb_req_in(struct usb_ep *ep, struct usb_request *req);
+void rfnm_submit_usb_req_out(struct usb_ep *ep, struct usb_request *req);
 
 static int source_sink_start_ep_in(struct f_sourcesink *ss, struct usb_ep *ep)
 {
@@ -606,7 +606,7 @@ enable_source_sink(struct usb_composite_dev *cdev, struct f_sourcesink *ss,
 		int alt)
 {
 	int					result = 0;
-	int					speed = cdev->gadget->speed;
+	//int					speed = cdev->gadget->speed;
 	struct usb_ep				*ep;
 	int i;
 
@@ -704,7 +704,6 @@ static int sourcesink_setup(struct usb_function *f,
 	u16			w_index = le16_to_cpu(ctrl->wIndex);
 	u16			w_value = le16_to_cpu(ctrl->wValue);
 	u16			w_length = le16_to_cpu(ctrl->wLength);
-	int z;	
 
 	req->length = USB_COMP_EP0_BUFSIZ;
 
@@ -847,7 +846,6 @@ unknown:
 	if( (ctrl->bRequestType == 0x40 && (ctrl->wValue == RFNM_SET_TX_CH_LIST || ctrl->wValue == RFNM_SET_RX_CH_LIST))) {
 		req->length = w_length;
 		req->zero = 0;
-		struct rfnm_dev_tx_ch_list r_chlist;
 		if(ctrl->wValue == RFNM_SET_TX_CH_LIST) {
 			req->complete = rfnm_setup_complete_tx;
 		} else if(ctrl->wValue == RFNM_SET_RX_CH_LIST) {

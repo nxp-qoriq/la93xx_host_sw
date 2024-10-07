@@ -265,7 +265,7 @@ struct __attribute__((__packed__)) rfnm_packet_head {
 #define RFNM_PACKET_HEAD_SIZE sizeof (struct rfnm_packet_head)
 
 
-static void rfnm_usb_buffer_done_in(struct usb_ep_queue_ele *usb_ep_queue_ele)
+void rfnm_usb_buffer_done_in(struct usb_ep_queue_ele *usb_ep_queue_ele)
 {
 	unsigned long flags;
 	int status;
@@ -285,7 +285,7 @@ static void rfnm_usb_buffer_done_in(struct usb_ep_queue_ele *usb_ep_queue_ele)
 }
 
 
-static void rfnm_usb_buffer_done_out(struct usb_ep_queue_ele *usb_ep_queue_ele)
+void rfnm_usb_buffer_done_out(struct usb_ep_queue_ele *usb_ep_queue_ele)
 {
 	unsigned long flags;
 	int status;
@@ -408,7 +408,7 @@ wait:
 						usb_ep_set_halt(usb_ep_queue_ele->ep);
 						// FIXME recover later ... somehow 
 					} else {
-						printk("usb_flushmode: %s:  resubmit %d bytes --> %d (%lx)\n",usb_ep_queue_ele->ep->name, usb_ep_queue_ele->req->length, usb_ep_queue_ele->req->buf, status);
+						printk("usb_flushmode: %s:  resubmit %d bytes --> %p (%x)\n",usb_ep_queue_ele->ep->name, usb_ep_queue_ele->req->length, usb_ep_queue_ele->req->buf, status);
 					}
 #endif
 
@@ -443,7 +443,7 @@ try_input:
 		list_del(&usb_ep_queue_ele->head);
 		spin_unlock(&rfnm_usb_req_buffer_in_usb->list_lock);
 
-		dcache_clean_poc(usb_ep_queue_ele->req->buf, usb_ep_queue_ele->req->buf + usb_ep_queue_ele->req->length);
+		dcache_clean_poc((long unsigned int)usb_ep_queue_ele->req->buf, (long unsigned int)(usb_ep_queue_ele->req->buf + usb_ep_queue_ele->req->length));
 
 		//printk("DQ %lx\n", usb_ep_queue_ele->req->buf);
 
@@ -554,7 +554,7 @@ static struct hrtimer test_hrtimer;
 struct completion setup_done;
 
 
-static enum hrtimer_restart test_hrtimer_handler(struct hrtimer *timer)
+enum hrtimer_restart test_hrtimer_handler(struct hrtimer *timer)
 {
     //pr_info("test_hrtimer_handler: %u\n", ++loop);
     hrtimer_forward_now(&test_hrtimer, ms_to_ktime(1));
@@ -605,11 +605,11 @@ while(1) {
 
 	
 
-	struct usb_ep_queue_ele *usb_ep_queue_ele;
+	//struct usb_ep_queue_ele *usb_ep_queue_ele;
 	
 //tasklet_again:
 
-	uint8_t *dcache;
+	//uint8_t *dcache;
 
 	barrier();
 	
@@ -675,11 +675,11 @@ while(1) {
 
 	if(GPIO_DEBUG) rfnm_gpio_set(0, RFNM_DGB_GPIO4_2);
 	if(la_tail + la_readable >= RFNM_ADC_BUFCNT) {
-		dcache_inval_poc((unsigned char *) &rfnm_bufdesc_rx[la_tail], (unsigned char *) &rfnm_bufdesc_rx[RFNM_ADC_BUFCNT/* - 1*/]);
-		dcache_inval_poc((unsigned char *) &rfnm_bufdesc_rx[0], (unsigned char *) &rfnm_bufdesc_rx[la_tail + la_readable + 1 - RFNM_ADC_BUFCNT]);
+		dcache_inval_poc((long unsigned int)&rfnm_bufdesc_rx[la_tail], (long unsigned int)&rfnm_bufdesc_rx[RFNM_ADC_BUFCNT/* - 1*/]);
+		dcache_inval_poc((long unsigned int)&rfnm_bufdesc_rx[0], (long unsigned int)&rfnm_bufdesc_rx[la_tail + la_readable + 1 - RFNM_ADC_BUFCNT]);
 		//printk("invalid %d to %d and %d to %d\n", la_tail, RFNM_ADC_BUFCNT, 0, la_tail + la_readable + 1 - RFNM_ADC_BUFCNT);
 	} else {
-		dcache_inval_poc((unsigned char *) &rfnm_bufdesc_rx[la_tail], (unsigned char *) &rfnm_bufdesc_rx[la_tail + la_readable + 1]);
+		dcache_inval_poc((long unsigned int)&rfnm_bufdesc_rx[la_tail], (long unsigned int)&rfnm_bufdesc_rx[la_tail + la_readable + 1]);
 		//printk("invalid %d to %d \n", la_tail, la_tail + la_readable + 1);
 	}
 	if(GPIO_DEBUG) rfnm_gpio_clear(0, RFNM_DGB_GPIO4_2);
@@ -999,7 +999,7 @@ while(1) {
 
 exit_tasklet: 
 	//spin_unlock(&rfnm_dev->rx_usb_cb.reader_lock);
-exit_tasklet_no_unlock:
+//exit_tasklet_no_unlock:
 	
 	//kernel_neon_end();
 	*gpio4 = *gpio4 & ~(0x1 << 4);
@@ -1186,13 +1186,13 @@ rfnm_tx_la_cb
 				la_writable = RFNM_TX_USB_BUF_MULTI;
 			}
 
-			dcache_inval_poc(usb_ep_queue_ele->req->buf, usb_ep_queue_ele->req->buf + usb_ep_queue_ele->req->length);
+			dcache_inval_poc((long unsigned int)usb_ep_queue_ele->req->buf, (long unsigned int)(usb_ep_queue_ele->req->buf + usb_ep_queue_ele->req->length));
 			
 			struct rfnm_tx_usb_buf *lb = usb_ep_queue_ele->req->buf;
 
 
 			if(lb->usb_cc != rfnm_dev->tx_la_cb.usb_cc) {
-				printk("usb cc error %d vs %d .. tail %d head %d writable (%d) list %d\n", lb->usb_cc, rfnm_dev->tx_la_cb.usb_cc, la_tail, la_head, la_writable, list_size);
+				printk("usb cc error %lld vs %lld .. tail %d head %d writable (%d) list %d\n", lb->usb_cc, rfnm_dev->tx_la_cb.usb_cc, la_tail, la_head, la_writable, list_size);
 				rfnm_stream_stats.usb_tx_error[0]++;
 				rfnm_dev->tx_la_cb.usb_cc = lb->usb_cc;
 			}
@@ -1244,10 +1244,10 @@ rfnm_tx_la_cb
 
 			if(GPIO_DEBUG) rfnm_gpio_set(0, RFNM_DGB_GPIO4_4);
 			if(la_head + la_writable >= RFNM_DAC_BUFCNT) {
-				dcache_clean_poc((unsigned char *) &rfnm_bufdesc_tx[la_head], (unsigned char *) &rfnm_bufdesc_tx[RFNM_DAC_BUFCNT/* - 1*/]);
-				dcache_clean_poc((unsigned char *) &rfnm_bufdesc_tx[0], (unsigned char *) &rfnm_bufdesc_tx[la_head + la_writable - RFNM_DAC_BUFCNT + 1]);
+				dcache_clean_poc((long unsigned int)&rfnm_bufdesc_tx[la_head], (long unsigned int)&rfnm_bufdesc_tx[RFNM_DAC_BUFCNT/* - 1*/]);
+				dcache_clean_poc((long unsigned int)&rfnm_bufdesc_tx[0], (long unsigned int)&rfnm_bufdesc_tx[la_head + la_writable - RFNM_DAC_BUFCNT + 1]);
 			} else {
-				dcache_clean_poc((unsigned char *) &rfnm_bufdesc_tx[la_head], (unsigned char *) &rfnm_bufdesc_tx[la_head + la_writable + 1]);
+				dcache_clean_poc((long unsigned int)&rfnm_bufdesc_tx[la_head], (long unsigned int)&rfnm_bufdesc_tx[la_head + la_writable + 1]);
 			}
 			if(GPIO_DEBUG) rfnm_gpio_clear(0, RFNM_DGB_GPIO4_4);
 			
@@ -1342,7 +1342,7 @@ int rfnm_callback_deinit(void)
 
 static void rfnm_submit_usb_req_in(struct usb_ep *ep, struct usb_request *req)
 {
-	struct usb_composite_dev	*cdev;
+	//struct usb_composite_dev	*cdev;
 	struct f_sourcesink		*ss = ep->driver_data;
 	int				status = req->status;
 
@@ -1385,7 +1385,7 @@ static void rfnm_submit_usb_req_in(struct usb_ep *ep, struct usb_request *req)
 					 */
 		rfnm_ep_stats[RFNM_USB_EP_OVERFLOW]++;
 		printk( "%s EOVERFLOW (%d), %d/%d\n", ep->name, status, req->actual, req->length);
-
+		break;
 	default:
 #if 1
 		rfnm_ep_stats[RFNM_USB_EP_DEFAULT]++;
@@ -1454,7 +1454,7 @@ EXPORT_SYMBOL_GPL(rfnm_submit_usb_req_in);
 
 static void rfnm_submit_usb_req_out(struct usb_ep *ep, struct usb_request *req)
 {
-	struct usb_composite_dev	*cdev;
+	//struct usb_composite_dev	*cdev;
 	struct f_sourcesink		*ss = ep->driver_data;
 	int				status = req->status;
 
@@ -1497,7 +1497,7 @@ static void rfnm_submit_usb_req_out(struct usb_ep *ep, struct usb_request *req)
 					 */
 		rfnm_ep_stats[RFNM_USB_EP_OVERFLOW]++;
 		printk( "%s EOVERFLOW (%d), %d/%d\n", ep->name, status, req->actual, req->length);
-
+		break;
 	default:
 #if 1
 		rfnm_ep_stats[RFNM_USB_EP_DEFAULT]++;
@@ -1619,13 +1619,13 @@ static ssize_t dfs_rfnm_stream_status_read(struct file *f, char *buffer, size_t 
 	
 
 
-	data_len += sprintf(&data[data_len], "usb rx ok:\t\t%ld\t%ld\n", rfnm_stream_stats.usb_rx_ok[0], rfnm_stream_stats.usb_rx_ok[1]);
-	data_len += sprintf(&data[data_len], "usb rx error:\t%ld\t%ld\n", rfnm_stream_stats.usb_rx_error[0], rfnm_stream_stats.usb_rx_error[1]);
+	data_len += sprintf(&data[data_len], "usb rx ok:\t\t%lld\t%lld\n", rfnm_stream_stats.usb_rx_ok[0], rfnm_stream_stats.usb_rx_ok[1]);
+	data_len += sprintf(&data[data_len], "usb rx error:\t%lld\t%lld\n", rfnm_stream_stats.usb_rx_error[0], rfnm_stream_stats.usb_rx_error[1]);
 
 	data_len += sprintf(&data[data_len], "\n");
 
-	data_len += sprintf(&data[data_len], "usb tx ok:\t\t%ld\t%ld\n", rfnm_stream_stats.usb_tx_ok[0], rfnm_stream_stats.usb_tx_ok[1]);
-	data_len += sprintf(&data[data_len], "usb tx error:\t%ld\t%ld\n", rfnm_stream_stats.usb_tx_error[0], rfnm_stream_stats.usb_tx_error[1]);
+	data_len += sprintf(&data[data_len], "usb tx ok:\t\t%lld\t%lld\n", rfnm_stream_stats.usb_tx_ok[0], rfnm_stream_stats.usb_tx_ok[1]);
+	data_len += sprintf(&data[data_len], "usb tx error:\t%lld\t%lld\n", rfnm_stream_stats.usb_tx_error[0], rfnm_stream_stats.usb_tx_error[1]);
 
 	data_len += sprintf(&data[data_len], "\n");
 
@@ -1646,15 +1646,15 @@ static ssize_t dfs_rfnm_stream_status_read(struct file *f, char *buffer, size_t 
 	data_len += sprintf(&data[data_len], "\n");
 
 
-	data_len += sprintf(&data[data_len], "adc ok:\t\t%ld\t%ld\t%ld\t%ld\n", rfnm_stream_stats.la_adc_ok[0], rfnm_stream_stats.la_adc_ok[1], 
+	data_len += sprintf(&data[data_len], "adc ok:\t\t%lld\t%lld\t%lld\t%lld\n", rfnm_stream_stats.la_adc_ok[0], rfnm_stream_stats.la_adc_ok[1], 
 		rfnm_stream_stats.la_adc_ok[2], rfnm_stream_stats.la_adc_ok[3]);
-	data_len += sprintf(&data[data_len], "adc error:\t%ld\t%ld\t%ld\t%ld\n", rfnm_stream_stats.la_adc_error[0], rfnm_stream_stats.la_adc_error[1], 
+	data_len += sprintf(&data[data_len], "adc error:\t%lld\t%lld\t%lld\t%lld\n", rfnm_stream_stats.la_adc_error[0], rfnm_stream_stats.la_adc_error[1], 
 		rfnm_stream_stats.la_adc_error[2], rfnm_stream_stats.la_adc_error[3]);
 
 	data_len += sprintf(&data[data_len], "\n");
 
-	data_len += sprintf(&data[data_len], "dac ok:\t\t%ld\n", rfnm_stream_stats.la_dac_ok[0]);
-	data_len += sprintf(&data[data_len], "dac error:\t%ld\n", rfnm_stream_stats.la_dac_error[0]);
+	data_len += sprintf(&data[data_len], "dac ok:\t\t%lld\n", rfnm_stream_stats.la_dac_ok[0]);
+	data_len += sprintf(&data[data_len], "dac error:\t%lld\n", rfnm_stream_stats.la_dac_error[0]);
 
 
 
@@ -1798,8 +1798,6 @@ void rfnm_reset_sm(void) {
 
 void rfnm_restart_sm(int hard) {
 
-	int i;
-
 	if(hard) {
 		stop_sm();
 	} else {
@@ -1885,16 +1883,16 @@ static int __init la9310_rfnm_init(void)
 	gpio4 = kzalloc(SZ_4K, GFP_KERNEL);
 
 	rfnm_bufdesc_rx = (struct rfnm_bufdesc_rx *) memremap(iq_mem_addr, SZ_64M, MEMREMAP_WB);
-	dev_info(la9310_dev->dev, "Mapped rfnm_bufdesc_rx from %x to %lx size %d\n", iq_mem_addr, rfnm_bufdesc_rx, (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT));
+	dev_info(la9310_dev->dev, "Mapped rfnm_bufdesc_rx from %llx to %p size %ld\n", iq_mem_addr, rfnm_bufdesc_rx, (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT));
 
 	rfnm_bufdesc_tx = (struct rfnm_bufdesc_tx *) memremap(iq_mem_addr + (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT), SZ_64M, MEMREMAP_WB);
-	dev_info(la9310_dev->dev, "Mapped rfnm_bufdesc_tx from %x to %lx size %d\n", iq_mem_addr + (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT), rfnm_bufdesc_tx, (sizeof(struct rfnm_bufdesc_tx) * RFNM_DAC_BUFCNT));
+	dev_info(la9310_dev->dev, "Mapped rfnm_bufdesc_tx from %llx to %p size %ld\n", iq_mem_addr + (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT), rfnm_bufdesc_tx, (sizeof(struct rfnm_bufdesc_tx) * RFNM_DAC_BUFCNT));
 
 	rfnm_rx_usb_buf = (struct rfnm_rx_usb_buf *) memremap(
 						iq_mem_addr +  (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT) + SZ_64M, 
 						sizeof(struct rfnm_rx_usb_buf) * RFNM_RX_USB_BUF_SIZE, MEMREMAP_WB);
 
-	dev_info(la9310_dev->dev, "Mapped rfnm_rx_usb_buf from %x to %lx size %d\n", 
+	dev_info(la9310_dev->dev, "Mapped rfnm_rx_usb_buf from %llx to %p size %ld\n", 
 			iq_mem_addr +  (sizeof(struct rfnm_bufdesc_rx) * RFNM_ADC_BUFCNT) + SZ_64M, 
 			rfnm_rx_usb_buf, sizeof(struct rfnm_rx_usb_buf) * RFNM_RX_USB_BUF_SIZE);
 
@@ -1921,25 +1919,25 @@ static int __init la9310_rfnm_init(void)
 
 	rfnm_usb_req_buffer_in = kzalloc(sizeof(struct rfnm_usb_req_buffer), GFP_KERNEL);
 	if (!rfnm_usb_req_buffer_in)
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 
 	INIT_LIST_HEAD(&rfnm_usb_req_buffer_in->active);
 
 	rfnm_usb_req_buffer_in_usb = kzalloc(sizeof(struct rfnm_usb_req_buffer), GFP_KERNEL);
 	if (!rfnm_usb_req_buffer_in_usb)
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 
 	INIT_LIST_HEAD(&rfnm_usb_req_buffer_in_usb->active);
 
 	rfnm_usb_req_buffer_out_usb = kzalloc(sizeof(struct rfnm_usb_req_buffer), GFP_KERNEL);
 	if (!rfnm_usb_req_buffer_out_usb)
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 
 	INIT_LIST_HEAD(&rfnm_usb_req_buffer_out_usb->active);
 
 	rfnm_usb_req_buffer_out = kzalloc(sizeof(struct rfnm_usb_req_buffer), GFP_KERNEL);
 	if (!rfnm_usb_req_buffer_out)
-		return ERR_PTR(-ENOMEM);
+		return (-ENOMEM);
 
 	INIT_LIST_HEAD(&rfnm_usb_req_buffer_out->active);
 

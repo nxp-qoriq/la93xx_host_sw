@@ -104,8 +104,7 @@ static int rfnm_breakout_probe(struct spi_device *spi)
 	printk("RFNM: Loading Breakout (dummy) driver for daughterboard at slot %d\n", dgb_id);
 
 
-	const struct spi_device_id *id = spi_get_device_id(spi);
-	int i;
+	//const struct spi_device_id *id = spi_get_device_id(spi);
 
 	dgb_dt = devm_kzalloc(dev, sizeof(struct rfnm_dgb), GFP_KERNEL);
 	if(!dgb_dt) {

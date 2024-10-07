@@ -149,12 +149,12 @@ int libwdog_set_host_state(struct wdog *wdog_t, char *host_pci_status, char valu
 {
 	int fd;
 	char sys_name[160] = {'\0'};
-	int ret = MODEM_WDOG_OK;
+	int ret;
 
 	sprintf(sys_name, "echo %c > %s\n", value, host_pci_status);
-	system(sys_name);
+	ret = system(sys_name);
 	sleep(1);
-	return 0;
+	return ret;
 }
 
 int libwdog_rescan_modem(void)
@@ -243,8 +243,11 @@ void get_pci_controller_path(char *host_pci_status, char *pci_driver_path) {
 	char pci_device_path[256];
 	int i = 0, len = 0;
 
-	fgets(pci_device_path, sizeof(pci_device_path), command);
-
+	if (fgets(pci_device_path, sizeof(pci_device_path), command) != NULL) {
+		printf("pci_device_path failed.\n");
+		host_pci_status[len] = '\0';
+		return;
+	}
 	len += snprintf((host_pci_status + len), sizeof(HOST_PCI_PATH), "%s", HOST_PCI_PATH);
 
 	char *buf = strtok(pci_device_path, "/");
@@ -298,9 +301,13 @@ int libwdog_reinit_modem_rfnm(struct wdog *wdog_t, uint32_t timeout)
 	rmmod_script = getenv(xstr(EXTRA_RMMOD_SCRIPT));
 
 	if (rmmod_script == NULL)
-		system(DEFAULT_EXTRA_RMMOD_SCRIPT);
+		ret = system(DEFAULT_EXTRA_RMMOD_SCRIPT);
 	else
-		system(rmmod_script);
+		ret = system(rmmod_script);
+	if (ret < 0) {
+		printf("System Command Execution failed\n");
+		goto err;
+	}
 	/* Remove device from pci subsystem */
 	libwdog_remove_modem(wdog_t);
 	sleep(1);

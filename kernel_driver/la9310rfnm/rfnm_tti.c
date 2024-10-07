@@ -105,19 +105,18 @@ static void imx31_gpt_irq_acknowledge(struct imx_timer *imxtm)
 
 static void __iomem *sched_clock_reg;
 
-static u64 notrace mxc_read_sched_clock(void)
+u64 notrace mxc_read_sched_clock(void)
 {
 	return sched_clock_reg ? readl_relaxed(sched_clock_reg) : 0;
 }
 
-static unsigned long imx_read_current_timer(void)
+unsigned long imx_read_current_timer(void)
 {
 	return readl_relaxed(sched_clock_reg);
 }
 
 static int __init mxc_clocksource_init(struct imx_timer *imxtm)
 {
-	unsigned int c = clk_get_rate(imxtm->clk_per);
 	void __iomem *reg = imxtm->base + imxtm->gpt->reg_tcn;
 
 	sched_clock_reg = reg;
@@ -141,7 +140,7 @@ static int v2_set_next_event(unsigned long evt,
 		(int)(tcmp - readl_relaxed(imxtm->base + V2_TCN)) < 0 ? -ETIME : 0;
 }
 
-static int mxc_shutdown(struct clock_event_device *ced)
+int mxc_shutdown(struct clock_event_device *ced)
 {
 	struct imx_timer *imxtm = to_imx_timer(ced);
 	u32 tcn;
@@ -163,7 +162,7 @@ static int mxc_shutdown(struct clock_event_device *ced)
 	return 0;
 }
 
-static int mxc_set_oneshot(struct clock_event_device *ced)
+int mxc_set_oneshot(struct clock_event_device *ced)
 {
 	struct imx_timer *imxtm = to_imx_timer(ced);
 
@@ -201,7 +200,7 @@ static irqreturn_t mxc_timer_interrupt(int irq, void *dev_id)
 {
 	//struct clock_event_device *ced = dev_id;
 	//struct imx_timer *imxtm = to_imx_timer(ced);
-	uint32_t tstat;
+//	uint32_t tstat;
 
 	struct imx_timer *imxtm = dev_id;
 
@@ -335,7 +334,7 @@ static int __init rfnm_gpt_init(void)
 
 
 	gpt_iomem = ioremap(0x302F0000u, SZ_4K);
-	imxtm->base = (volatile unsigned int *) gpt_iomem;
+	imxtm->base = (unsigned int *) gpt_iomem;
 	if (!imxtm->base)
 		return -ENXIO;
 

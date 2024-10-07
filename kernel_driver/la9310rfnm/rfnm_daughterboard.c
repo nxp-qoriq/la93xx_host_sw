@@ -262,7 +262,7 @@ void rfnm_apply_dev_rx_chlist_work(struct work_struct *tasklet_data)
 			if (((1 << rfnm_dgb[i]->rx_ch[q]->abs_id) & r_rx_chlist_work.apply)) {
 				int ecode = rfnm_dgb_rx_set(rfnm_dgb[i], rfnm_dgb[i]->rx_ch[q]);
 
-				printk("rx ch %d code %d freq %ld\n", q, ecode, rfnm_dgb[i]->rx_ch[q]->freq);
+				printk("rx ch %d code %d freq %lld\n", q, ecode, rfnm_dgb[i]->rx_ch[q]->freq);
 				rfnm_dev_work_res.rx_ecodes[q] = -ecode;
 			}
 #endif
@@ -298,8 +298,8 @@ void rfnm_dgb_en_tdd(struct rfnm_dgb *dgb_dt, struct rfnm_api_tx_ch *tx_ch, stru
 {
 
 	printk("RFNM: Detected TDD configuration, writing to M7 core, make sure it's running...\n");
-	memcpy(&m7_dgb->fe_tdd[RFNM_TX], &dgb_dt->fe_tdd[RFNM_TX], sizeof(struct fe_s));
-	memcpy(&m7_dgb->fe_tdd[RFNM_RX], &dgb_dt->fe_tdd[RFNM_RX], sizeof(struct fe_s));
+	memcpy((void *)&m7_dgb->fe_tdd[RFNM_TX], &dgb_dt->fe_tdd[RFNM_TX], sizeof(struct fe_s));
+	memcpy((void *)&m7_dgb->fe_tdd[RFNM_RX], &dgb_dt->fe_tdd[RFNM_RX], sizeof(struct fe_s));
 	m7_dgb->dgb_id = dgb_dt->dgb_id;
 	m7_dgb->tdd_available = 1;
 }
@@ -365,16 +365,14 @@ static void foo_release(struct kobject *kobj)
 
 static ssize_t b_show(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, char *buf)
 {
-	int var;
-
 	if (strcmp(attr->attr.name, "reset") == 0) {
 		printk("Inside daughterboard.c b_show , sysfs reset called\n");
 	}
 	if (strcmp(attr->attr.name, "gain_db") == 0) {
 		if (ch_obj->txrx == RFNM_RX) {
-			return sysfs_emit(buf, "%lld\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->rx_gain_db);
+			return sysfs_emit(buf, "%d\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->rx_gain_db);
 		} else {
-			return sysfs_emit(buf, "%lld\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->tx_gain_db);
+			return sysfs_emit(buf, "%d\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->tx_gain_db);
 		}
 	}
 	if (strcmp(attr->attr.name, "freq") == 0) {
@@ -555,7 +553,7 @@ static ssize_t b_store(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, con
 		return -EINVAL;
 	}
 	strcpy(buf_red, buf);
-	if (strlen(buf_red) && (buf_red[strlen(buf_red) - 1] == 0xa || buf_red[strlen(buf_red) - 1] == "\n")) {
+	if (strlen(buf_red) && (buf_red[strlen(buf_red) - 1] == 0xa || buf_red[strlen(buf_red) - 1] == '\n')) {
 		buf_red[strlen(buf_red) - 1] = 0;
 	}
 
@@ -866,13 +864,13 @@ ATTRIBUTE_GROUPS(rfnm_tx_def);
  * release function, and the set of default attributes we want created
  * whenever a kobject of this type is registered with the kernel.
  */
-static const struct kobj_type rx_ktype = {
+static struct kobj_type rx_ktype = {
 	.sysfs_ops = &rfnm_txrx_sysfs_ops,
 	.release = foo_release,
 	.default_groups = rfnm_rx_def_groups,
 };
 
-static const struct kobj_type tx_ktype = {
+static struct kobj_type tx_ktype = {
 	.sysfs_ops = &rfnm_txrx_sysfs_ops,
 	.release = foo_release,
 	.default_groups = rfnm_tx_def_groups,

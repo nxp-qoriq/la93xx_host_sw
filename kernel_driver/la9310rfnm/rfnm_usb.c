@@ -169,7 +169,7 @@ put_func:
 }
 
 
-static int msg_do_config(struct usb_configuration *c)
+int msg_do_config(struct usb_configuration *c)
 {
 	int ret;
 #if 0
@@ -210,7 +210,7 @@ static struct fsg_module_parameters msg_mod_data = {
 
 FSG_MODULE_PARAMETERS(/* no prefix */, msg_mod_data);
 
-static struct usb_configuration msg_config_driver = {
+struct usb_configuration msg_config_driver = {
 	.label			= "Linux File-Backed Storage",
 	.bConfigurationValue	= 1,
 	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER,

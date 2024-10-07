@@ -84,10 +84,10 @@ static inline uint32_t lms_interface_transact(void *handle, const uint32_t data,
 
     //setup transaction
     memset(xfer, 0, sizeof(xfer));
-    xfer[0].tx_buf = (unsigned long)txbuf;
+    xfer[0].tx_buf = txbuf;
     //only specify rx buffer when readback is specified
     if (readback) {
-		xfer[0].rx_buf = (unsigned long)rxbuf;
+		xfer[0].rx_buf = rxbuf;
 	}
     xfer[0].len = 4; //bytes
 
@@ -704,7 +704,7 @@ static int rfnm_lime_probe(struct spi_device *spi)
 	rfnm_gpio_set(dgb_id, RFNM_DGB_GPIO4_8); // 1.25V LMS
 	
 	
-	const struct spi_device_id *id = spi_get_device_id(spi);
+	//const struct spi_device_id *id = spi_get_device_id(spi);
 	int i;
 
 	dgb_dt = devm_kzalloc(dev, sizeof(struct rfnm_dgb), GFP_KERNEL);

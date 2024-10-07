@@ -13,7 +13,7 @@ LA9310_RFNM_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310rfnm/
 ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UAPI_DIR}
 ccflags-y += -Wall -Wno-unused-function -Wno-unused-variable
 ccflags-y += -std=gnu99 -Wno-declaration-after-statement
-#ccflags-y += -Werror
+ccflags-y += -Werror
 
 ifeq (${DEBUG}, 1)
 ccflags-y += -g -DDEBUG

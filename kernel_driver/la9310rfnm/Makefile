@@ -4,7 +4,7 @@ ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UA
 ccflags-y += -Wall -Wno-unused-function -Wno-unused-variable
 
 ccflags-y := -std=gnu99 -Wno-declaration-after-statement
-
+ccflags-y += -Werror -Werror=frame-larger-than=5000
 LA9310_RFNM_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310rfnm/
 LA9310_MT3812_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310mt3812/
 LMS7002M_MODULE_DIR ?= ../../../lms7002m/

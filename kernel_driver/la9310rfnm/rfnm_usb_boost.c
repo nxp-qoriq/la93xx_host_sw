@@ -161,7 +161,7 @@ static struct fsg_module_parameters msg_mod_data = {
 
 FSG_MODULE_PARAMETERS(/* no prefix */, msg_mod_data);
 
-static struct usb_configuration msg_config_driver = {
+struct usb_configuration msg_config_driver = {
 	.label			= "Linux File-Backed Storage",
 	.bConfigurationValue	= 1,
 	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER,
@@ -174,8 +174,6 @@ extern void rfnm_wsled_set(uint8_t chain_id, uint8_t led_id, uint8_t r, uint8_t 
 
 static int rfnm_bind(struct usb_composite_dev *cdev)
 {
-	struct fsg_opts *msg_opts;
-	struct fsg_config msg_config;
 	int status;
 
 	struct resource mem_res;

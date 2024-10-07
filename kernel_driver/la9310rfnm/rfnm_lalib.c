@@ -166,7 +166,7 @@ long long current_timestamp(void) {
 static int rf_send_swcmd(struct rfdevice *rfdev, struct rf_sw_cmd_desc *sw_cmd,
 		  int data_size)
 {
-	int ret = 0, retries = RF_SWCMD_TIMEOUT_RETRIES;
+	int ret = 0;
 	struct rf_sw_cmd_desc *remote_cmd;
 	int cmd_size, i;
 	struct rf_host_stats *stats = &rfic_stats;
