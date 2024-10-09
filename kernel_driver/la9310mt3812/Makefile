@@ -23,7 +23,6 @@ ccflags-y += -I${LA9310_COMMON_HEADERS}
 ccflags-y += -I${LA9310_DRV_HEADER_DIR}/
 ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
 
-ifeq (${CONFIG_ENABLE_FLOAT_BYPASS}, y)
 rfnm_mt3812-objs := rfnm_mt3812_m.o
 ifeq (${RFNM_BITBAKE}, 1)
 LINK_FE_GENERIC = 0
@@ -35,9 +34,6 @@ endif
 rfnm_mt3812-objs += rfnm_fe_mt3812.o
 
 obj-m += rfnm_mt3812.o
-else
-$(warning RFNM_RF MT3812 Modules not compiled)
-endif
 
 include $(KERNEL_DIR)/.config
 

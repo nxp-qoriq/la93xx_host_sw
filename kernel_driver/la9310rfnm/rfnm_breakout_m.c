@@ -47,10 +47,6 @@
 
 #include "rfnm_fe_generic.h"
 
-#include "dtoa.h"
-
-
-
 
 void rfnm_tx_ch_get(struct rfnm_dgb *dgb_dt, struct rfnm_api_tx_ch * tx_ch) {
 	printk("inside rfnm_tx_ch_get\n");
