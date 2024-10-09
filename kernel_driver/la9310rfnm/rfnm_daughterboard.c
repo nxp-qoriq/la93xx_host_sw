@@ -10,7 +10,6 @@
 #include <linux/dma-mapping.h>
 #include <la9310_base.h>
 #include <asm/cacheflush.h>
-#include <rfnm_fe_mt3812.h>
 #include <linux/dma-direct.h>
 #include <linux/dma-map-ops.h>
 #include <linux/dma-mapping.h>
@@ -36,6 +35,9 @@
 #include <linux/spi/spi.h>
 #include <linux/rfnm-shared.h>
 #include <linux/workqueue.h>
+#ifdef IMX_RFMT3812
+#include <rfnm_fe_mt3812.h>
+#endif
 
 struct rfnm_dgb *rfnm_dgb[2];
 struct rfnm_bootconfig *bootcfg;
@@ -408,6 +410,7 @@ static ssize_t b_show(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, char
 	if (strcmp(attr->attr.name, "reset") == 0) {
 		printk("Inside daughterboard.c b_show , sysfs reset called\n");
 	}
+#ifdef IMX_RFMT3812
 	if (strcmp(attr->attr.name, "gain_db") == 0) {
 		if (ch_obj->txrx == RFNM_RX) {
 			return sysfs_emit(buf, "%d\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->rx_gain_db);
@@ -415,6 +418,7 @@ static ssize_t b_show(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, char
 			return sysfs_emit(buf, "%d\n", ((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->tx_gain_db);
 		}
 	}
+#endif
 	if (strcmp(attr->attr.name, "freq") == 0) {
 		if (ch_obj->txrx == RFNM_RX) {
 			return sysfs_emit(buf, "%lld\n", rfnm_dgb[ch_obj->dgb_id]->rx_ch[ch_obj->dgb_ch_id]->freq);
@@ -619,6 +623,7 @@ static ssize_t b_store(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, con
 		if (rfnm_dgb[ch_obj->dgb_id]->reset)
 			rfnm_dgb[ch_obj->dgb_id]->reset(rfnm_dgb[ch_obj->dgb_id]);
 	}
+#ifdef IMX_RFMT3812
 	if (strcmp(attr->attr.name, "gain_db") == 0) {
 		if (intconv < 0) {
 			return -EINVAL;
@@ -629,7 +634,7 @@ static ssize_t b_store(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, con
 			((mt3812_priv_t *)(rfnm_dgb[ch_obj->dgb_id]->priv_drv))->tx_gain_db = var;
 		}
 	}
-
+#endif
 	if (strcmp(attr->attr.name, "freq") == 0) {
 		if (intconv < 0) {
 			return -EINVAL;

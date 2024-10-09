@@ -46,11 +46,12 @@ ifeq ($(IMX_RFNM),1)
 	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
 	install  -D  la9310rfnm/rfnm_breakout.ko ${MODULE_INSTALL_DIR}/rfnm_breakout.ko
 	install  -D  la9310rfnm/rfnm_usb.ko ${MODULE_INSTALL_DIR}/rfnm_usb.ko
-	install  -D  la9310rfnm/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
 	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
 	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
 endif
-
+ifeq ($(IMX_RFLIME),1)
+	install  -D  la9310rfnm/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
+endif
 ifeq ($(IMX_RFGR),1)
 	install  -D la9310rfgr/rfnm_granita.ko ${MODULE_INSTALL_DIR}/rfnm_granita.ko
 endif
