@@ -11,7 +11,7 @@ endif
 ccflags-y := -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -I${COMMON_DIR} -I${UAPI_DIR}
 ccflags-y += -Wall
 ccflags-y += -std=gnu99 -Wno-declaration-after-statement
-ccflags-y += -Werror
+ccflags-y += -Werror -Wno-implicit-fallthrough
 LA9310_RFNM_HEADER_DIR ?= ${LA9310_DRV_HEADER_DIR}/../la9310rfnm/
 
 ifeq (${DEBUG}, 1)
@@ -22,17 +22,25 @@ ccflags-y += -I${LA9310_COMMON_HEADERS}
 ccflags-y += -I${LA9310_DRV_HEADER_DIR}/
 ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
 
-rfnm_mt3812-objs := rfnm_mt3812_m.o
+#LMS7002M_MODULE_DIR ?= ../../../lms7002m/
+LMS7002M_MODULE_DIR ?= ../../../LimeSuiteNG/
+LMS7002M_KERNEL_DIR ?= ${LA9310_DRV_HEADER_DIR}/${LMS7002M_MODULE_DIR}
+#ccflags-y += -I${LMS7002M_KERNEL_DIR}/include -I${LMS7002M_KERNEL_DIR}/interfaces -I${LMS7002M_KERNEL_DIR}/src
+ccflags-y += -DIMX_RFLIME -I${LMS7002M_KERNEL_DIR}/embedded/include
+
+rfnm_lime-objs := rfnm_lime_m.o
 ifeq (${RFNM_BITBAKE}, 1)
 LINK_FE_GENERIC = 0
-rfnm_mt3812-objs += ../la9310rfnm/rfnm_fe_generic.o
+rfnm_lime-objs += ../la9310rfnm/rfnm_fe_generic.o
 else
 LINK_FE_GENERIC = 1
-rfnm_mt3812-objs += ../la9310rfnm/rfnm_fe_generic.o
+rfnm_lime-objs += ../la9310rfnm/rfnm_fe_generic.o
 endif
-rfnm_mt3812-objs += rfnm_fe_mt3812.o
 
-obj-m += rfnm_mt3812.o
+rfnm_lime-objs += rfnm_fe_lime0.o
+rfnm_lime-objs += ${LMS7002M_MODULE_DIR}/embedded/lms7002m/lms7002m.o
+rfnm_lime-objs += ${LMS7002M_MODULE_DIR}/embedded/lms7002m/privates.o
+obj-m += rfnm_lime.o
 
 include $(KERNEL_DIR)/.config
 

@@ -20,6 +20,9 @@ obj-y += la9310demo/
 ifeq ($(IMX_RFNM),1)
 obj-y += la9310rfnm/
 endif
+ifeq ($(IMX_RFLIME),1)
+obj-y += la9310rflime/
+endif
 ifeq ($(IMX_RFGR),1)
 obj-y += la9310rfgr/
 endif
@@ -50,7 +53,7 @@ ifeq ($(IMX_RFNM),1)
 	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
 endif
 ifeq ($(IMX_RFLIME),1)
-	install  -D  la9310rfnm/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
+	install  -D  la9310rflime/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
 endif
 ifeq ($(IMX_RFGR),1)
 	install  -D la9310rfgr/rfnm_granita.ko ${MODULE_INSTALL_DIR}/rfnm_granita.ko

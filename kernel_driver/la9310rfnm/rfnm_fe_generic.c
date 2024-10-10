@@ -179,7 +179,7 @@ void rfnm_fe_srb(struct rfnm_dgb * dgb_dt, int bit, int val) {
 
 
 void rfnm_fe_load_latch(struct rfnm_dgb * dgb_dt, int id) {
-
+	int l, q, bit;
 	uint32_t lval = dgb_dt->fe.latch_val[id - 1];
 
 	if(lval == dgb_dt->fe.latch_val_last_written[id - 1]) {
@@ -193,7 +193,6 @@ void rfnm_fe_load_latch(struct rfnm_dgb * dgb_dt, int id) {
 	//printk("loading latch %d, %x\n", id, lval);
 
 	//printk("bits ");
-	int l, q, bit;
 	for(l = dgb_dt->fe.num_latches[id] - 1; l >= 0; l--) {
 		for(q = 7; q >= 0; q--) {
 			bit = (lval & (1 << ((8 * l) + q)) ) >> ((8 * l) + q);
