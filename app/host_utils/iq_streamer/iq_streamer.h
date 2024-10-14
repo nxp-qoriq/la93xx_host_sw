@@ -26,9 +26,7 @@ typedef enum {
 #define MAX_CYC_CNT 20
 
 #define SIZE_4K		(4096)
-#define DMA_TXR_size	(512)
-#define DDR_STEP		(4*DMA_TXR_size)
-#define TX_DDR_STEP		(4*DDR_STEP)  // to get 589 MB/s ./imx_dma -w -a 0x96400000 -d 0x1F001000  -s 8192
+#define TX_DDR_STEP		(4*TX_DMA_TXR_size)
 
 #ifndef IMX8DXL
 #define MODEM_BAR0_CCSR_OFFSET	0x18000000

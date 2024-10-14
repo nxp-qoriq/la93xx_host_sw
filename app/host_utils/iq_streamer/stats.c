@@ -15,19 +15,33 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <stdbool.h>
-
 #include <pthread.h>
 #include <sched.h>
 #include <assert.h>
 #include <semaphore.h>
 #include <signal.h>
-
 #include <argp.h>
-
-#include "vspa_exported_symbols.h"
 #include "iq_streamer.h"
-#include "stats.h"
 #include "la9310_regs.h"
+#include "iqmod_rx.h"
+#ifdef IQMOD_RX_2R
+#include "vspa_exported_symbols_2R.h"
+#else
+#ifdef IQMOD_RX_4R
+#include "vspa_exported_symbols_4R.h"
+#else
+#include "vspa_exported_symbols.h"
+#endif
+#endif
+#include "iqmod_rx.h"
+#include "stats.h"
+
+
+#define pr_info printf
+void la9310_hexdump(const void *ptr, size_t sz);
+void print_vspa_stats(void);
+void monitor_vspa_stats(void);
+void print_vspa_trace(void);
 
 static inline void __hexdump(unsigned long start, unsigned long end,
 		unsigned long p, size_t sz, const unsigned char *c)
@@ -70,66 +84,76 @@ void la9310_hexdump(const void *ptr, size_t sz)
 	__hexdump(start, end, p, sz, c);
 }
 
-char *VSPA_stat_string[STATS_MAX+1] = {
-	"DMA_AXIQ_WRITE\t",
-	"DMA_AXIQ_READ\t",
-	"DMA_DDR_RD\t",
-	"DMA_DDR_WR\t",
-	"EXT_DMA_DDR_RD\t",
-	"EXT_DMA_DDR_WR\t",
-	"DMA_DDR_RD_UDR\t",
-	"DMA_DDR_WR_OVR\t",
-	"FIFO_TX_UDR\t",
-	"FIFO_TX_OVR\t",
-	"FIFO_RX_UDR\t",
-	"FIFO_RX_OVR\t",
-	"DMA_TX_CMD_UDR\t",
-	"DMA_RX_CMD_OVR\t",
-	"CONFIG_ERROR\t",
-	"XFER_ERROR\t",
-	"EXT_DMA_DDR_RD_UDR",
-	"EXT_DMA_DDR_WR_OVR",   // 0xF
-	"STATS_MAX"
-	};
-
 //VSPA_EXPORT(g_stats)
 //VSPA_EXPORT(l1_trace_data)
 //VSPA_EXPORT(l1_trace_data)
 //VSPA_EXPORT(tx_busy_size)
 //VSPA_EXPORT(rx_busy_size)
 
-uint32_t vspa_stats[2][s_g_stats/4];
+t_stats vspa_stats[2];
 uint32_t vspa_stats_tab;
 volatile uint32_t *_VSPA_DMA_regs, *_GP_IN0;
 void print_vspa_stats(void)
 {
-	int i;
-	uint32_t *cur_stats, *prev_stats;
+	int i,j;
+	t_stats *cur_stats, *prev_stats;
 
 	// pinpong tables to keep prev values
 	if (vspa_stats_tab) {
 		vspa_stats_tab = 0;
-		cur_stats = vspa_stats[0];
-		prev_stats = vspa_stats[1];
+		cur_stats = &vspa_stats[0];
+		prev_stats = &vspa_stats[1];
 	} else {
 		vspa_stats_tab = 1;
-		cur_stats = vspa_stats[1];
-		prev_stats = vspa_stats[0];
+		cur_stats = &vspa_stats[1];
+		prev_stats = &vspa_stats[0];
 	}
 
 	// Take snap shot
-	for (i = 0; i < STATS_MAX; i++) {
-		cur_stats[i] =  *(v_g_stats+i);
+	for (i = 0; i < s_g_stats/4; i++) {
+		((uint32_t *)cur_stats)[i] =  *(v_g_stats+i);
 	}
-	for (i = 0; i < STATS_MAX; i++) {
-		printf("\n %s \t0x%08x \t (%08d)  ", VSPA_stat_string[i], cur_stats[i], (uint32_t)(cur_stats[i]-prev_stats[i]));
+	printf("\nRX stats :");
+	for (i = 0; i < STATS_RX_MAX; i++) {
+		printf("\n %s",VSPA_stat_rx_string[i]);
+		for (j = 0; j < RX_NUM_CHAN; j++) {
+			uint32_t cur_val=*((uint32_t*)(cur_stats->rx_stats[j])+i);
+			uint32_t prev_val=*((uint32_t*)(prev_stats->rx_stats[j])+i);
+			printf("\t0x%08x", cur_val);
+			if (i <= STAT_DMA_AXIQ_READ)
+				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000));
+			else if (i < ERROR_DMA_DDR_WR_OVERRUN)
+				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000/RX_DECIM));
+			else
+				printf("               ");
+		}
+	}
+	printf("\nTX stats :");
+	for (i = 0; i < STATS_TX_MAX; i++) {
+		uint32_t cur_val=*((uint32_t*)(cur_stats->tx_stats)+i);
+		uint32_t prev_val=*((uint32_t*)(prev_stats->tx_stats)+i);
+		printf("\n %s",VSPA_stat_tx_string[i]);
+		printf("\t0x%08x", cur_val);
 		if (i < ERROR_DMA_DDR_RD_UNDERRUN)
-			printf("(%08d MB/s)  ", (uint32_t)((uint64_t)(cur_stats[i]-prev_stats[i])*2048/1000000));
+			printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*TX_DMA_TXR_size*4/1000000));
+		else
+			printf("               ");
 	}
-	printf("\n");
+	printf("\nGlobal stats :");
+	for (i = 0; i < STATS_GBL_MAX; i++) {
+		uint32_t cur_val=*((uint32_t*)(cur_stats->gbl_stats)+i);
+		uint32_t prev_val=*((uint32_t*)(prev_stats->gbl_stats)+i);
+		printf("\n %s",VSPA_stat_gbl_string[i]);
+		printf("\t0x%08x", cur_val);
+		if (i < ERROR_DMA_CONFIG_ERROR)
+			printf("(%08d MB/s)  ", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000));
+		else
+			printf("               ");
+	}
 
-	printf("\nTxFifo: %d/%d", *(v_tx_busy_size)/DDR_STEP, TX_NUM_BUF);
-	printf("\nRxFifo: %d/%d", *(v_rx_busy_size)/DDR_STEP, RX_NUM_BUF);
+	printf("\n");
+	printf("\nTxFifo: %d/%d", *(v_tx_busy_size)/TX_DDR_STEP, TX_NUM_BUF);
+	printf("\nRxFifo: %d/%d", *(v_rx_busy_size)/RX_DDR_STEP, RX_NUM_BUF);
 	printf("\n");
 
 	_VSPA_DMA_regs = (volatile uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + DMA_DMEM_PRAM_ADDR);
@@ -155,6 +179,3 @@ void monitor_vspa_stats(void)
 }
 
 
-void print_history(void)
-{
-}

@@ -19,7 +19,7 @@
 
 #define L1_TRACE               1       //!< Enable trace.
 
-#define L1_TRACE_SIZE      128
+#define L1_TRACE_SIZE      8
 
 enum l1_trace_msg_type {
     L1_TRACE_MSG_DMA   = 0x100,
@@ -87,7 +87,9 @@ enum l1_trace_msg_l1app {
     /* 0x307 */ L1_TRACE_L1APP_SYM_ID,
     /* 0x308 */ L1_TRACE_L1APP_LAST_SYM,
     /* 0x309 */ L1_TRACE_L1APP_BUFF_ID_OUT,
-};
+    /* 0x30a */ L1_TRACE_L1APP_RX_DEC_START,
+    /* 0x30b */ L1_TRACE_L1APP_RX_DEC_COMP,
+  };
 
 /**
  * L1 trace OVLY:

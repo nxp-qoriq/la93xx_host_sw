@@ -17,13 +17,14 @@
 
 #include "vspa_exported_symbols.h"
 #include "iq_streamer.h"
-#include "stats.h"
 #ifndef IMX8DXL
 #include "pci_imx8mp.h"
 #else
 #include "pci_imx8dxl.h"
 #endif
 #include "l1-trace.h"
+#include "iqmod_rx.h"
+#include "stats.h"
 
 void dma_perf_test(void)
 {

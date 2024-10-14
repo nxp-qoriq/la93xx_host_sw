@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
 * Copyright 2024 NXP
  */
-/* File generated based on apm.eld md5sum 8c5665d207854e01b3ba8ba6f1d4a7de ../../Debug_IQPLAYER/apm-iqplayer.eld */
+/* File generated based on apm.eld md5sum 6b9b362f6773bbd5f29d401da769af79 ../../Debug_IQPLAYER/apm-iqplayer.eld */
 l1_trace_code_t l1_trace_code[] ={
 { 0x100, "L1_TRACE_MSG_DMA_XFR "},
 { 0x101, "L1_TRACE_MSG_DMA_CFGERR "},
@@ -43,6 +43,8 @@ l1_trace_code_t l1_trace_code[] ={
 { 0x307, "L1_TRACE_L1APP_SYM_ID "},
 { 0x308, "L1_TRACE_L1APP_LAST_SYM "},
 { 0x309, "L1_TRACE_L1APP_BUFF_ID_OUT "},
+{ 0x30a, "L1_TRACE_L1APP_RX_DEC_START "},
+{ 0x30b, "L1_TRACE_L1APP_RX_DEC_COMP "},
 { 0xA00, "L1_TRACE_MSG_OVLY_SSB "},
 { 0xA01, "L1_TRACE_MSG_OVLY_DL "},
 { 0xA02, "L1_TRACE_MSG_OVLY_UL "},

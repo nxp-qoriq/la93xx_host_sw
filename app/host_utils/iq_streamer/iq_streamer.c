@@ -24,19 +24,36 @@
 #include <signal.h>
 #include <argp.h>
 //#include "kpage_ncache_api.h"
-#include "vspa_exported_symbols.h"
 #include "iq_streamer.h"
 #ifndef IMX8DXL
 #include "pci_imx8mp.h"
 #else
 #include "pci_imx8dxl.h"
 #endif
-#include "stats.h"
 #include "la9310_regs.h"
 #include "l1-trace.h"
 
+#ifdef IQMOD_RX_2R
+#include "vspa_exported_symbols_2R.h"
+#else
+#ifdef IQMOD_RX_4R
+#include "vspa_exported_symbols_4R.h"
+#else
+#include "vspa_exported_symbols.h"
+#endif
+#endif
+
+#include "iqmod_rx.h"
+#include "stats.h"
+
 
 #define microsleep() {volatile uint64_t i; for (i = 0; i < 1000; i++) {}; }
+
+void la9310_hexdump(const void *ptr, size_t sz);
+void print_vspa_stats(void);
+void monitor_vspa_stats(void);
+void print_vspa_trace(void);
+
 
 volatile uint32_t running;
 
@@ -396,8 +413,7 @@ restart_tx:
 		ddr_start_address=*v_DDR_rd_base_address;
 		};
 	ddr_file_size=*v_DDR_rd_size;
-	txcount=*(v_g_stats+STAT_EXT_DMA_DDR_RD); 
-
+	txcount=((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD];
 
 	// Check pointers are cleared
 	local_TX_total_consumed_size=*v_TX_total_consumed_size;
@@ -420,32 +436,32 @@ restart_tx:
 			}
 			local_TX_total_consumed_size=*v_TX_total_consumed_size;
 			busy_size= local_TX_total_produced_size - local_TX_total_consumed_size; // data transfered not yet transmitted (inside dmem)
-			empty_size= (TX_NUM_BUF*DDR_STEP) - busy_size; // fifo size - data in dmem
-			if(empty_size >= DDR_STEP){ 
+			empty_size= (TX_NUM_BUF*TX_DDR_STEP) - busy_size; // fifo size - data in dmem
+			if(empty_size >= TX_DDR_STEP){ 
 				break;
 			}
 			//microsleep(); //polling dmem may be a pb ?
 		} while(running);
 
 		// xfer one buffer
-		ret= PCI_DMA_WRITE_transfer(IQFLOOD_BUF_ADDR +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,DDR_STEP);
+		ret= PCI_DMA_WRITE_transfer(IQFLOOD_BUF_ADDR +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,TX_DDR_STEP);
 		txcount++;
-		*(v_g_stats+STAT_EXT_DMA_DDR_RD)=txcount; 
+		((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
 		if(ret){
 			printf("\n!! DMA not ready !!\n");
 			break;
 		}
 
 		// update pointers
-		ddr_rd_offset+= DDR_STEP;
+		ddr_rd_offset+= TX_DDR_STEP;
 		if(ddr_rd_offset>=ddr_file_size) {
 			ddr_rd_offset=0;
 		} 
-		dmem_dst_offset+=DDR_STEP;
-		if(dmem_dst_offset>=(TX_NUM_BUF*DDR_STEP)) {
+		dmem_dst_offset+=TX_DDR_STEP;
+		if(dmem_dst_offset>=(TX_NUM_BUF*TX_DDR_STEP)) {
 			dmem_dst_offset=0;
 		}
-		local_TX_total_produced_size+=DDR_STEP;
+		local_TX_total_produced_size+=TX_DDR_STEP;
 		*v_TX_total_produced_size=local_TX_total_produced_size;
 	}
 
@@ -496,7 +512,8 @@ restart_tx_tcm:
 
 	tcm_fifo_addr = (uint64_t)BAR2_ADDR + ep_tcm_fifo_address - TCM_START;
 	tcm_fifo_size = ep_tcm_fifo_size;
-	txcount =  *(v_g_stats+STAT_EXT_DMA_DDR_RD);
+	txcount=((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD];
+
 
 	// Check pointers are cleared
 	local_TX_total_consumed_size =  *v_TX_total_consumed_size;
@@ -525,14 +542,15 @@ restart_tx_tcm:
 				break;
 			}
 			if ((empty_size == tcm_fifo_size) && !local_TX_total_produced_size) {
-				*(v_g_stats+ERROR_EXT_DMA_DDR_RD_UNDERRUN) += 1;
+				((t_stats *)(v_g_stats))->tx_stats[ERROR_EXT_DMA_DDR_RD_UNDERRUN] += 1;
 			}
 			//microsleep(); //polling dmem may be a pb ?
 		} while (running);
 
 		ret = PCI_DMA_WRITE_transfer(ddr_file_addr + ddr_rd_offset, tcm_fifo_addr + tcm_dst_offset, TX_DDR_STEP);
-		txcount += TX_DDR_STEP/DDR_STEP;
-		*(v_g_stats+STAT_EXT_DMA_DDR_RD) = txcount;
+		txcount += 1;
+		((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
+
 		if (ret) {
 			printf("\n!! DMA not ready !!\n");
 			break;
@@ -563,10 +581,11 @@ void *process_ant_tx_streaming_ddr(void *arg)
 
 /* need following vspa symbols to be exported (vspa_exported_symbols.h)*/
 /* !! buffer should not cross vcpu/ippu regions						*/
-	//VSPA_EXPORT(DDR_wr_base_address)
-	//VSPA_EXPORT(DDR_wr_size)
-	//VSPA_EXPORT(RX_total_produced_size)
-	//VSPA_EXPORT(RX_total_consumed_size)
+//VSPA_EXPORT(DDR_wr_base_address)
+//VSPA_EXPORT(DDR_wr_size)
+//VSPA_EXPORT(RX_total_produced_size)
+//VSPA_EXPORT(RX_total_consumed_size)
+//VSPA_EXPORT(rx_ch_context)
 //VSPA_EXPORT(input_buffer)
 //VSPA_EXPORT(RX_ext_dma_enabled)
 //VSPA_EXPORT(DDR_wr_load_start_bit_update)
@@ -574,6 +593,7 @@ void *process_ant_tx_streaming_ddr(void *arg)
 uint32_t local_RX_total_produced_size;
 uint32_t local_RX_total_consumed_size;
 
+#ifdef v_RX_total_produced_size
 void *process_ant_rx_vspa_ext_dma(void *arg)
 {
 	int ret;
@@ -604,7 +624,8 @@ restart_rx:
 		ddr_start_address =  *v_DDR_wr_base_address;
 		};
 	ddr_file_size =  *v_DDR_wr_size;
-	rxcount =  *(v_g_stats+STAT_EXT_DMA_DDR_WR);
+	rxcount = ((t_stats *)(v_g_stats))->rx_stats[0][STAT_EXT_DMA_DDR_WR];
+
 
 	// Check pointers are cleared
 	local_RX_total_consumed_size =  *v_RX_total_consumed_size;
@@ -626,7 +647,7 @@ restart_rx:
 				goto restart_rx;
 			local_RX_total_produced_size =  *v_RX_total_produced_size;
 			data_size = local_RX_total_produced_size - local_RX_total_consumed_size; // data QECed but not yet transfered
-			if (data_size >= DDR_STEP) {
+			if (data_size >= RX_DDR_STEP) {
 			// check
 				break;
 			}
@@ -634,24 +655,24 @@ restart_rx:
 			} while (running);
 
 		// xfer one buffer
-		ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, IQFLOOD_BUF_ADDR + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, DDR_STEP);
+		ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, IQFLOOD_BUF_ADDR + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, RX_DDR_STEP);
 		rxcount++;
-		*(v_g_stats+STAT_EXT_DMA_DDR_WR) = rxcount;
+		((t_stats *)(v_g_stats))->rx_stats[0][STAT_EXT_DMA_DDR_WR]=rxcount;
 		if (ret) {
 			printf("\n!! DMA not ready !!\n");
 			break;
 		}
 
 		// update pointers
-		ddr_wr_offset += DDR_STEP;
+		ddr_wr_offset += RX_DDR_STEP;
 		if (ddr_wr_offset >= ddr_file_size) {
 			ddr_wr_offset = 0;
 		}
-		dmem_src_offset += DDR_STEP;
-		if (dmem_src_offset >= (RX_NUM_BUF*DDR_STEP)) {
+		dmem_src_offset += RX_DDR_STEP;
+		if (dmem_src_offset >= (RX_NUM_BUF*RX_DDR_STEP)) {
 			dmem_src_offset = 0;
 		}
-		local_RX_total_consumed_size += DDR_STEP;
+		local_RX_total_consumed_size += RX_DDR_STEP;
 		*v_RX_total_consumed_size = local_RX_total_consumed_size;
 	}
 
@@ -661,3 +682,12 @@ restart_rx:
 
 	return 0;
 }
+
+#else
+
+void *process_ant_rx_vspa_ext_dma(void *arg)
+{
+	perror("rx_vspa_ext_dma not supported");
+	return 0;
+}
+#endif
