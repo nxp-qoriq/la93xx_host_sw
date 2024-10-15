@@ -1,5 +1,7 @@
-/* Copyright 2023-2024 NXP
- * SPDX-License-Identifier: BSD-3-Clause
+/* SPDX-License-Identifier: BSD-3-Clause */
+
+/*
+ * Copyright 2024 NXP
  */
 
 #ifndef IQMOS_RX_H_

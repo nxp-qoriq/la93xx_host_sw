@@ -1,6 +1,9 @@
-/* SPDX-License-Identifier: BSD-3-Clause
-* Copyright 2024 NXP
-*/
+/* SPDX-License-Identifier: BSD-3-Clause */
+
+/*
+ * Copyright 2024 NXP
+ */
+
 
 #ifndef __LA9310_REGS_H__
 #define __IQ_STREAMER_H__
