@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
 * Copyright 2024 NXP
  */
-#define IQ_STREAMER_VERSION "a13877d4aa8db3d18790cf83ff78a3e3"
+#define IQ_STREAMER_VERSION "9609a9a064bd509ede307f8190590e75"
 #define  v_DDR_rd_base_address (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x00002cb8)
 #define  p_DDR_rd_base_address (uint32_t)(0x1F000000 + 0x400000 + 0x00002cb8)
 #define  s_DDR_rd_base_address (uint32_t)(0x00000004)
