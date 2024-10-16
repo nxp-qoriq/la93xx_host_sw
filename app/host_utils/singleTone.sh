@@ -1,6 +1,6 @@
 #!/bin/sh
-# Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
 ####################################################################
 #set -x
 

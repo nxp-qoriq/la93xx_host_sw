@@ -1,6 +1,6 @@
 #!/bin/sh
-# Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
 ####################################################################
 #set -x
 
@@ -20,12 +20,12 @@ fi
 
 if [ $# -gt 2 ];then
 	if [ $3 -eq 1 ];then
-       		cmd=0x05500000
+       		cmd=0x055a0000
 	else 
-       		cmd=0x05100000
+       		cmd=0x05500000
 	fi
 else
-	cmd=0x05100000
+	cmd=0x05500000
 fi
 
 (ls $1 >> /dev/null 2>&1)||echo $1 file not found

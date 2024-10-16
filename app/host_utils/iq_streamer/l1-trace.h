@@ -9,7 +9,16 @@
 
 #define L1_TRACE               1       //!< Enable trace.
 
-#define L1_TRACE_SIZE      8
+#ifdef IQMOD_RX_1R
+#define L1_TRACE_SIZE      200
+#endif
+#ifdef IQMOD_RX_2R
+#define L1_TRACE_SIZE      7
+#endif
+#ifdef IQMOD_RX_4R
+#define L1_TRACE_SIZE      100
+#endif
+
 
 enum l1_trace_msg_type {
     L1_TRACE_MSG_DMA   = 0x100,

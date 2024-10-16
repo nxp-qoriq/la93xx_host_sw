@@ -13,7 +13,15 @@
 #include <stdbool.h>
 #include "l1-trace.h"
 #include "vspa_trace_enum.h"
+#ifdef IQMOD_RX_2R
+#include "vspa_exported_symbols_2R.h"
+#else
+#ifdef IQMOD_RX_4R
+#include "vspa_exported_symbols_4R.h"
+#else
 #include "vspa_exported_symbols.h"
+#endif
+#endif
 #include "iq_streamer.h"
 
 //#define ccnt_read() ((uint64_t)((*_VSPA_cyc_count_msb)&0x7FFFFFFF)*0x100000000 + *_VSPA_cyc_count_lsb)

@@ -1,6 +1,6 @@
 #!/bin/sh
-# Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
 ####################################################################
 #set -x
 
@@ -36,12 +36,12 @@ fi
 
 if [ $# -gt 2 ];then
 	if [ $3 -eq 1 ];then
-		cmd=`printf "0x%X\n" $[0x06120000 + $2]`
+		cmd=`printf "0x%X\n" $[0x06520000 + $2]`
 	else 
-		cmd=`printf "0x%X\n" $[0x06100000 + $2]`
+		cmd=`printf "0x%X\n" $[0x06500000 + $2]`
 	fi
 else
-	cmd=`printf "0x%X\n" $[0x06100000 + $2]`
+	cmd=`printf "0x%X\n" $[0x06500000 + $2]`
 fi
 
 vspa_mbox send 0 0 $cmd $buffep

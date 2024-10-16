@@ -1,6 +1,6 @@
 #!/bin/sh
-# Copyright 2024 NXP
 # SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
 ####################################################################
 #set -x
 
@@ -19,14 +19,14 @@ if [ $# -ne 1 ];then
         exit 1
 fi
 
-#                                                            >default<
-# chanID                  1           2           3           4
-# VSPA chanID             0           1           2           3
-# axi_ADC_FIFI_addr[4] = {0x44003000, 0x44004000, 0x44001000, 0x44002000};
-# LA9310 chan             RX0         RX1         RO0         RO1
-# RFNM slot_chan          RBB_RX2     RBA_RX2     RBB_RX1     RBA_RX1
-# GRANITA                 sma_a       sma_a       sma_b       sma_b
-# LIME                                    		  sma_b	      sma_b	
+#/*
+# *                      >default<                                  
+# * chanID                  0           1           2           3            >  mbx API chanID
+# * RFNM slot_chan          RBA_RX1     RBA_RX2     RBB_RX1     RBB_RX2      >  RFNM slot mapping
+# * LA9310 chan             RO1         RX1         RO0         RX0
+# * VSPA DMA chanID 		2           4           1           3
+# * axi_ADC_FIFI_addr[4] = {0x44002000, 0x44004000, 0x44001000, 0x44003000};
+# */
 
 cmd=`printf "0x%X\n" $[0x0d000000]`
 #echo vspa_mbox send 0 0 $cmd $1

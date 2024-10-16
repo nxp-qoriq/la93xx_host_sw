@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
 * Copyright 2024 NXP
  */
-/* File generated based on apm.eld md5sum 6b9b362f6773bbd5f29d401da769af79 ../../Debug_IQPLAYER/apm-iqplayer.eld */
+/* File generated based on apm.eld md5sum 44a87e2487fbc4d66da58b06c01ff3a4 ../../Debug_IQPLAYER/apm-iqplayer.eld */
 l1_trace_code_t l1_trace_code[] ={
 { 0x100, "L1_TRACE_MSG_DMA_XFR "},
 { 0x101, "L1_TRACE_MSG_DMA_CFGERR "},

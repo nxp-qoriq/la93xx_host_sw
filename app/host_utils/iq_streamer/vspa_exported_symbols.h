@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause
 * Copyright 2024 NXP
  */
-#define IQ_STREAMER_VERSION "6b9b362f6773bbd5f29d401da769af79"
+#define IQ_STREAMER_VERSION "44a87e2487fbc4d66da58b06c01ff3a4"
 #define  v_DDR_rd_base_address (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x000020c8)
 #define  p_DDR_rd_base_address (uint32_t)(0x1F000000 + 0x400000 + 0x000020c8)
 #define  s_DDR_rd_base_address (uint32_t)(0x00000004)
@@ -55,7 +55,7 @@
 #define  s_DDR_wr_load_start_bit_update (uint32_t)(0x00000004)
 #define  v_l1_trace_data (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x00002380)
 #define  p_l1_trace_data (uint32_t)(0x1F000000 + 0x400000 + 0x00002380)
-#define  s_l1_trace_data (uint32_t)(0x00000080)
+#define  s_l1_trace_data (uint32_t)(0x00000c80)
 #define  v_l1_trace_index (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x00002318)
 #define  p_l1_trace_index (uint32_t)(0x1F000000 + 0x400000 + 0x00002318)
 #define  s_l1_trace_index (uint32_t)(0x00000004)
@@ -67,10 +67,10 @@
 #define  s_g_stats (uint32_t)(0x00000048)
 #define  v_l1_trace_data (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x00002380)
 #define  p_l1_trace_data (uint32_t)(0x1F000000 + 0x400000 + 0x00002380)
-#define  s_l1_trace_data (uint32_t)(0x00000080)
+#define  s_l1_trace_data (uint32_t)(0x00000c80)
 #define  v_l1_trace_data (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x00002380)
 #define  p_l1_trace_data (uint32_t)(0x1F000000 + 0x400000 + 0x00002380)
-#define  s_l1_trace_data (uint32_t)(0x00000080)
+#define  s_l1_trace_data (uint32_t)(0x00000c80)
 #define  v_tx_busy_size (volatile uint32_t *)((uint64_t)BAR2_addr + 0x400000 + 0x000022ec)
 #define  p_tx_busy_size (uint32_t)(0x1F000000 + 0x400000 + 0x000022ec)
 #define  s_tx_busy_size (uint32_t)(0x00000004)
