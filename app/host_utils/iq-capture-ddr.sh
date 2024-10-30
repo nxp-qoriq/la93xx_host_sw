@@ -42,6 +42,8 @@ if [ $# -gt 1 ];then
 	fi
 else
 	cmd=`printf "0x%X\n" $[0x06d00000 + $1]`
+	# with compression 0x06d80000
+	# withotu QEC      0x06900000
 fi
 
 vspa_mbox send 0 0 $cmd $buffep

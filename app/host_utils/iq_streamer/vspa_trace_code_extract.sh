@@ -17,8 +17,8 @@ echo " */">> ./vspa_trace_enum.h
 echo "/* File generated based on apm.eld md5sum" $eld_md5sum "*/" >> ./vspa_trace_enum.h 
 echo "l1_trace_code_t l1_trace_code[] ={" >> ./vspa_trace_enum.h  
 
-dos2unix ./l1-trace.h
-grep " L1_TRACE_" ./l1-trace.h  | grep "\*" > ./vspa_trace_enum_0.txt
+dos2unix ../../include/l1-trace.h
+grep " L1_TRACE_" ../../include/l1-trace.h  | grep "\*" > ./vspa_trace_enum_0.txt
 sed 's/\*//g' vspa_trace_enum_0.txt > ./vspa_trace_enum_1.txt
 sed 's/\///g' vspa_trace_enum_1.txt > ./vspa_trace_enum_2.txt
 sed 's/,/ /g' vspa_trace_enum_2.txt > ./vspa_trace_enum.txt

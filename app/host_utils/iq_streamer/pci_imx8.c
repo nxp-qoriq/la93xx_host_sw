@@ -6,46 +6,100 @@
 *
 */
 
-
+#ifdef __M7__
+#include "fsl_common.h"
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <semaphore.h>
 #include <inttypes.h>
+#endif
 
+#include "imx8-host.h"
 
+#ifndef _STANDALONE_
 #include "vspa_exported_symbols.h"
-#include "iq_streamer.h"
+#include "l1-trace.h"
+#include "iqmod_rx.h"
+#include "iqmod_tx.h"
+#include "stats.h"
+#else
+#define l1_trace(a,b){};
+#endif
+
 #ifndef IMX8DXL
 #include "pci_imx8mp.h"
 #else
 #include "pci_imx8dxl.h"
 #endif
-#include "l1-trace.h"
-#include "iqmod_rx.h"
-#include "stats.h"
+
+
 
 void dma_perf_test(void)
 {
 	return;
 }
 
+static int tx_pending_dma = 0;
+extern uint32_t txcount;
+#ifndef _STANDALONE_
+extern uint32_t local_TX_total_produced_size;
+#else
+uint32_t g_error=0;
+#endif
+int PCI_DMA_WRITE_completion(uint32_t nbchan)
+{
+    volatile uint32_t *reg;
+    int dma = 0;
+	uint32_t off;
+	uint32_t chanStatus = 0;
+	uint32_t error = 0;
+
+	if(!tx_pending_dma)
+		return 1;
+	
+	/* check completion */
+	for (dma = 0; dma < nbchan; dma++) {
+		off = 0x200 * dma;
+		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
+		chanStatus =  *reg;
+		if ((chanStatus & 0x40) != 0x40) {
+			/* still running */
+			return 0;
+		}
+		if ((chanStatus & 0x60) != 0x60) {
+			error=1;
+		}
+	}
+
+	tx_pending_dma=0;
+	txcount++;
+#ifndef _STANDALONE_
+	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]+=error;
+	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, txcount);
+	host_stats->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
+	*v_TX_total_produced_size=local_TX_total_produced_size;
+#else
+	g_error+=error;
+#endif
+
+	return 1;
+}
+
+
 static int tx_first_dma = 1;
-#define PCI_WR_DMA_NB 1
-int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size)
+int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uint32_t nbchan)
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
 	uint32_t off;
-	uint32_t chanStatus = 0;
-
-	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, (uint32_t)ddr_src);
 
 	// Do soft reset on start
 	if (tx_first_dma) {
 		tx_first_dma = 0;
-		for (int dma = 0; dma < PCI_WR_DMA_NB; dma++) {
+		for (int dma = 0; dma < nbchan; dma++) {
 			off = 0x200 * dma;
 			reg = (uint32_t *)DMA_WRITE_ENGINE_EN_OFF;
 			*reg = 0x0;
@@ -53,8 +107,12 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size)
 			*reg = 0x1;
 		}
 	}
+	
+	//while (!PCI_DMA_WRITE_completion(nbchan)) {};
 
-	for (dma = 0; dma < PCI_WR_DMA_NB; dma++) {
+	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, (uint32_t)ddr_src);
+
+	for (dma = 0; dma < nbchan; dma++) {
 		off = 0x200 * dma;
 		// Check DMA Halt state
 		//reg = (uint32_t*)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
@@ -69,13 +127,13 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size)
 		//*reg = 0x04000008;
 		*reg = 0x00000008;
 		reg = (uint32_t *)(DMA_TRANSFER_SIZE_OFF_WRCH_0 + off);
-		*reg =  size/PCI_WR_DMA_NB;
+		*reg =  size/nbchan;
 		reg = (uint32_t *)(DMA_SAR_LOW_OFF_WRCH_0 + off);
-		*reg =  ddr_src + dma*(size/PCI_WR_DMA_NB);
+		*reg =  ddr_src + dma*(size/nbchan);
 		reg = (uint32_t *)(DMA_SAR_HIGH_OFF_WRCH_0 + off);
 		*reg =  0x00000000;
 		reg = (uint32_t *)(DMA_DAR_LOW_OFF_WRCH_0 + off);
-		*reg =  pci_dst + dma*(size/PCI_WR_DMA_NB);
+		*reg =  pci_dst + dma*(size/nbchan);
 		reg = (uint32_t *)(DMA_DAR_HIGH_OFF_WRCH_0 + off);
 		*reg =  0x00000000;
 		// start transfer
@@ -83,49 +141,71 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size)
 		*reg =  dma;
 	}
 
-	/* wait for completion */
-	for (dma = 0; dma < PCI_WR_DMA_NB; dma++) {
-		off = 0x200 * dma;
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
-		chanStatus =  *reg;
-		while ((chanStatus & 0x40) != 0x40) {
-			chanStatus =  *reg;
-		}
-	}
+	/* mark dma running */
+	tx_pending_dma=1;
 
-	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, (uint32_t)pci_dst);
-
-	/* check status */
-	for (dma = 0; dma < PCI_WR_DMA_NB; dma++) {
-		off = 0x200 * dma;
-		/* wait for completion */
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
-		chanStatus =  *reg;
-		if ((chanStatus & 0x60) != 0x60) {
-			printf("\n DMA error (0x%08x)\n", chanStatus);
-			return -1;
-		}
-	}
+	while (!PCI_DMA_WRITE_completion(nbchan)) {};
 
 	return 0;
 }
 
 
+static int rx_pending_dma = 0;
+extern uint32_t rxcount;
+#ifndef _STANDALONE_
+extern uint32_t local_RX_total_consumed_size;
+#endif
+int PCI_DMA_READ_completion(uint32_t nbchan)
+{
+    volatile uint32_t *reg;
+    int dma = 0;
+	uint32_t off;
+	uint32_t chanStatus = 0;
+	uint32_t error=0;
+
+	if(!rx_pending_dma)
+		return 1;
+
+	/* wait for completion */
+	for (dma = 0; dma < nbchan; dma++) {
+		off = 0x200 * dma;
+		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
+		chanStatus =  *reg;
+		if((chanStatus & 0x40) != 0x40) {
+			/* still running */
+			return 0;
+		if ((chanStatus & 0x60) != 0x60) {
+			error=1;
+			}
+		}
+	}
+	
+	rx_pending_dma=0;
+	rxcount++;
+#ifndef _STANDALONE_
+	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_COMP, rxcount);
+	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]+=error;
+	host_stats->rx_stats[0][STAT_EXT_DMA_DDR_WR]=rxcount;
+	*v_RX_total_consumed_size = local_RX_total_consumed_size;
+#else
+	g_error+=error;
+#endif
+
+	return 1;
+}
+
+
 static int rx_first_dma = 1;
-#define PCI_RD_DMA_NB 1
-int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size,uint32_t nbchan)
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
 	uint32_t off;
-	uint32_t chanStatus = 0;
-
-	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_START, (uint32_t)pci_src);
 
 	// Do soft reset on start
 	if (rx_first_dma) {
 		rx_first_dma = 0;
-		for (int dma = 0; dma < PCI_RD_DMA_NB; dma++) {
+		for (int dma = 0; dma < nbchan; dma++) {
 			off = 0x200 * dma;
 			reg = (uint32_t *)DMA_READ_ENGINE_EN_OFF;
 			*reg = 0x0;
@@ -133,8 +213,12 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
 			*reg = 0x1;
 		}
 	}
+	
+	//while (!PCI_DMA_READ_completion(nbchan)) {};
 
-	for (dma = 0; dma < PCI_RD_DMA_NB; dma++) {
+	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_START, (uint32_t)pci_src);
+
+	for (dma = 0; dma < nbchan; dma++) {
 		off = 0x200 * dma;
 		// Check DMA Halt state
 		//reg = (uint32_t*)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
@@ -149,42 +233,23 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
 //		*reg = 0x04000008 ;
 		*reg = 0x00000008;
 		reg = (uint32_t *)(DMA_TRANSFER_SIZE_OFF_RDCH_0 + off);
-		*reg =  size/PCI_RD_DMA_NB;
+		*reg =  size/nbchan;
 		reg = (uint32_t *)(DMA_SAR_LOW_OFF_RDCH_0 + off);
-		*reg =  pci_src + dma*size/PCI_RD_DMA_NB;
+		*reg =  pci_src + dma*size/nbchan;
 		reg = (uint32_t *)(DMA_SAR_HIGH_OFF_RDCH_0 + off);
 		*reg =  0x00000000;
 		reg = (uint32_t *)(DMA_DAR_LOW_OFF_RDCH_0 + off);
-		*reg =  ddr_dst + dma*size/PCI_RD_DMA_NB;
+		*reg =  ddr_dst + dma*size/nbchan;
 		reg = (uint32_t *)(DMA_DAR_HIGH_OFF_RDCH_0 + off);
 		*reg =  0x00000000;
 		reg = (uint32_t *)DMA_READ_DOORBELL_OFF;
 		*reg =  dma;
 	}
 
-	/* wait for completion */
-	for (dma = 0; dma < PCI_RD_DMA_NB; dma++) {
-		off = 0x200 * dma;
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
-		chanStatus =  *reg;
-		while ((chanStatus & 0x40) != 0x40) {
-			chanStatus =  *reg;
-		}
-	}
+	/* mark dma running */
+	rx_pending_dma=1;
 
-	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_COMP, (uint32_t)ddr_dst);
-
-	/* check status */
-	for (dma = 0; dma < PCI_RD_DMA_NB; dma++) {
-		off = 0x200 * dma;
-		/* wait for completion */
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
-		chanStatus =  *reg;
-		if ((chanStatus & 0x60) != 0x60) {
-			printf("\n DMA error (0x%08x)\n", chanStatus);
-			return -1;
-		}
-	}
+	while (!PCI_DMA_READ_completion(nbchan)) {};
 
 	return 0;
 }
@@ -329,7 +394,7 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size)
 	}
 
 	if ((chanStatus & 0x60) != 0x60) {
-		printf("\n DMA error (0x%08x)\n", chanStatus);
+		//PRINTF("\n DMA error (0x%08x)\n", chanStatus);
 		return -1;
 	}
 

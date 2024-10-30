@@ -8,15 +8,22 @@
 #ifndef __PCI_IMX8MP_H__
 #define __PCI_IMX8MP_H__
 
-int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size);
-int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size);
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size,uint32_t nbchan);
+int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uint32_t nbchan);
+int PCI_DMA_WRITE_completion(uint32_t nbchan);
+int PCI_DMA_READ_completion(uint32_t nbchan);
+
 void dma_perf_test(void);
 extern uint32_t *PCIE1_addr;
 
 #define IMX8MP_PCIE1_ADDR   0x33800000
 #define IMX8MP_PCIE1_SIZE  0x400000
 
+#ifdef __M7__
+#define PCIE_DMA_BASE (uint32_t)PCIE1_addr
+#else
 #define PCIE_DMA_BASE (uint64_t)PCIE1_addr
+#endif
 #define DMA_READ_ENGINE_EN_OFF          (PCIE_DMA_BASE + 0x38002C)
 #define DMA_READ_INT_MASK_OFF           (PCIE_DMA_BASE + 0x3800A8)
 #define DMA_CH_CONTROL1_OFF_RDCH_0      (PCIE_DMA_BASE + 0x380300)

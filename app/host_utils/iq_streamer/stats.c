@@ -21,9 +21,7 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <argp.h>
-#include "iq_streamer.h"
 #include "la9310_regs.h"
-#include "iqmod_rx.h"
 #ifdef IQMOD_RX_2R
 #include "vspa_exported_symbols_2R.h"
 #else
@@ -34,7 +32,10 @@
 #endif
 #endif
 #include "iqmod_rx.h"
+#include "iqmod_tx.h"
 #include "stats.h"
+#include "iq_streamer.h"
+#include "vspa_dmem_proxy.h"
 
 
 #define pr_info printf
@@ -42,6 +43,9 @@ void la9310_hexdump(const void *ptr, size_t sz);
 void print_vspa_stats(void);
 void monitor_vspa_stats(void);
 void print_vspa_trace(void);
+
+extern uint32_t ddr_rd_dma_xfr_size;
+extern uint32_t ddr_wr_dma_xfr_size;
 
 static inline void __hexdump(unsigned long start, unsigned long end,
 		unsigned long p, size_t sz, const unsigned char *c)
@@ -89,6 +93,7 @@ void la9310_hexdump(const void *ptr, size_t sz)
 //VSPA_EXPORT(l1_trace_data)
 //VSPA_EXPORT(tx_busy_size)
 //VSPA_EXPORT(rx_busy_size)
+//VSPA_EXPORT(DDR_wr_CMP_enable)
 
 t_stats vspa_stats[2];
 uint32_t vspa_stats_tab;
@@ -111,7 +116,8 @@ void print_vspa_stats(void)
 
 	// Take snap shot
 	for (i = 0; i < s_g_stats/4; i++) {
-		((uint32_t *)cur_stats)[i] =  *(v_g_stats+i);
+//		dccivac((uint32_t*)(host_stats)+i);
+		((uint32_t *)cur_stats)[i] =  *((uint32_t*)(host_stats)+i)+*((uint32_t*)(v_g_stats)+i);
 	}
 	printf("\nRX stats :");
 	for (i = 0; i < STATS_RX_MAX; i++) {
@@ -121,9 +127,14 @@ void print_vspa_stats(void)
 			uint32_t prev_val=*((uint32_t*)(prev_stats->rx_stats[j])+i);
 			printf("\t0x%08x", cur_val);
 			if (i <= STAT_DMA_AXIQ_READ)
-				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000));
-			else if (i < ERROR_DMA_DDR_WR_OVERRUN)
-				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000/RX_DECIM));
+				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_STEP/1000000));
+			else if (i == STAT_DMA_DDR_WR)
+				if(*v_DDR_wr_CMP_enable)
+					printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DDR_STEP*RX_COMPRESS_RATIO_PCT/100000000));
+				else
+				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*ddr_wr_dma_xfr_size/1000000));
+			else if (i == STAT_EXT_DMA_DDR_WR)
+				printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*EXT_DMA_RX_DDR_STEP/1000000));
 			else
 				printf("               ");
 		}
@@ -134,8 +145,10 @@ void print_vspa_stats(void)
 		uint32_t prev_val=*((uint32_t*)(prev_stats->tx_stats)+i);
 		printf("\n %s",VSPA_stat_tx_string[i]);
 		printf("\t0x%08x", cur_val);
-		if (i < ERROR_DMA_DDR_RD_UNDERRUN)
-			printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*TX_DMA_TXR_size*4/1000000));
+		if (i <= STAT_DMA_DDR_RD)
+			printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*ddr_rd_dma_xfr_size/1000000));
+		else if (i == STAT_EXT_DMA_DDR_RD)
+			printf("(%08d MB/s)", (uint32_t)((uint64_t)(cur_val-prev_val)*EXT_DMA_TX_DDR_STEP/1000000));
 		else
 			printf("               ");
 	}
@@ -145,10 +158,6 @@ void print_vspa_stats(void)
 		uint32_t prev_val=*((uint32_t*)(prev_stats->gbl_stats)+i);
 		printf("\n %s",VSPA_stat_gbl_string[i]);
 		printf("\t0x%08x", cur_val);
-		if (i < ERROR_DMA_CONFIG_ERROR)
-			printf("(%08d MB/s)  ", (uint32_t)((uint64_t)(cur_val-prev_val)*RX_DMA_TXR_size*4/1000000));
-		else
-			printf("               ");
 	}
 
 	printf("\n");

@@ -32,16 +32,14 @@ while read in; do
 		start=0x500000;
 	else
  		start=0x400000;
-	fi	       
+	fi
+	if [ $# -gt 2 ];then
+	echo "#define " v$symbol "(volatile uint32_t *)((uint32_t)BAR2_addr + "$start" + "$addr")" >> $2
+	else
 	echo "#define " v$symbol "(volatile uint32_t *)((uint64_t)BAR2_addr + "$start" + "$addr")" >> $2
+	fi
 	echo "#define " p$symbol "(uint32_t)(0x1F000000 + "$start" + "$addr")" >> $2
 	echo "#define " s$symbol "(uint32_t)("$size")" >> $2
 done < ./$1_vspa_exported_symbols_addr.txt
-
-## extract some defines from header and strcture size
-grep "#define TX_NUM_BUF" ../../include/*.h | cut -f 2 -d ":"|sed 's/^M//g' >> $2
-grep "#define TX_DMA_TXR_size" ../../include/*.h | cut -f 2 -d ":"|sed 's/^M//g' >> $2
-# Nb rx chan/buuff should be deduced from struct size 
-
 
 rm ./vspa_exported_symbols0.txt ./vspa_exported_symbols.txt ./$1.symbol.txt ./$1_vspa_exported_symbols_addr.txt 

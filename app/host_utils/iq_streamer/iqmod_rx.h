@@ -9,7 +9,8 @@
 
 #ifdef IQMOD_RX_1R
 #define RX_NUM_CHAN 1
-#define RX_NUM_BUF 5
+#define RX_NUM_BUF 8
+#define RX_COMPRESS_RATIO_PCT 100
 #define RX_DMA_TXR_size	(512)
 #define RX_DECIM 1
 #define RX_DMA_TXR_STEP	(4*RX_DMA_TXR_size)
@@ -19,6 +20,7 @@
 #ifdef IQMOD_RX_2R
 #define RX_NUM_CHAN 2
 #define RX_NUM_BUF 3
+#define RX_COMPRESS_RATIO_PCT 100
 #define RX_NUM_DEC_BUF 3
 #define RX_DMA_TXR_size	(512)
 #define RX_DECIM 2
@@ -29,9 +31,10 @@
 #ifdef IQMOD_RX_4R
 #define RX_NUM_CHAN 4
 #define RX_NUM_BUF 3
+#define RX_COMPRESS_RATIO_PCT 100
 #define RX_NUM_DEC_BUF 3
 #define RX_DMA_TXR_size	(256)
-#define RX_DECIM 4
+#define RX_DECIM 2
 #define RX_DMA_TXR_STEP	(4*RX_DMA_TXR_size)
 #define RX_DDR_STEP		(RX_DMA_TXR_STEP/RX_DECIM)  
 #endif
@@ -102,10 +105,12 @@ void DDR_write(uint32_t DDR_wr_dma_channel, uint32_t DDR_address, uint32_t vsp_a
 void rx_qec_correction(vspa_complex_fixed16 *data);
 void RX_IQ_DATA_TO_DDR(void);
 void PUSH_RX_DATA(void);
+uint32_t dma_chan_mask(uint32_t dma_channel , uint32_t nb_dma);
 
-extern uint32_t DDR_wr_QEC_enable;
+extern uint32_t DDR_wr_QEC_enable, DDR_wr_CMP_enable;
 extern uint32_t DDR_wr_start_bit_update, DDR_wr_load_start_bit_update, DDR_wr_continuous;
-
+extern uint32_t ddr_wr_dma_ch_nb;
+extern uint32_t ddr_wr_dma_ch_mask;
 
 #define DDR_WR_DMA_CHANNEL_1  0xc
 #define DDR_WR_DMA_CHANNEL_2  0xd

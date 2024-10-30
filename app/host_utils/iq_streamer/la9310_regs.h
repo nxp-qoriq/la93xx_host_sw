@@ -6,7 +6,7 @@
 
 
 #ifndef __LA9310_REGS_H__
-#define __IQ_STREAMER_H__
+#define __LA9310_REGS_H__
 
 #define VSPA_VCPU_DMEM_OFF 0x400000
 #define VSPA_IPPU_DMEM_OFF 0x500000

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
+####################################################################
+
 ###################################################
 # singleTone play/capture
 #
@@ -37,8 +41,8 @@ dpdk-dfe_app -c "axiq_lb enable"
 ./iq-capture.sh ./iqdata.bin 300
 
 # Select granita channels
-./rx-chan.sh 4
-./rx-chan.sh 2
+./rx-chan.sh 0
+./rx-chan.sh 1
 
 # get vspa stats
 iq_streamer -m
@@ -60,6 +64,13 @@ iq_streamer -d
 ./iq-capture.sh ./iqdata.bin 300 1
 ./iq-capture-ddr.sh 300 1
 
+###################################################################
+## 1T2R and 1T4R with decimation  
+#  user need to replace default image with the multi channel images
+
+/lib/firmaware/apm-iqplayer.eld -> /lib/firmware/apm-iqplayer-2R.eld
+/usr/bin/iq_streamer -> /usr/bin/iq_streamer_2R
+
 
 ########################################################################
 ## Advanced use cases 1 : “How to connect upper app/stack to IQ Flow ?”
@@ -67,7 +78,12 @@ iq_streamer -d
 # iq_streamer streaming feature, intends to demonstrate how to connect higher 
 # app/stack/phy with VSPA firmware and IQ samples flow. 
 # VSPA firmware will use a single free running buffer in memory DDR (or other memory TCM/OCRAM), 
-# same script/config as “basic enablement” are used. The buffers will play role of intermediate sizeable TX/RX FIFO between app and VSPA firmware. The streaming application will fill/consume data on the go. Handshake for now is based on VSPA exported symbols TX_total_consumed_size or RX_total_produced_size. There will be 2 modes in iq_streamer, streaming_ddr and streaming_tcm, where intermediate FIFO is either on host DDR or on EP TCM memory, same principle but require different DMAs. As of Today only “tx_streaming_tcm” is provided. The example is streaming a large input file loaded in host DDR, streaming it into Tx FIFO in LA9310 TCM. At startup, user provide address size for the large file and the tcm fifo. User can replace the large file in DDR by output of an upper stack.
+# same script/config as “basic enablement” are used. The buffers will play role of intermediate sizeable TX/RX FIFO between app and VSPA firmware. 
+# The streaming application will fill/consume data on the go. Handshake for now is based on VSPA exported symbols TX_total_consumed_size or RX_total_produced_size. 
+# There will be 2 modes in iq_streamer, streaming_ddr and streaming_tcm, where intermediate FIFO is either on host DDR or on EP TCM memory, 
+# same principle but require different DMAs. As of Today only “tx_streaming_tcm” is provided. 
+# The example is streaming a large input file loaded in host DDR, streaming it into Tx FIFO in LA9310 TCM. 
+# At startup, user provide address size for the large file and the tcm fifo. User can replace the large file in DDR by output of an upper stack.
 
 taskset 0x8 iq_streamer -t -a 0x96400000 4915200 -T 0x20001000 32768 &
 ./iq-replay-streamer.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200
@@ -78,12 +94,19 @@ kill -USR1 <iq_streamer PID>
 #############################################
 ## Advanced use cases 2 : “How to support higher sampling rate 160MSPS ?”
 # iq_streamer can be used as external dma helper agent to replace VSPA DMAs with external DMA engines.  
-# iq_streamer external dma agent is used to perform DMEM firmware fifo transfer using external DMA such as imx PCI DMA instead of VSPA DMAs. This turns to be useful to overcome imx8 pci limitations in current RFNM firmware. Write bandwidth from PCI EP into Imx8 DDR as known limitation in imx8 PCI block. Throughput is higher if you read from imx8 instead of writing from EP. Therefore it could be useful to use an agent running imx to perform DMA read from DMEM and write into DDR, instead of VSPA DMA writing directly DDR. This agent, has strong real time constraint, because it needs to keep pace with the small DMEM FIFO. As of Today, this turns to be overkill. Despite i.mx limitation, VSPA DMA can sustain 530MB/s DDR write which is enough to support 122.88MSPS. External DMA may reach PCI line rate at 800MB/s, which may be needed only to support 160MSPS. iq_streamer supports this mode but can only sustain 375MB/s when running in linux user space with isolcu/noHz, this would need to move to i.mx8 M7 core to reach max throughput. Proven to work in RFNM firmware.   
+# iq_streamer external dma agent is used to perform DMEM firmware fifo transfer using external DMA such as imx PCI DMA instead of VSPA DMAs. 
+# This turns to be useful to overcome imx8 pci limitations in current RFNM firmware. 
+# Write bandwidth from PCI EP into Imx8 DDR as known limitation in imx8 PCI block. 
+# Throughput is higher if you read from imx8 instead of writing from EP. 
+# Therefore it could be useful to use an agent running imx to perform DMA read from DMEM and write into DDR, instead of VSPA DMA writing directly DDR. 
+# This agent, has strong real time constraint, because it needs to keep pace with the small DMEM FIFO. As of Today, this turns to be overkill. 
+# Despite i.mx limitation, VSPA DMA can sustain 530MB/s DDR write which is enough to support 122.88MSPS. External DMA may reach PCI line rate at 800MB/s, which may be needed only to support 160MSPS. 
+# iq_streamer supports this mode but can only sustain 375MB/s when running in linux user space with isolcu/noHz, this would need to move to i.mx8 M7 core to reach max throughput. Proven to work in RFNM firmware.   
 # The way to start this “ext DMA” mode is to start the agent by doing “taskset 0x8 iq_streamer -t &” or/and “taskset 0x4 iq_streamer -r &”. 
 # The agents will update VSPA shared flag RX/TX_ext_dma_enabled, indicating VSPA to skip VSPA DMA and let agent to managed DMEM FIFOs.
 
 taskset 0x4 iq_streamer -r &
-./iq-capture-ddr.sh 300
+./iq-capture-ddr.sh 1200
 
 taskset 0x8 iq_streamer -t &
 ./iq-replay.sh ./tone_td_3p072Mhz_20ms_4KB1200_2c.bin 1200
@@ -134,9 +157,11 @@ This tool exercise imx pci DMA
 
 iq_streamer DMA agents requires hard real time , hence proper isolcpu
 ----------------------------------------------------------------------
+ minicom -w -D /dev/ttyUSB0 -b 115200
+ 
  need isolcpu 3/4
  root@imx8mp-rfnm:~# dmesg |grep iso
- [    0.000000] Kernel command line: console=ttymxc1,115200 root=/dev/mmcblk1p2 rootwait rw isolcpus=2-3 nohz_full=2\x1b2-3 irqaffinity=0 cpuidle.off=1 cpufreq.off=1
+ [    0.000000] Kernel command line: console=ttymxc1,115200 root=/dev/mmcblk1p2 rootwait rw isolcpus=2-3 nohz_full=2-3 irqaffinity=0 cpuidle.off=1 cpufreq.off=1
  root@imx8mp-rfnm:~# zcat /proc/config.gz |grep NO_HZ
  CONFIG_NO_HZ_FULL=y
  root@imx8mp-rfnm:~# zcat /proc/config.gz |grep RCU_NOCB_CPU

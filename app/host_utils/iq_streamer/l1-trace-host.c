@@ -22,7 +22,12 @@
 #include "vspa_exported_symbols.h"
 #endif
 #endif
+
+#include "l1-trace.h"
+#include "iqmod_rx.h"
+#include "stats.h"
 #include "iq_streamer.h"
+#include "vspa_dmem_proxy.h"
 
 //#define ccnt_read() ((uint64_t)((*_VSPA_cyc_count_msb)&0x7FFFFFFF)*0x100000000 + *_VSPA_cyc_count_lsb)
 uint64_t ccnt_read(void)
@@ -43,7 +48,7 @@ static inline uint64_t rte_get_tsc_hz(void)
 
 	if(0==rte_get_tsc_hz_init){
 		/*Get CPU freq */
-		fp = popen("/sys/kernel/debug/clk/arm_a*_core/clk_rate", "r");
+		fp = popen("/sys/kernel/debug/clk/arm_a53_core/clk_rate", "r");
 		if (fp == NULL) {
 			printf("Failed to run command\n");
 			exit(1);
@@ -69,6 +74,8 @@ l1_trace_data_t l1_trace_data[L1_TRACE_SIZE] __attribute__ ((aligned(64)));
 uint32_t l1_trace_index;
 volatile uint32_t l1_trace_disable;
 
+#if L1_TRACE
+
 void l1_trace_clear(void)
 {
 	for (l1_trace_index = 0; l1_trace_index < L1_TRACE_SIZE; l1_trace_index++) {
@@ -93,6 +100,17 @@ void l1_trace(uint32_t msg, uint32_t param)
     }
 }
 
+#else // L1_TRACE
+inline void l1_trace_clear(void)
+{
+}
+
+inline void l1_trace(uint32_t msg, uint32_t param)
+{
+}
+#endif // L1_TRACE
+
+
 void print_host_trace(void)
 {
 	uint32_t i, j, k;
@@ -101,6 +119,8 @@ void print_host_trace(void)
 	uint64_t prev;
 
 	l1_trace_disable = 1;
+	
+	printf("\n host_trace:");
 
 	prev = l1_trace_data[l1_trace_index].cnt;
 	for (i = 0, j = l1_trace_index; i < STATS_MAX; i++, j++) {
@@ -153,4 +173,21 @@ printf("\n VSPA trace disabled \n");
 }
 #endif
 
+// format
+//146, counter: 0000045638347355, param: 0x0B003000, L1_TRACE_MSG_DMA_AXIQ_TX
+extern uint32_t *v_ocram_addr;
+void print_m7_trace(void)
+{
+	uint32_t i,k;
+	uint32_t STATS_MAX = L1_TRACE_SIZE;
+	l1_trace_data_t* entry=(l1_trace_data_t*)(v_ocram_addr+VSPA_DMEM_PROXY_SIZE/sizeof(uint32_t));
+	for(i=0;i<STATS_MAX;i++){
+		k=0;
+		while(l1_trace_code[k].msg!=0xffff){ if(l1_trace_code[k].msg==entry->msg) break; k++; }
+		printf("\n%4d, counter: %016ld, param: 0x%08x, (0x%03x)%s",i,entry->cnt,entry->param,entry->msg,l1_trace_code[k].text);
+		entry++;
+	}
+	printf("\n");
+	return ;
+}
 

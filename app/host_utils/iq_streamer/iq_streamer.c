@@ -26,13 +26,15 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <argp.h>
+
 //#include "kpage_ncache_api.h"
-#include "iq_streamer.h"
+
 #ifndef IMX8DXL
 #include "pci_imx8mp.h"
 #else
 #include "pci_imx8dxl.h"
 #endif
+
 #include "la9310_regs.h"
 #include "l1-trace.h"
 
@@ -47,15 +49,18 @@
 #endif
 
 #include "iqmod_rx.h"
+#include "iqmod_tx.h"
 #include "stats.h"
+#include "iq_streamer.h"
+#include "imx8-host.h"
+#include "vspa_dmem_proxy.h"
 
-
-#define microsleep() {volatile uint64_t i; for (i = 0; i < 1000; i++) {}; }
 
 void la9310_hexdump(const void *ptr, size_t sz);
 void print_vspa_stats(void);
 void monitor_vspa_stats(void);
 void print_vspa_trace(void);
+void print_m7_trace(void);
 
 
 volatile uint32_t running;
@@ -70,29 +75,31 @@ void *process_ant_rx_vspa_ext_dma(void *arg);
 void *process_ant_rx_streaming_tcm(void *arg);
 void *process_ant_rx_streaming_ddr(void *arg);
 
-pthread_t ant_thread[NUM_ANT];
-int ant_thread_arg[] = {0, 1, 2, 3, 4, 5};
-int num_ant_enabled;
-
 uint32_t *_VSPA_A011455;
 uint32_t *v_iqflood_ddr_addr;
 uint32_t *v_scratch_ddr_addr;
+uint32_t *v_ocram_addr;
+
 
 uint32_t p_la9310_outbound_base;
 uint32_t *BAR0_addr;
 uint32_t *BAR1_addr;
 uint32_t *BAR2_addr;
 uint32_t *PCIE1_addr;
+t_stats *host_stats;
 
 uint32_t ddr_file_addr = 0;
 uint32_t ddr_file_size = 0;
 
 uint32_t isVspaExtPciDMA = 1;
+uint32_t isM7offload=0;
 uint32_t isStreamingTcmFifo = 0;
 uint32_t ep_tcm_fifo_address = 0;
 uint32_t ep_tcm_fifo_size = 0;
 uint32_t ddr_fifo_addr=0;
 uint32_t ddr_fifo_size=0;
+uint32_t ddr_rd_dma_xfr_size=TX_DDR_STEP;
+uint32_t ddr_wr_dma_xfr_size=RX_DDR_STEP*RX_COMPRESS_RATIO_PCT/100;
 
 void print_host_trace(void);
 
@@ -113,12 +120,26 @@ int map_physical_regions(void)
 		return -1;
 	}
 
+	v_ocram_addr = mmap(NULL, OCRAM_SIZE, PROT_READ | PROT_WRITE,
+			MAP_SHARED, devmem_fd, OCRAM_ADDR);
+	if (v_ocram_addr == MAP_FAILED) {
+		perror("Mapping v_ocram_addr buffer failed\n");
+		return -1;
+	}
+
+	/* use first ocram 256 bytes for dmem proxy region followed by M7 trace */
+	host_stats = (t_stats *)v_ocram_addr;
+
+//	printf("\n map iqflood_ddr :");
+//	la9310_hexdump(v_iqflood_ddr_addr,64);
+
 	v_iqflood_ddr_addr = mmap(NULL, IQFLOOD_BUF_SIZE, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, IQFLOOD_BUF_ADDR);
 	if (v_iqflood_ddr_addr == MAP_FAILED) {
 		perror("Mapping v_iqflood_ddr_addr buffer failed\n");
 		return -1;
 	}
+	
 //	printf("\n map iqflood_ddr :");
 //	la9310_hexdump(v_iqflood_ddr_addr,64);
 
@@ -230,20 +251,29 @@ void print_cmd_help(void)
     fprintf(stderr, "\n|\t-a    <padd> <size>  Buffer in DDR (vspa ext dma)");
     fprintf(stderr, "\n|\t-F    <padd> <size>  Fifo in DDR");
     fprintf(stderr, "\n|\t-T    <padd> <size>  Fifo in TCM");
+    fprintf(stderr, "\n|\t-s    <ddr_rd_dma_xfr_size> <ddr_wr_dma_xfr_size>");
     fprintf(stderr, "\n|\t-t	Tx streaming only");
     fprintf(stderr, "\n|\t-r	Rx streaming only");
     fprintf(stderr, "\n|\t-m	monitor stats");
     fprintf(stderr, "\n|\t-d	dump vspa trace");
+    fprintf(stderr, "\n|\t-D	dump M7 trace");
+    fprintf(stderr, "\n|\t-c	clear host stats");
     fprintf(stderr, "\n|\t-v	version");
     fprintf(stderr, "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	return;
 }
 
+/* need following vspa symbols to be exported (vspa_exported_symbols.h)*/
+//VSPA_EXPORT(ddr_rd_dma_xfr_size)
+//VSPA_EXPORT(ddr_wr_dma_xfr_size)
+
 int main(int argc, char *argv[])
 {
-    int32_t c;
+    int32_t c,i;
 	command_e command = 0;
 	struct stat buffer;
+    int32_t forceFifoSize=0;
+
 
 	if(argc<=1){
 		print_cmd_help();
@@ -252,7 +282,7 @@ int main(int argc, char *argv[])
 		
 
    /* command line parser */
-   while ((c = getopt(argc, argv, "hfrts:a:mdvxF:T:")) != EOF)
+   while ((c = getopt(argc, argv, "hfrts:a:mdvxF:T:DMc")) != EOF)
    {
 		switch (c) {
 			case 'h': // help
@@ -281,11 +311,14 @@ int main(int argc, char *argv[])
 				ep_tcm_fifo_address = strtoull(argv[optind-1], 0, 0);
 				ep_tcm_fifo_size = strtoul(argv[optind],0, 0);
 			break;
-			case 'D':
+			case 'F':
 				isStreamingTcmFifo=0;			
 				isVspaExtPciDMA=0;			
 				ddr_fifo_addr = strtoull(argv[optind-1], 0, 0);
 				ddr_fifo_size = strtoul(argv[optind],0, 0);
+			break;
+			case 'M':
+				isM7offload=1;
 			break;
 			case 'm':
 				command = OP_MONITOR;
@@ -293,8 +326,19 @@ int main(int argc, char *argv[])
 			case 'd':
 				command = OP_DUMP_TRACE;
 			break;
+			case 'D':
+				command=OP_DUMP_TRACE_M7;
+			break;
 			case 'x':
 				command = OP_DMA_PERF;
+			break;
+			case 'c':
+				command = OP_CLEAR_STATS;
+			break;
+			case 's':
+			    forceFifoSize=1;
+				ddr_rd_dma_xfr_size=strtoull(argv[optind-1], 0, 0);
+				ddr_wr_dma_xfr_size=strtoull(argv[optind],0, 0);
 			break;
 			default:
 				print_cmd_help();
@@ -322,6 +366,11 @@ int main(int argc, char *argv[])
 	/*
 	 *   start stream Tx IQ data thread
 	 */
+	
+	if (forceFifoSize) {
+		*v_ddr_rd_dma_xfr_size=ddr_rd_dma_xfr_size;
+		*v_ddr_wr_dma_xfr_size=ddr_wr_dma_xfr_size;
+	}
 
 	if (command <= OP_TX_RX) {
 		signal(SIGINT, terminate_process);
@@ -329,8 +378,14 @@ int main(int argc, char *argv[])
 		signal(SIGUSR1, sigusr1_process);
 	}
 
+	if (command == OP_CLEAR_STATS) {
+		for (i = 0; i < s_g_stats/4; i++) {
+			//dccivac((uint32_t*)(host_stats)+i);
+			*((uint32_t*)(host_stats)+i)=0;
+		}
+	}
+
 	if (command == OP_TX_ONLY) {
-		num_ant_enabled = 1;
 		if(isVspaExtPciDMA)
 			process_ant_tx_vspa_ext_dma(NULL);
 		else if (isStreamingTcmFifo)
@@ -340,7 +395,6 @@ int main(int argc, char *argv[])
 	}
 
 	if (command == OP_RX_ONLY) {
-		num_ant_enabled = 1;
 		if(isVspaExtPciDMA)
 			process_ant_rx_vspa_ext_dma(NULL);
 		else if (isStreamingTcmFifo)
@@ -359,6 +413,10 @@ int main(int argc, char *argv[])
 
 	if (command == OP_DUMP_TRACE) {
 		print_vspa_trace();
+	}
+
+	if(command==OP_DUMP_TRACE_M7){
+		print_m7_trace();
 	}
 
 	if (command == OP_DMA_PERF) {
@@ -380,10 +438,11 @@ int main(int argc, char *argv[])
 //VSPA_EXPORT(DDR_rd_load_start_bit_update)
 //VSPA_EXPORT(DDR_rd_start_bit_update)
 
-
-
+uint32_t txcount=0;
 uint32_t local_TX_total_produced_size=0;
 uint32_t local_TX_total_consumed_size=0;
+uint32_t local_TX_ext_dma_enabled=0;
+uint32_t local_DDR_rd_load_start_bit_update=0;
 
 void *process_ant_tx_vspa_ext_dma(void *arg)
 {
@@ -394,82 +453,85 @@ void *process_ant_tx_vspa_ext_dma(void *arg)
 	uint32_t ddr_start_address=0;
 	uint32_t ddr_file_size=0;
 	uint32_t ddr_rd_offset=0;
-	uint32_t txcount=0;
-
-	// !! this workaround is needed otherwise VSPA gets stuck ( dmac_is_available()/dmac_is_complete() doesn't work)  
-	// !! unless issue "ccs::config_chain {la9310 dap}" on ccs
-	_VSPA_A011455= (uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + 0x24);
-	*_VSPA_A011455|=0x10;
+	uint32_t loopcount=0;
 	
-	// Advertise VSPA streamer has started
-	*v_TX_ext_dma_enabled=1;
 
+	if(isM7offload){
+	    // Advertise VSPA streamer has started
+	    *v_TX_ext_dma_enabled=HOST_DMA_M7;
+		while (running){};
+	} else
+	{
+	    // Advertise VSPA streamer has started
+	    *v_TX_ext_dma_enabled=HOST_DMA_LINUX;
 restart_tx:
-	// Wait tx streaming to start
-	printf("\n TX : Waiting _DDR_base_address != 0xdeadbeef \n");
-	fflush(stdout);
-	dmem_dst_offset=0;
-	ddr_rd_offset=0;
-	ddr_start_address=*v_DDR_rd_base_address;
-	while ((ddr_start_address==0xdeadbeef)&&running){
-		//microsleep();
+		// Wait tx streaming to start
+		printf("\n TX : Waiting _DDR_base_address != 0xdeadbeef \n");
+		fflush(stdout);
+		dmem_dst_offset=0;
+		ddr_rd_offset=0;
 		ddr_start_address=*v_DDR_rd_base_address;
-		};
-	ddr_file_size=*v_DDR_rd_size;
-	txcount=((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD];
-
-	// Check pointers are cleared
-	local_TX_total_consumed_size=*v_TX_total_consumed_size;
-	if(local_TX_total_consumed_size&&running){
-		printf("\n Error TX_total_consumed_size=0x%08x not zero !",local_TX_total_consumed_size);
-		};
-	
-	// start feeding buffers
-	while (running){
-		// wait room in dmem buffers
-		do {
-			if(*v_DDR_rd_load_start_bit_update!=0){
-			// DMA perf test
-				break;
-			}
+		while ((ddr_start_address==0xdeadbeef)&&running){
+			//microsleep();
 			ddr_start_address=*v_DDR_rd_base_address;
-			if(ddr_start_address==0xdeadbeef){
-			// stopped ?
-				goto restart_tx;
-			}
-			local_TX_total_consumed_size=*v_TX_total_consumed_size;
-			busy_size= local_TX_total_produced_size - local_TX_total_consumed_size; // data transfered not yet transmitted (inside dmem)
-			empty_size= (TX_NUM_BUF*TX_DDR_STEP) - busy_size; // fifo size - data in dmem
-			if(empty_size >= TX_DDR_STEP){ 
-				break;
-			}
-			//microsleep(); //polling dmem may be a pb ?
-		} while(running);
+			};
+		ddr_file_size=*v_DDR_rd_size;
 
-		// xfer one buffer
-		ret= PCI_DMA_WRITE_transfer(IQFLOOD_BUF_ADDR +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,TX_DDR_STEP);
-		txcount++;
-		((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
-		if(ret){
-			printf("\n!! DMA not ready !!\n");
-			break;
-		}
+		// Check pointers are cleared
+		local_DDR_rd_load_start_bit_update=*v_DDR_rd_load_start_bit_update;
+		local_TX_total_consumed_size=*v_TX_total_consumed_size;
+		local_TX_total_produced_size=*v_TX_total_produced_size;
+		
+		// start feeding buffers
+		while (running){
+			// wait room in dmem buffers
+			do {
+				loopcount++;
+				// slow check stop event
+				if(loopcount>500){
+					loopcount=0;
+					ddr_start_address=*v_DDR_rd_base_address;
+					if(ddr_start_address==0xdeadbeef){
+						goto restart_tx;
+					}
+				}
+				// DMA perf (don't wait for consumer)
+				if(local_DDR_rd_load_start_bit_update!=0){
+					break;
+				}
+				// check DMA completion
+				//PCI_DMA_WRITE_completion(NB_WCHAN);
+				// normal mode check room for new transfer
+				local_TX_total_consumed_size=*v_TX_total_consumed_size;
+				busy_size= local_TX_total_produced_size - local_TX_total_consumed_size; 
+				empty_size= (TX_NUM_BUF*TX_DDR_STEP) - busy_size; 
+				if(empty_size >= EXT_DMA_TX_DDR_STEP){
+					// ready for next transfer
+					local_TX_total_produced_size += EXT_DMA_TX_DDR_STEP;
+					break;
+				}
+			} while(1);
 
-		// update pointers
-		ddr_rd_offset+= TX_DDR_STEP;
-		if(ddr_rd_offset>=ddr_file_size) {
-			ddr_rd_offset=0;
-		} 
-		dmem_dst_offset+=TX_DDR_STEP;
-		if(dmem_dst_offset>=(TX_NUM_BUF*TX_DDR_STEP)) {
-			dmem_dst_offset=0;
+			// xfer one buffer
+			ret= PCI_DMA_WRITE_transfer(IQFLOOD_BUF_ADDR +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,EXT_DMA_TX_DDR_STEP,NB_WCHAN);
+			if(ret){
+				host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]++;
+			}
+
+			// update pointers
+			ddr_rd_offset+= EXT_DMA_TX_DDR_STEP;
+			if(ddr_rd_offset>=ddr_file_size) {
+				ddr_rd_offset=0;
+			} 
+			dmem_dst_offset+=EXT_DMA_TX_DDR_STEP;
+			if(dmem_dst_offset>=(TX_NUM_BUF*TX_DDR_STEP)) {
+				dmem_dst_offset=0;
+			}
 		}
-		local_TX_total_produced_size+=TX_DDR_STEP;
-		*v_TX_total_produced_size=local_TX_total_produced_size;
 	}
 
-	// Advertise VSPA streamer has started
-	*v_TX_ext_dma_enabled=0;
+	// Advertise VSPA streamer stopped
+	*v_TX_ext_dma_enabled=HOST_DMA_OFF;
 
 	// exit
 	if (sem_post(&thread_sem))
@@ -487,14 +549,9 @@ void *process_ant_tx_streaming_tcm(void *arg)
 	uint32_t tcm_fifo_size = 0;
 	uint32_t tcm_dst_offset = 0;
 	uint32_t ddr_rd_offset = 0;
-	uint32_t txcount = 0;
 	uint32_t load_dma_test=0;
-	
+	uint32_t loopcount=0;
 
-	// !! this workaround is needed otherwise VSPA gets stuck ( dmac_is_available()/dmac_is_complete() doesn't work)
-	// !! unless issue "ccs::config_chain {la9310 dap}" on ccs
-	_VSPA_A011455 = (uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + 0x24);
-	*_VSPA_A011455 |= 0x10;
 	
 	// Wait tx streaming to start
 	printf("\n TX : start iq_streamer in TCM @0x0x%08x\n",ep_tcm_fifo_address);
@@ -515,59 +572,60 @@ restart_tx_tcm:
 
 	tcm_fifo_addr = (uint64_t)BAR2_ADDR + ep_tcm_fifo_address - TCM_START;
 	tcm_fifo_size = ep_tcm_fifo_size;
-	txcount=((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD];
 
 
 	// Check pointers are cleared
-	local_TX_total_consumed_size =  *v_TX_total_consumed_size;
-	if (local_TX_total_consumed_size) {
-		printf("\n Error transmit already running ( TX_total_consumed_size != 0 )");
-		return 0;
-	};
-
+	local_TX_total_consumed_size=*v_TX_total_consumed_size;
+	local_TX_total_produced_size=*v_TX_total_produced_size;
 	load_dma_test=*v_DDR_rd_load_start_bit_update;
 	// start feeding buffers
 	while (running) {
 		// wait room in TCM TX FIFO buffers
 		do {
-			if(!(*v_DDR_rd_start_bit_update)){
-			// stopped ?
-				goto restart_tx_tcm;
+			// slow check stop event
+			if(loopcount>500){
+				loopcount=0;
+				if(!(*v_DDR_rd_start_bit_update)){
+				// stopped ?
+					goto restart_tx_tcm;
+				}
 			}
 			if (load_dma_test) {
 			// DMA perf test
 				break;
 			}
+			// check DMA completion
+			//PCI_DMA_WRITE_completion(NB_WCHAN);
+			// normal mode check room for new transfer
 			local_TX_total_consumed_size =  *v_TX_total_consumed_size;
 			busy_size = local_TX_total_produced_size - local_TX_total_consumed_size;
 			empty_size = tcm_fifo_size - busy_size; // fifo size - data in tcm
-			if (empty_size >= TX_DDR_STEP) {
+			if (empty_size >= EXT_DMA_TX_DDR_STEP) {
+				// ready for next transfer
+				local_TX_total_produced_size += EXT_DMA_TX_DDR_STEP;
 				break;
 			}
 			if ((empty_size == tcm_fifo_size) && !local_TX_total_produced_size) {
 				((t_stats *)(v_g_stats))->tx_stats[ERROR_EXT_DMA_DDR_RD_UNDERRUN] += 1;
 			}
-			//microsleep(); //polling dmem may be a pb ?
+			// check dma complettion
 		} while (running);
 
-		ret = PCI_DMA_WRITE_transfer(ddr_file_addr + ddr_rd_offset, tcm_fifo_addr + tcm_dst_offset, TX_DDR_STEP);
-		txcount += 1;
-		((t_stats *)(v_g_stats))->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
+		ret = PCI_DMA_WRITE_transfer(ddr_file_addr + ddr_rd_offset, tcm_fifo_addr + tcm_dst_offset, EXT_DMA_TX_DDR_STEP,NB_WCHAN);
 
 		if (ret) {
 			printf("\n!! DMA not ready !!\n");
 			break;
 		}
 
-		ddr_rd_offset += TX_DDR_STEP;
+		ddr_rd_offset += EXT_DMA_TX_DDR_STEP;
 		if (ddr_rd_offset >= ddr_file_size) {
 			ddr_rd_offset = 0;
 		}
-		tcm_dst_offset += TX_DDR_STEP;
+		tcm_dst_offset += EXT_DMA_TX_DDR_STEP;
 		if (tcm_dst_offset >= tcm_fifo_size) {
 			tcm_dst_offset = 0;
 		}
-		local_TX_total_produced_size += TX_DDR_STEP;
 	}
 
 	// exit
@@ -592,11 +650,15 @@ void *process_ant_tx_streaming_ddr(void *arg)
 //VSPA_EXPORT(input_buffer)
 //VSPA_EXPORT(RX_ext_dma_enabled)
 //VSPA_EXPORT(DDR_wr_load_start_bit_update)
+//VSPA_EXPORT(DDR_wr_CMP_enable)
 
 uint32_t local_RX_total_produced_size;
 uint32_t local_RX_total_consumed_size;
+uint32_t local_DDR_wr_load_start_bit_update;
 
-#ifdef v_RX_total_produced_size
+uint32_t rxcount=0;
+
+#ifdef v_RX_total_produced_size /* only 1T1R */
 void *process_ant_rx_vspa_ext_dma(void *arg)
 {
 	int ret;
@@ -605,79 +667,86 @@ void *process_ant_rx_vspa_ext_dma(void *arg)
 	uint32_t ddr_start_address = 0;
 	uint32_t ddr_file_size = 0;
 	uint32_t ddr_wr_offset = 0;
-	uint32_t rxcount = 0;
+	//uint32_t xfr_size;
+	uint32_t loopcount=0;
 
 	// !! this workaround is needed otherwise VSPA gets stuck ( dmac_is_available()/dmac_is_complete() doesn't work)
 	// !! unless issue "ccs::config_chain {la9310 dap}" on ccs
-	_VSPA_A011455 = (uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + 0x24);
-	*_VSPA_A011455 |= 0x10;
+	//_VSPA_A011455 = (uint32_t *)((uint64_t)BAR0_addr + VSPA_CCSR + 0x24);
+	//*_VSPA_A011455 |= 0x10;
 
-	// Advertise VSPA streamer has started
-	*v_RX_ext_dma_enabled = 1;
-
+	if(isM7offload){
+		// Advertise VSPA streamer has started
+		*v_RX_ext_dma_enabled = HOST_DMA_M7;
+		while (running){};
+	}else{
+		// Advertise VSPA streamer has started
+		*v_RX_ext_dma_enabled = HOST_DMA_LINUX;
 restart_rx:
-	// Wait tx streaming to start
-	printf("\n RX : Waiting _DDR_wr_address != 0xdeadbeef\n");
-	fflush(stdout);
-	ddr_wr_offset = 0;
-	dmem_src_offset = 0;
-	ddr_start_address =  *v_DDR_wr_base_address;
-	while ((ddr_start_address == 0xdeadbeef) && running) {
-		//microsleep();
+		// Wait tx streaming to start
+		printf("\n RX : Waiting _DDR_wr_address != 0xdeadbeef\n");
+		fflush(stdout);
+		ddr_wr_offset = 0;
+		dmem_src_offset = 0;
 		ddr_start_address =  *v_DDR_wr_base_address;
-		};
-	ddr_file_size =  *v_DDR_wr_size;
-	rxcount = ((t_stats *)(v_g_stats))->rx_stats[0][STAT_EXT_DMA_DDR_WR];
-
-
-	// Check pointers are cleared
-	local_RX_total_consumed_size =  *v_RX_total_consumed_size;
-	if (local_RX_total_consumed_size && running) {
-		printf("\n Error RX_total_consumed_size=0x%08x not zero !", local_RX_total_consumed_size);
-		};
-
-	// start feeding buffers
-	while (running) {
-		// wait produced data in dmem buffers
-		do {
-			if (*v_DDR_wr_load_start_bit_update != 0) {
-			// DMA perf test
-				break;
-			}
+		//xfr_size=(*v_DDR_wr_CMP_enable?RX_DDR_STEP*RX_COMPRESS_RATIO_PCT/100:RX_DDR_STEP);
+		while ((ddr_start_address == 0xdeadbeef) && running) {
+			//microsleep();
 			ddr_start_address =  *v_DDR_wr_base_address;
-			if (ddr_start_address == 0xdeadbeef)
-			// stopped ?
-				goto restart_rx;
-			local_RX_total_produced_size =  *v_RX_total_produced_size;
-			data_size = local_RX_total_produced_size - local_RX_total_consumed_size; // data QECed but not yet transfered
-			if (data_size >= RX_DDR_STEP) {
-			// check
-				break;
+			};
+		ddr_file_size =  *v_DDR_wr_size;
+		local_RX_total_produced_size =  *v_RX_total_produced_size;
+		local_RX_total_consumed_size =  *v_RX_total_consumed_size;
+	    local_DDR_wr_load_start_bit_update = *v_DDR_wr_load_start_bit_update;
+
+		// start feeding buffers
+		while (running) {
+			// wait produced data in dmem buffers
+			do {
+				loopcount++;
+				// slow check stop event
+				if(loopcount>500){
+					loopcount=0;
+					ddr_start_address=*v_DDR_wr_base_address;
+					if(ddr_start_address==0xdeadbeef){
+						goto restart_rx;
+					}
+				}
+				if (local_DDR_wr_load_start_bit_update != 0) {
+				// DMA perf test
+					break;
+				}
+				// check DMA completion
+				//PCI_DMA_READ_completion(NB_RCHAN);
+			    // normal mode check for new transfer ready
+				local_RX_total_produced_size =  *v_RX_total_produced_size;
+				data_size = local_RX_total_produced_size - local_RX_total_consumed_size; // data QECed but not yet transfered
+				if (data_size >= EXT_DMA_RX_DDR_STEP) {
+					// ready to fetch new data
+					local_RX_total_consumed_size += EXT_DMA_RX_DDR_STEP;
+					break;
+				}
+				} while (running);
+
+			// xfer one buffer
+			ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, IQFLOOD_BUF_ADDR + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, EXT_DMA_RX_DDR_STEP,NB_RCHAN);
+			if (ret) {
+				host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]++;
 			}
-			//microsleep(); //polling dmem may be a pb ?
-			} while (running);
 
-		// xfer one buffer
-		ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, IQFLOOD_BUF_ADDR + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, RX_DDR_STEP);
-		rxcount++;
-		((t_stats *)(v_g_stats))->rx_stats[0][STAT_EXT_DMA_DDR_WR]=rxcount;
-		if (ret) {
-			printf("\n!! DMA not ready !!\n");
-			break;
+			// update pointers
+			ddr_wr_offset += EXT_DMA_RX_DDR_STEP;
+			if (ddr_wr_offset >= ddr_file_size) {
+				ddr_wr_offset = 0;
+			}
+			dmem_src_offset += EXT_DMA_RX_DDR_STEP;
+			if (dmem_src_offset >= (RX_NUM_BUF*RX_DDR_STEP)) {
+				dmem_src_offset = 0;
+			}
 		}
-
-		// update pointers
-		ddr_wr_offset += RX_DDR_STEP;
-		if (ddr_wr_offset >= ddr_file_size) {
-			ddr_wr_offset = 0;
-		}
-		dmem_src_offset += RX_DDR_STEP;
-		if (dmem_src_offset >= (RX_NUM_BUF*RX_DDR_STEP)) {
-			dmem_src_offset = 0;
-		}
-		local_RX_total_consumed_size += RX_DDR_STEP;
-		*v_RX_total_consumed_size = local_RX_total_consumed_size;
 	}
+	
+	*v_RX_ext_dma_enabled = HOST_DMA_OFF;
 
 	// exit
 	if (sem_post(&thread_sem))
@@ -687,10 +756,10 @@ restart_rx:
 }
 
 #else
-
 void *process_ant_rx_vspa_ext_dma(void *arg)
 {
-	perror("rx_vspa_ext_dma not supported");
+	perror("rx_vspa_ext_dma not supported (only 1T1R)");
 	return 0;
 }
 #endif
+
