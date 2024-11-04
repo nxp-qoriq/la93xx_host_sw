@@ -50,6 +50,7 @@ extern int adc_rate_mask;
 extern int dac_rate_mask;
 extern int iq_mem_size;
 extern uint64_t iq_mem_addr;
+extern int modem_rf_data_size;
 extern uint64_t scratch_buf_phys_addr;
 extern char firmware_name[];
 extern char vspa_fw_name[];
@@ -133,6 +134,7 @@ enum la9310_mem_region_t {
 	LA9310_MEM_REGION_IQ_SAMPLES,
 	LA9310_MEM_REGION_NLM_OPS,
 	LA9310_MEM_REGION_STD_FW,
+	LA9310_MEM_REGION_RF_CAL,
 	LA9310_MEM_REGION_MAX,
 };
 
@@ -239,6 +241,7 @@ struct la9310_dma_info {
 #define LA9310_IQ_SAMPLES_SIZE		(20 * 1024 * 1024)
 #define LA9310_NLM_OPS_SIZE		(16 * 1024 * 1024)
 #define LA9310_STD_FW_SIZE		(128 * 1024)
+#define LA9310_SHARE_RF_SIZE		(200 * 1024) /* 200KB */
 /* Mem region separator */
 #define LA9310_DMA_SEPARATOR_SIZE		(64)
 #define LA9310_DMA_SEPARATOR_PAINT_CHAR	(0xFC)

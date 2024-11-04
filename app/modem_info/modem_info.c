@@ -133,6 +133,10 @@ void print_modem_info(int id)
 		mi->nlmops.host_phy_addr, mi->nlmops.modem_phy_addr, mi->nlmops.size);
 	printf("STD FW phys      | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
 		mi->stdfw.host_phy_addr, mi->stdfw.modem_phy_addr, mi->stdfw.size);
+	if (mi->rfcal.size) {
+		printf("RF CAL phys      | \t0x%lx\t | \t0x%x\t | \t0x%x\n",
+			mi->rfcal.host_phy_addr, mi->rfcal.modem_phy_addr, mi->rfcal.size);
+	}
 
 	printf("DAC Mask: 0x%x  Rate: %s\n",
 			mi->dac_mask,

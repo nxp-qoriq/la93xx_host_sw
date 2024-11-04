@@ -45,6 +45,8 @@ int dac_rate_mask; 	/* = 0x1; */
 EXPORT_SYMBOL(adc_rate_mask);
 EXPORT_SYMBOL(dac_rate_mask);
 
+int modem_rf_data_size = LA9310_SHARE_RF_SIZE;
+EXPORT_SYMBOL(modem_rf_data_size);
 uint64_t iq_mem_addr;
 EXPORT_SYMBOL_GPL(iq_mem_addr);
 int iq_mem_size;
@@ -215,6 +217,10 @@ ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 			i, mi.nlmops.host_phy_addr, (u64)mi.nlmops.size);
 	sprintf(&buf[strlen(buf)], " STD FW BAR:%d        addr:0x%llx len:0x%llx\n",
 			i, mi.stdfw.host_phy_addr, (u64)mi.stdfw.size);
+	if (mi.rfcal.size) {
+		sprintf(&buf[strlen(buf)], " RF CAL BAR:%d        addr:0x%llx len:0x%llx\n",
+				i, mi.rfcal.host_phy_addr, (u64)mi.rfcal.size);
+	}
 	sprintf(&buf[strlen(buf)], "\n Scratch:  Phy      addr:0x%llx Size:0x%llx (%lldMB)\n",
 			mi.scratchbuf.host_phy_addr, (u64)mi.scratchbuf.size,
 			IN_MB((u64)mi.scratchbuf.size));
@@ -699,6 +705,8 @@ module_param(iq_mem_addr, ullong, 0400);
 MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Address");
 module_param(iq_mem_size, int, 0400);
 MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Size");
+module_param(modem_rf_data_size, int, 0400);
+MODULE_PARM_DESC(modem_rf_data_size, "RFIC buffer size for each LA931x devices");
 module_param_string(alt_vspa_fw_name, vspa_fw_name,
 		sizeof(vspa_fw_name), 0400);
 MODULE_PARM_DESC(alt_vspa_fw_name,

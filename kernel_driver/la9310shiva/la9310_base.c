@@ -387,6 +387,13 @@ la9310_init_subdrv_dma_buf(struct la9310_dev *la9310_dev)
 	ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
 	la9310_init_subdrv_region(la9310_dev, ep_buf, LA9310_STD_FW_SIZE,
 				  LA9310_MEM_REGION_STD_FW);
+
+	if (modem_rf_data_size) {
+		idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_RF_CAL);
+		ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
+		la9310_init_subdrv_region(la9310_dev, ep_buf, modem_rf_data_size,
+					  LA9310_MEM_REGION_RF_CAL);
+	}
 }
 
 static int
@@ -799,6 +806,7 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	writel(LA9310_IQFLOOD_PHYS_ADDR, &la9310_dev->hif->iq_phys_addr);
 	writel(iq_mem_size, &la9310_dev->hif->iq_mem_size);
 	writel(iq_mem_addr, &la9310_dev->hif->iq_mem_addr);
+	writel(modem_rf_data_size, &la9310_dev->hif->modem_rf_data_size);
 
 	init_stage = LA9310_SUBDRV_PROBE_STAGE;
 	dev_info(la9310_dev->dev, "%s:Initiating sub-drivers\n",

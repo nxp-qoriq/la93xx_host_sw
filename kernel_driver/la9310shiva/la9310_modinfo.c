@@ -177,6 +177,15 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	mi->stdfw.host_phy_addr = scratch_buf_phys_addr +
 		mi->stdfw.modem_phy_addr - mi->pciwin.modem_phy_addr;
 
+	if (modem_rf_data_size) {
+		idx = LA9310_SUBDRV_DMA_REGION_IDX(LA9310_MEM_REGION_RF_CAL);
+		ep_buf = &la9310_dev->dma_info.ep_bufs[idx];
+		mi->rfcal.modem_phy_addr = ep_buf->phys_addr;
+		mi->rfcal.size = ep_buf->size;
+		mi->rfcal.host_phy_addr = scratch_buf_phys_addr +
+			mi->rfcal.modem_phy_addr - mi->pciwin.modem_phy_addr;
+	}
+
 	mi->hif.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_TCML].phys_addr + LA9310_EP_HIF_OFFSET;
 	mi->hif.size = sizeof(struct la9310_hif);
 
