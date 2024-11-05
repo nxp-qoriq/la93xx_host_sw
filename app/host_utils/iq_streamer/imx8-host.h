@@ -30,13 +30,7 @@ extern uint32_t *PCIE1_addr;
 #define dccivac(p) { asm volatile("dc civac, %0" : : "r"(p) : "memory"); }
 
 #ifndef IMX8DXL
-#define MODEM_BAR0_CCSR_OFFSET	0x18000000
-#define MODEM_CCSR_SIZE		0x4000000
-#define IQFLOOD_BUF_SIZE	0xd000000
-#define IQFLOOD_BUF_ADDR	0x96400000
 #define IQFLOOD_VSPA_PROXY_SIZE 0x100
-#define SCRATCH_SIZE	 0x4000000
-#define SCRATCH_ADDR	0x92400000
 
 #define BAR0_SIZE	0x4000000
 #define BAR0_ADDR	0x18000000
@@ -51,12 +45,6 @@ extern uint32_t *PCIE1_addr;
 #define OCRAM_ADDR     0x900000
 
 #else
-#define MODEM_BAR0_CCSR_OFFSET  0x70000000
-#define MODEM_CCSR_SIZE         0x4000000
-#define IQFLOOD_BUF_SIZE        0xb00000
-#define IQFLOOD_BUF_ADDR        0xbf200000
-#define SCRATCH_SIZE     0x3000000
-#define SCRATCH_ADDR     0xbc200000
 
 #define BAR0_SIZE       0x4000000
 #define BAR0_ADDR       0x70000000

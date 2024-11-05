@@ -26,6 +26,8 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <argp.h>
+#include <la9310_modinfo.h>
+#include <la9310_host_if.h>
 
 //#include "kpage_ncache_api.h"
 
@@ -103,17 +105,42 @@ uint32_t ddr_wr_dma_xfr_size=RX_DDR_STEP*RX_COMPRESS_RATIO_PCT/100;
 
 void print_host_trace(void);
 
+modinfo_t mi;
+
+static int get_modem_info(int modem_id)
+{
+	int fd;
+	int ret;
+	char dev_name[32];
+	sprintf(dev_name, "/dev/%s%d", LA9310_DEV_NAME_PREFIX, modem_id);
+
+	fd = open(dev_name, O_RDWR);
+	if (fd < 0) {
+		printf("File %s open error\n", dev_name);
+		return -1;
+	}
+
+	ret = ioctl(fd, IOCTL_LA93XX_MODINFO_GET, &mi);
+	if (ret < 0) {
+		printf("IOCTL_LA9310_MODINFO_GET failed.\n");
+		close(fd);
+		return -1;
+	}
+	close(fd);
+
+	return 0;
+}
+
 int map_physical_regions(void)
 {
 	int devmem_fd, i;
+
 	//void *scr_p;
 	//uint32_t mapsize;
 	//uint64_t k_page;
-
 	/*
 	* map memory regions
 	*/
-
 	devmem_fd = open("/dev/mem", O_RDWR);
 	if (-1 == devmem_fd) {
 		perror("/dev/mem open failed");
@@ -133,8 +160,8 @@ int map_physical_regions(void)
 //	printf("\n map iqflood_ddr :");
 //	la9310_hexdump(v_iqflood_ddr_addr,64);
 
-	v_iqflood_ddr_addr = mmap(NULL, IQFLOOD_BUF_SIZE, PROT_READ | PROT_WRITE,
-			MAP_SHARED, devmem_fd, IQFLOOD_BUF_ADDR);
+	v_iqflood_ddr_addr = mmap(NULL, mi.iqflood.size, PROT_READ | PROT_WRITE,
+			MAP_SHARED, devmem_fd, mi.iqflood.host_phy_addr);
 	if (v_iqflood_ddr_addr == MAP_FAILED) {
 		perror("Mapping v_iqflood_ddr_addr buffer failed\n");
 		return -1;
@@ -143,8 +170,8 @@ int map_physical_regions(void)
 //	printf("\n map iqflood_ddr :");
 //	la9310_hexdump(v_iqflood_ddr_addr,64);
 
-	v_scratch_ddr_addr = mmap(NULL, SCRATCH_SIZE, PROT_READ | PROT_WRITE,
-			MAP_SHARED, devmem_fd, SCRATCH_ADDR);
+	v_scratch_ddr_addr = mmap(NULL,  mi.scratchbuf.size, PROT_READ | PROT_WRITE,
+			MAP_SHARED, devmem_fd,  mi.scratchbuf.host_phy_addr);
 	if (v_scratch_ddr_addr == MAP_FAILED) {
 		perror("Mapping v_scratch_ddr_addr buffer failed\n");
 		return -1;
@@ -204,7 +231,7 @@ int map_physical_regions(void)
 	/* search outbound windows mapping iqflood */
 	for (i = 0; i <= 3; i++) {
 		*(volatile uint32_t *)((uint64_t)BAR0_addr + IATU_VIEWPORT_OFF) = i;
-		if (*(volatile uint32_t *)((uint64_t)BAR0_addr + ATU_LWR_TARGET_ADDR_OFF_INBOUND_0) == IQFLOOD_BUF_ADDR)
+		if (*(volatile uint32_t *)((uint64_t)BAR0_addr + ATU_LWR_TARGET_ADDR_OFF_INBOUND_0) == mi.iqflood.host_phy_addr)
 		{
 			p_la9310_outbound_base =  *(volatile uint32_t *)((uint64_t)BAR0_addr + ATU_LWR_BASE_ADDR_OFF_OUTBOUND_0);
 			break;
@@ -213,7 +240,7 @@ int map_physical_regions(void)
 	if (i <= 3) {
 		printf("la9310 pci outbound to ddr iqflood found : 0x%08x", p_la9310_outbound_base);
 	} else {
-		printf("la9310 pci outbound to iqflood (0x%08x) not found\n", IQFLOOD_BUF_ADDR);
+		printf("la9310 pci outbound to iqflood (0x%08x) not found\n", (uint32_t)mi.iqflood.host_phy_addr);
 		return -1;
 	}
 
@@ -269,10 +296,10 @@ void print_cmd_help(void)
 
 int main(int argc, char *argv[])
 {
-    int32_t c,i;
+	int32_t c,i,ret;
 	command_e command = 0;
 	struct stat buffer;
-    int32_t forceFifoSize=0;
+	int32_t forceFifoSize=0;
 
 
 	if(argc<=1){
@@ -354,7 +381,12 @@ int main(int argc, char *argv[])
 	}
 
 	running = 1;
-
+	/*get modem info*/
+        ret = get_modem_info(0);
+        if(ret != 0) {
+                perror("Fail to get modem_info \r\n");
+		exit(EXIT_FAILURE);
+        }
 	/*
 	* map memory regions
 	*/
@@ -513,7 +545,7 @@ restart_tx:
 			} while(1);
 
 			// xfer one buffer
-			ret= PCI_DMA_WRITE_transfer(IQFLOOD_BUF_ADDR +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,EXT_DMA_TX_DDR_STEP,NB_WCHAN);
+			ret= PCI_DMA_WRITE_transfer(mi.iqflood.host_phy_addr +(ddr_start_address-p_la9310_outbound_base)+ddr_rd_offset,(uint32_t)(p_output_buffer) + dmem_dst_offset,EXT_DMA_TX_DDR_STEP,NB_WCHAN);
 			if(ret){
 				host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]++;
 			}
@@ -729,7 +761,7 @@ restart_rx:
 				} while (running);
 
 			// xfer one buffer
-			ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, IQFLOOD_BUF_ADDR + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, EXT_DMA_RX_DDR_STEP,NB_RCHAN);
+			ret = PCI_DMA_READ_transfer((uint32_t)(p_input_buffer) + dmem_src_offset, mi.iqflood.host_phy_addr + (ddr_start_address-p_la9310_outbound_base) + ddr_wr_offset, EXT_DMA_RX_DDR_STEP,NB_RCHAN);
 			if (ret) {
 				host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]++;
 			}
