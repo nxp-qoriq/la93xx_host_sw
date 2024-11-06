@@ -56,6 +56,7 @@
 #include "iq_streamer.h"
 #include "imx8-host.h"
 #include "vspa_dmem_proxy.h"
+#include "imx_edma_api.h"
 
 
 void la9310_hexdump(const void *ptr, size_t sz);
@@ -218,13 +219,6 @@ int map_physical_regions(void)
 //	}
 #endif
 
-
-	PCIE1_addr = mmap(NULL, IMX8MP_PCIE1_SIZE, PROT_READ | PROT_WRITE,
-			MAP_SHARED, devmem_fd, IMX8MP_PCIE1_ADDR);
-	if (PCIE1_addr == MAP_FAILED) {
-		perror("Mapping PCIE1_addr buffer failed\n");
-		return -1;
-	}
 //	printf("\n map PCIE1_addr :");
 //	la9310_hexdump(PCIE1_addr,64);
 
@@ -241,6 +235,11 @@ int map_physical_regions(void)
 		printf("la9310 pci outbound to ddr iqflood found : 0x%08x", p_la9310_outbound_base);
 	} else {
 		printf("la9310 pci outbound to iqflood (0x%08x) not found\n", (uint32_t)mi.iqflood.host_phy_addr);
+		return -1;
+	}
+
+	if (init_mem((PCIE1_ADDR + DMA_OFFSET), PCIE1_SIZE) < 0) {
+		printf("Unable to MAP DMA REG area\n");
 		return -1;
 	}
 

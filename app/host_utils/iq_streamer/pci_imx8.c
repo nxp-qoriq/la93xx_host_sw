@@ -25,6 +25,7 @@
 #include "iqmod_rx.h"
 #include "iqmod_tx.h"
 #include "stats.h"
+#include "imx_edma_api.h"
 #else
 #define l1_trace(a,b){};
 #endif
@@ -53,8 +54,7 @@ int PCI_DMA_WRITE_completion(uint32_t nbchan)
 {
     volatile uint32_t *reg;
     int dma = 0;
-	uint32_t off;
-	uint32_t chanStatus = 0;
+	uint32_t ret = 0;
 	uint32_t error = 0;
 
 	if(!tx_pending_dma)
@@ -62,16 +62,14 @@ int PCI_DMA_WRITE_completion(uint32_t nbchan)
 	
 	/* check completion */
 	for (dma = 0; dma < nbchan; dma++) {
-		off = 0x200 * dma;
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
-		chanStatus =  *reg;
-		if ((chanStatus & 0x40) != 0x40) {
+		ret = pci_dma_completed(dma + 1, 0);
+		if (ret == -1) {
 			/* still running */
 			return 0;
 		}
-		if ((chanStatus & 0x60) != 0x60) {
-			error=1;
-		}
+
+		if (ret == -2)
+			error = 1;
 	}
 
 	tx_pending_dma=0;
@@ -94,17 +92,12 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uin
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
-	uint32_t off;
 
 	// Do soft reset on start
 	if (tx_first_dma) {
 		tx_first_dma = 0;
 		for (int dma = 0; dma < nbchan; dma++) {
-			off = 0x200 * dma;
-			reg = (uint32_t *)DMA_WRITE_ENGINE_EN_OFF;
-			*reg = 0x0;
-			reg = (uint32_t *)DMA_WRITE_ENGINE_EN_OFF;
-			*reg = 0x1;
+			pci_dma_tx_reset();
 		}
 	}
 	
@@ -112,34 +105,8 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uin
 
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, (uint32_t)ddr_src);
 
-	for (dma = 0; dma < nbchan; dma++) {
-		off = 0x200 * dma;
-		// Check DMA Halt state
-		//reg = (uint32_t*)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
-		//if((*reg & 0x60) != 0x60) {
-		//	return -1;
-		//}
-		// Clear previous transfer
-		reg = (uint32_t *)DMA_WRITE_INT_CLEAR_OFF;
-		*reg = 1 << dma;
-		// Configure new transfer
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_WRCH_0 + off);
-		//*reg = 0x04000008;
-		*reg = 0x00000008;
-		reg = (uint32_t *)(DMA_TRANSFER_SIZE_OFF_WRCH_0 + off);
-		*reg =  size/nbchan;
-		reg = (uint32_t *)(DMA_SAR_LOW_OFF_WRCH_0 + off);
-		*reg =  ddr_src + dma*(size/nbchan);
-		reg = (uint32_t *)(DMA_SAR_HIGH_OFF_WRCH_0 + off);
-		*reg =  0x00000000;
-		reg = (uint32_t *)(DMA_DAR_LOW_OFF_WRCH_0 + off);
-		*reg =  pci_dst + dma*(size/nbchan);
-		reg = (uint32_t *)(DMA_DAR_HIGH_OFF_WRCH_0 + off);
-		*reg =  0x00000000;
-		// start transfer
-		reg = (uint32_t *)DMA_WRITE_DOORBELL_OFF;
-		*reg =  dma;
-	}
+	for (dma = 0; dma < nbchan; dma++)
+		pci_dma_write(ddr_src, pci_dst, size / nbchan, dma + 1);
 
 	/* mark dma running */
 	tx_pending_dma=1;
@@ -159,8 +126,7 @@ int PCI_DMA_READ_completion(uint32_t nbchan)
 {
     volatile uint32_t *reg;
     int dma = 0;
-	uint32_t off;
-	uint32_t chanStatus = 0;
+	uint32_t ret = 0;
 	uint32_t error=0;
 
 	if(!rx_pending_dma)
@@ -168,16 +134,14 @@ int PCI_DMA_READ_completion(uint32_t nbchan)
 
 	/* wait for completion */
 	for (dma = 0; dma < nbchan; dma++) {
-		off = 0x200 * dma;
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
-		chanStatus =  *reg;
-		if((chanStatus & 0x40) != 0x40) {
+		ret = pci_dma_completed(dma + 1, 1);
+		if (ret == -1) {
 			/* still running */
 			return 0;
-		if ((chanStatus & 0x60) != 0x60) {
-			error=1;
-			}
 		}
+
+		if (ret == -2)
+			error = 1;
 	}
 	
 	rx_pending_dma=0;
@@ -200,17 +164,12 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size,uint
 {
     volatile uint32_t *reg;
     volatile int dma = 0;
-	uint32_t off;
 
 	// Do soft reset on start
 	if (rx_first_dma) {
 		rx_first_dma = 0;
 		for (int dma = 0; dma < nbchan; dma++) {
-			off = 0x200 * dma;
-			reg = (uint32_t *)DMA_READ_ENGINE_EN_OFF;
-			*reg = 0x0;
-			reg = (uint32_t *)DMA_READ_ENGINE_EN_OFF;
-			*reg = 0x1;
+			pci_dma_rx_reset();
 		}
 	}
 	
@@ -218,33 +177,8 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size,uint
 
 	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_START, (uint32_t)pci_src);
 
-	for (dma = 0; dma < nbchan; dma++) {
-		off = 0x200 * dma;
-		// Check DMA Halt state
-		//reg = (uint32_t*)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
-		//if((*reg & 0x60) == 0x60) {
-		//	return -1;
-		//}
-		// Clear previous transfer
-		reg = (uint32_t *)DMA_READ_INT_CLEAR_OFF;
-		*reg = 1 << dma;
-		// Configure new transfer
-		reg = (uint32_t *)(DMA_CH_CONTROL1_OFF_RDCH_0 + off);
-//		*reg = 0x04000008 ;
-		*reg = 0x00000008;
-		reg = (uint32_t *)(DMA_TRANSFER_SIZE_OFF_RDCH_0 + off);
-		*reg =  size/nbchan;
-		reg = (uint32_t *)(DMA_SAR_LOW_OFF_RDCH_0 + off);
-		*reg =  pci_src + dma*size/nbchan;
-		reg = (uint32_t *)(DMA_SAR_HIGH_OFF_RDCH_0 + off);
-		*reg =  0x00000000;
-		reg = (uint32_t *)(DMA_DAR_LOW_OFF_RDCH_0 + off);
-		*reg =  ddr_dst + dma*size/nbchan;
-		reg = (uint32_t *)(DMA_DAR_HIGH_OFF_RDCH_0 + off);
-		*reg =  0x00000000;
-		reg = (uint32_t *)DMA_READ_DOORBELL_OFF;
-		*reg =  dma;
-	}
+	for (dma = 0; dma < nbchan; dma++)
+		pci_dma_read(pci_src, ddr_dst, size / nbchan, dma + 1);
 
 	/* mark dma running */
 	rx_pending_dma=1;

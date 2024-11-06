@@ -2,7 +2,7 @@
 
 #Add lib directory here
 
-LIB_DIRS := wdog tti ecspi phc_clock
+LIB_DIRS := wdog tti ecspi phc_clock edma
 CLEAN_LIB_DIRS = $(patsubst %, %_clean, ${LIB_DIRS})
 INSTALL_LIB_DIRS = $(patsubst %, %_install, ${LIB_DIRS})
 
