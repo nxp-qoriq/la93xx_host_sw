@@ -11,7 +11,7 @@ OBJS := $(SRCS_TEST:.c =.o)
 BIN_MOD_INFO := la9310_modem_info
 
 SRCS_SHBUF := la9310_shbuf_test.c
-OBJS_SHBUF := $(SRCS_TEST:.c =.o)
+OBJS_SHBUF := $(SRCS_SHBUF:.c =.o)
 BIN_SHBUF := la9310_shbuf_test
 
 all: $(BIN_MOD_INFO) $(BIN_SHBUF)
