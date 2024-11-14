@@ -14,8 +14,8 @@ typedef enum {
 	HOST_DMA_MAX
 } host_dma_e;
 
-#define NB_RCHAN 2
-#define NB_WCHAN 2
+#define NB_RCHAN 1
+#define NB_WCHAN 1
 #define EXT_DMA_TX_DDR_STEP (2*TX_DDR_STEP)
 #define EXT_DMA_RX_DDR_STEP (2*RX_DDR_STEP)
 
