@@ -23,5 +23,7 @@ extern struct list_head pcidev_list;
 #define GUL_MMAP_PEBM_SIZE      0x200000
 
 #define LA9310_UART_SEL_GPIO	1
-
+#if defined(SEEVE)
+#define LA9310_RESET_HANDSHAKE_POLLING_ENABLE 1
+#endif
 #endif /* _PCI_UTILITIES_H */

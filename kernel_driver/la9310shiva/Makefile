@@ -17,6 +17,9 @@ ifeq ($(IMX_RFNM),1)
 ccflags-y += -DRFNM="1"
 endif
 
+ifeq ($(IMX_SEEVE),1)
+ccflags-y += -DSEEVE="1"
+endif
 
 obj-m := la9310shiva.o
 la9310shiva-objs := la9310_base.o  la9310_boot.o  la9310_pci.o la9310_sysfs.o la9310_irq_mux.o \

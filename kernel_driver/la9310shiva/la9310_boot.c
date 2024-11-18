@@ -77,7 +77,7 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 	scratch_val = readl(scratch_reg);
 	hif_offset = readl(hif_offset_reg);
 	hif_size = readl(hif_size_reg);
-	while ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && (!hif_size) && retries) {
+	while ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && hif_size && retries) {
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(msecs_to_jiffies(
 			LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
@@ -87,8 +87,6 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 		hif_offset = readl(hif_offset_reg);
 		hif_size = readl(hif_size_reg);
 	}
-
-
 #else
 	/*waiting for interrupt from la9310 to do handshake*/
 	wait_for_completion_timeout(&ScratchRegisterHandshake,

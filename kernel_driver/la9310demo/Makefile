@@ -12,6 +12,9 @@ ifeq ($(IMX_RFNM),1)
 ccflags-y += -DRFNM="1"
 endif
 
+ifeq ($(IMX_SEEVE),1)
+ccflags-y += -DSEEVE="1"
+endif
 
 ccflags-y += -I${LA9310_DRV_HEADER_DIR} -I${LA9310_COMMON_HEADERS}
 
