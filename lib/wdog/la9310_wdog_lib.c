@@ -18,7 +18,6 @@
 
 #define LA9310_DEV_NAME_PREFIX	"shiva"
 #define PCI_DEVICE_PATH "readlink -f /sys/bus/pci/drivers/NXP-LA9310-Driver/"
-#define HOST_PCI_PATH "/sys/devices/platform/"
 #define DEFAULT_EXTRA_RMMOD_SCRIPT "/home/root/rmmod_rfnm_drivers.sh"
 #define xstr(s) str(s)
 #define str(s) #s
@@ -243,19 +242,19 @@ void get_pci_controller_path(char *host_pci_status, char *pci_driver_path) {
 	char pci_device_path[256];
 	int i = 0, len = 0;
 
-	if (fgets(pci_device_path, sizeof(pci_device_path), command) != NULL) {
+	if (fgets(pci_device_path, sizeof(pci_device_path), command) == NULL) {
 		printf("pci_device_path failed.\n");
 		host_pci_status[len] = '\0';
 		return;
 	}
-	len += snprintf((host_pci_status + len), sizeof(HOST_PCI_PATH), "%s", HOST_PCI_PATH);
 
+	len += sprintf((host_pci_status + len), "/");
 	char *buf = strtok(pci_device_path, "/");
 	while (buf != NULL) {
-		if (i >= 3) {
+		if (i <= 4) {
 			len += sprintf((host_pci_status + len), "%s/", buf);
 		}
-		if (i == 4) {
+		if (i == 5) {
 			len += sprintf((host_pci_status + len), "pcie_dis");
 			break;
 		}

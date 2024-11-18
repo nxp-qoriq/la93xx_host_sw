@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
 			return ret;
 		}
 
+		printf("Waiting for watchdog event....\n");
 		libwdog_wait(wdog_t.dev_wdog_handle);
 		libwdog_deregister(&wdog_t);
 
