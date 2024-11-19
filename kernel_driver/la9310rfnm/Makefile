@@ -17,6 +17,10 @@ ccflags-y += -I${LA9310_RFNM_HEADER_DIR}/
 
 la9310rfnm-objs := la9310_rfnm.o cache.o rfnm_neon.o
 
+ifeq ($(IMX_SEEVE),1)
+	ccflags-y += -DSEEVE="1"
+endif
+
 CFLAGS_REMOVE_rfnm_neon.o += -mgeneral-regs-only
 la9310rfnm-objs += pack16to12.o unpack12to16.o
 obj-m := la9310rfnm.o

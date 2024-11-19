@@ -124,6 +124,7 @@ void rfnm_populate_dev_hwinfo(struct rfnm_dev_hwinfo *r_hwinfo)
 
 	memset(r_hwinfo, 0, sizeof(struct rfnm_dev_hwinfo));
 	r_hwinfo->protocol_version = 1;
+#if !defined(SEEVE)
 	int dcs_map_offset = -1;
 
 	for (i = 0; i < RFNM_NUM_DCS_FREQ; i++) {
@@ -136,6 +137,9 @@ void rfnm_populate_dev_hwinfo(struct rfnm_dev_hwinfo *r_hwinfo)
 	if (dcs_map_offset < 0) {
 		r_hwinfo->clock.dcs_clk = MHZ_TO_HZ(122.88);
 	}
+#else
+	r_hwinfo->clock.dcs_clk = MHZ_TO_HZ(122.88);
+#endif
 	r_hwinfo->motherboard.board_id = bootcfg->motherboard_eeprom.board_id;
 	r_hwinfo->motherboard.board_revision_id = bootcfg->motherboard_eeprom.board_revision_id;
 	memcpy(&r_hwinfo->motherboard.serial_number[0], &bootcfg->motherboard_eeprom.serial_number[0], 9);

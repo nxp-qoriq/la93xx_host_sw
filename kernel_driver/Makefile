@@ -20,6 +20,9 @@ obj-y += la9310demo/
 ifeq ($(IMX_RFNM),1)
 obj-y += la9310rfnm/
 endif
+ifeq ($(IMX_SEEVE),1)
+obj-y += la9310rfnm/
+endif
 ifeq ($(IMX_RFLIME),1)
 obj-y += la9310rflime/
 endif
@@ -49,6 +52,12 @@ ifeq ($(IMX_RFNM),1)
 	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
 	install  -D  la9310rfnm/rfnm_breakout.ko ${MODULE_INSTALL_DIR}/rfnm_breakout.ko
 	install  -D  la9310rfnm/rfnm_usb.ko ${MODULE_INSTALL_DIR}/rfnm_usb.ko
+	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
+	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
+else ifeq ($(IMX_SEEVE),1)
+	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
+	install  -D  la9310rfnm/rfnm_gpio.ko ${MODULE_INSTALL_DIR}/rfnm_gpio.ko
+	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
 	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
 	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
 endif
