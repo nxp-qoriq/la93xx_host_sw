@@ -7,27 +7,18 @@
 #ifndef __IMX8_HOST_H__
 #define __IMX8_HOST_H__
 
-typedef enum {
-	HOST_DMA_OFF = 0,
-	HOST_DMA_LINUX,    
-	HOST_DMA_M7,
-	HOST_DMA_MAX
-} host_dma_e;
 
-#define NB_RCHAN 1
-#define NB_WCHAN 1
-#define EXT_DMA_TX_DDR_STEP (2*TX_DDR_STEP)
-#define EXT_DMA_RX_DDR_STEP (2*RX_DDR_STEP)
 
-extern uint32_t *BAR0_addr;
-extern uint32_t *BAR1_addr;
-extern uint32_t *BAR2_addr;
-extern uint32_t *PCIE1_addr;
+#define CACHE_LINE_SIZE 64
 
 // Data Cache Flush/Clean
 #define dcbf(p) { asm volatile("dc cvac, %0" : : "r"(p) : "memory"); }
 // Clean and Invalidate data cache
 #define dccivac(p) { asm volatile("dc civac, %0" : : "r"(p) : "memory"); }
+
+void invalidate_region(void* region, uint32_t size);
+void flush_region(void *region, uint32_t size);
+
 
 #ifndef IMX8DXL
 #define PCIE1_ADDR   0x33800000

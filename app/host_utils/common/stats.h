@@ -8,7 +8,7 @@
 #ifndef __STATS_H__
 #define __STATS_H__
 
-#include "iqmod_rx.h"
+#include "iq_replay.h"
 
 typedef enum {
 	STAT_DMA_AXIQ_READ,             
@@ -42,14 +42,10 @@ typedef enum {
 
 typedef struct s_stats {
 	uint32_t gbl_stats[STATS_GBL_MAX];
+	uint32_t unused[8-STATS_GBL_MAX];
 	uint32_t tx_stats[STATS_TX_MAX];
-	uint32_t rx_stats[RX_NUM_CHAN][STATS_RX_MAX];
+	uint32_t rx_stats[RX_NUM_MAX_CHAN][STATS_RX_MAX];
 } t_stats;
-
-extern volatile uint32_t gbl_stats_fetch;
-#ifndef __VSPA__
-extern t_stats *host_stats;
-#endif
 
 #if !defined(__VSPA__) && !defined(__M7__)
 

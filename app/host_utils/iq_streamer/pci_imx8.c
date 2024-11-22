@@ -18,16 +18,16 @@
 #endif
 
 #include "imx8-host.h"
+#include "imx_edma_api.h"
 
 #ifndef _STANDALONE_
-#include "vspa_exported_symbols.h"
 #include "l1-trace.h"
-#include "iqmod_rx.h"
-#include "iqmod_tx.h"
 #include "stats.h"
-#include "imx_edma_api.h"
+#include "iq_streamer.h"
+#include "vspa_dmem_proxy.h"
+
 #else
-#define l1_trace(a,b){};
+#define l1_trace(a, b) {};
 #endif
 
 #ifndef IMX8DXL
@@ -36,30 +36,26 @@
 #include "pci_imx8dxl.h"
 #endif
 
-
-
 void dma_perf_test(void)
 {
 	return;
 }
 
-static int tx_pending_dma = 0;
-extern uint32_t txcount;
+static int tx_pending_dma;
 #ifndef _STANDALONE_
 extern uint32_t local_TX_total_produced_size;
 #else
-uint32_t g_error=0;
+uint32_t g_error = 0;
 #endif
 int PCI_DMA_WRITE_completion(uint32_t nbchan)
 {
-    volatile uint32_t *reg;
     int dma = 0;
 	uint32_t ret = 0;
 	uint32_t error = 0;
 
-	if(!tx_pending_dma)
+	if (!tx_pending_dma)
 		return 1;
-	
+
 	/* check completion */
 	for (dma = 0; dma < nbchan; dma++) {
 		ret = pci_dma_completed(dma + 1, 0);
@@ -72,25 +68,21 @@ int PCI_DMA_WRITE_completion(uint32_t nbchan)
 			error = 1;
 	}
 
-	tx_pending_dma=0;
-	txcount++;
+	tx_pending_dma = 0;
 #ifndef _STANDALONE_
-	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]+=error;
-	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, txcount);
-	host_stats->tx_stats[STAT_EXT_DMA_DDR_RD]=txcount;
-	*v_TX_total_produced_size=local_TX_total_produced_size;
+	((t_tx_ch_host_proxy *)v_tx_vspa_proxy_wo)->la9310_fifo_enqueued_size = local_TX_total_produced_size;
+	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR] += error;
+	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, local_TX_total_produced_size);
 #else
-	g_error+=error;
+	g_error += error;
 #endif
 
 	return 1;
 }
 
-
 static int tx_first_dma = 1;
-int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uint32_t nbchan)
+int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, uint32_t nbchan)
 {
-    volatile uint32_t *reg;
     volatile int dma = 0;
 
 	// Do soft reset on start
@@ -100,7 +92,7 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uin
 			pci_dma_tx_reset();
 		}
 	}
-	
+
 	//while (!PCI_DMA_WRITE_completion(nbchan)) {};
 
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, (uint32_t)ddr_src);
@@ -109,31 +101,29 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size,uin
 		pci_dma_write(ddr_src, pci_dst, size / nbchan, dma + 1);
 
 	/* mark dma running */
-	tx_pending_dma=1;
+	tx_pending_dma = 1;
 
 	while (!PCI_DMA_WRITE_completion(nbchan)) {};
 
 	return 0;
 }
 
-
-static int rx_pending_dma = 0;
-extern uint32_t rxcount;
-#ifndef _STANDALONE_
-extern uint32_t local_RX_total_consumed_size;
-#endif
-int PCI_DMA_READ_completion(uint32_t nbchan)
+static int rx_pending_dma[DMA_READ_MAX_NB_CHAN] = {-1, -1};
+static uint32_t rxcount[DMA_READ_MAX_NB_CHAN] = {0, 0};
+int PCI_DMA_READ_completion(uint32_t dma_id, uint32_t nbchan)
 {
-    volatile uint32_t *reg;
     int dma = 0;
 	uint32_t ret = 0;
-	uint32_t error=0;
+	uint32_t error = 0;
+#ifndef _STANDALONE_
+	uint32_t vspa_chan = 0;
+#endif
 
-	if(!rx_pending_dma)
+	if (rx_pending_dma[dma_id] ==  -1)
 		return 1;
 
 	/* wait for completion */
-	for (dma = 0; dma < nbchan; dma++) {
+	for (dma = dma_id; dma < dma_id+nbchan; dma++) {
 		ret = pci_dma_completed(dma + 1, 1);
 		if (ret == -1) {
 			/* still running */
@@ -143,47 +133,71 @@ int PCI_DMA_READ_completion(uint32_t nbchan)
 		if (ret == -2)
 			error = 1;
 	}
-	
-	rx_pending_dma=0;
-	rxcount++;
+
+	rxcount[dma_id]++;
+
 #ifndef _STANDALONE_
-	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_COMP, rxcount);
-	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR]+=error;
-	host_stats->rx_stats[0][STAT_EXT_DMA_DDR_WR]=rxcount;
-	*v_RX_total_consumed_size = local_RX_total_consumed_size;
+	vspa_chan = rx_pending_dma[dma_id];
+#ifdef IQMOD_RX_1R
+	((t_rx_ch_host_proxy *)v_rx_vspa_proxy_wo)[vspa_chan].la9310_fifo_consumed_size = local_RX_total_consumed_size;
 #else
-	g_error+=error;
+	((t_rx_ch_host_proxy *)v_rx_vspa_proxy_wo)[vspa_chan].la9310_fifo_consumed_size = local_rx_ch_context[vspa_chan].RX_total_consumed_size;
 #endif
+	host_stats->gbl_stats[ERROR_DMA_XFER_ERROR] += error;
+	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_COMP, host_stats->rx_stats[vspa_chan][STAT_EXT_DMA_DDR_WR]);
+#else
+	g_error += error;
+#endif
+
+	for (dma = dma_id; dma < dma_id+nbchan; dma++) {
+		rx_pending_dma[dma] =  -1;
+		}
 
 	return 1;
 }
 
-
-static int rx_first_dma = 1;
-int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size,uint32_t nbchan)
+void PCI_DMA_READ_swreset(void)
 {
-    volatile uint32_t *reg;
+    int dma = 0;
+
+	pci_dma_rx_reset();
+
+	for (dma = 0; dma < DMA_READ_MAX_NB_CHAN; dma++) {
+		rxcount[dma] = 0;
+		rx_pending_dma[dma] =  -1;
+	}
+
+return;
+}
+
+int PCI_DMA_READ_available(void)
+{
+    int dma = 0;
+	for (dma = 0; dma < DMA_READ_MAX_NB_CHAN; dma++) {
+		if (rx_pending_dma[dma] ==  -1)
+			return dma;
+	}
+return -1;
+}
+
+int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uint32_t dma_id, uint32_t nbchan, uint32_t vspa_chan_id)
+{
     volatile int dma = 0;
 
-	// Do soft reset on start
-	if (rx_first_dma) {
-		rx_first_dma = 0;
-		for (int dma = 0; dma < nbchan; dma++) {
-			pci_dma_rx_reset();
-		}
-	}
-	
-	//while (!PCI_DMA_READ_completion(nbchan)) {};
+	if (rx_pending_dma[dma_id] !=  -1)
+		return 0;
 
 	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_START, (uint32_t)pci_src);
 
-	for (dma = 0; dma < nbchan; dma++)
+	for (dma = dma_id; dma < dma_id+nbchan; dma++) {
 		pci_dma_read(pci_src, ddr_dst, size / nbchan, dma + 1);
 
-	/* mark dma running */
-	rx_pending_dma=1;
+       /* mark dma running */
+	   rx_pending_dma[dma_id] = vspa_chan_id;
+	}
 
-	while (!PCI_DMA_READ_completion(nbchan)) {};
+
+//	while (!PCI_DMA_READ_completion(nbchan)) {};
 
 	return 0;
 }

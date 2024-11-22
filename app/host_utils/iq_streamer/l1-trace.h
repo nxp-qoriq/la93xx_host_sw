@@ -10,17 +10,19 @@
 
 #ifdef IQMOD_RX_1R
 #define L1_TRACE 1
-#define L1_TRACE_SIZE      40
+#define L1_TRACE_SIZE      100
 #endif
 #ifdef IQMOD_RX_2R
 #define L1_TRACE 1
-#define L1_TRACE_SIZE      7
+#define L1_TRACE_SIZE      10
 #endif
 #ifdef IQMOD_RX_4R
 #define L1_TRACE 1
 #define L1_TRACE_SIZE      100
 #endif
 
+#define L1_TRACE_HOST_SIZE 100
+#define L1_TRACE_M7_SIZE 100
 
 enum l1_trace_msg_type {
     L1_TRACE_MSG_DMA   = 0x100,
@@ -214,9 +216,9 @@ inline void l1_trace_dbg(uint32_t)
 
 #ifndef __M7__
 extern l1_trace_data_t l1_trace_data[] __attribute__ ((aligned(64)));
-extern volatile uint32_t l1_trace_disable;
 #else
 extern l1_trace_data_t* l1_trace_data;
 #endif
+extern volatile uint32_t l1_trace_disable;
 
 #endif // __L1_TRACE_H__

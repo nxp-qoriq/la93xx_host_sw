@@ -5,10 +5,11 @@ CFLAGS  +=  -g -O3 -Wall -D_GNU_SOURCE -Werror -Wno-unused-variable
 LDFLAGS += -pthread -lpthread -lrt
 LDFLAGS  += -L${LIB_INSTALL_DIR} -static
 
+INCLUDES += -I../common 
 INCLUDES += -I${API_DIR}
 INCLUDES += -I${LIB_DIR}/dma
 
-SRCS_TEST := iq_streamer.c pci_imx8.c stats.c l1-trace-host.c 
+SRCS_TEST := iq_streamer.c pci_imx8.c l1-trace-host.c l1-trace-vspa.c 
 OBJS_TEST := $(SRCS_TEST:.c =.o)
 BIN_TEST := iq_streamer
 BIN_TEST_2R := iq_streamer_2R
@@ -40,6 +41,7 @@ clean:
 install:
 	mkdir -p ${FIRMWARE_INSTALL_DIR}/
 	install -D ${FIRMWARE_DIR}/*.eld ${FIRMWARE_INSTALL_DIR}/
+	install -D ${FIRMWARE_DIR}/*.elf ${FIRMWARE_INSTALL_DIR}/
 	install -D $(BIN_TEST) ${BIN_INSTALL_DIR}/$(BIN_TEST)
 	install -D $(BIN_TEST_2R) ${BIN_INSTALL_DIR}/$(BIN_TEST_2R)
 	install -D $(BIN_TEST_4R) ${BIN_INSTALL_DIR}/$(BIN_TEST_4R)

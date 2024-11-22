@@ -8,24 +8,25 @@
 #set -x
 echo "### exporting vspa symbols from apm.eld"
 grep VSPA_EXPORT *.c|cut -f 2 -d "(" |cut -f 1 -d ")"> ./vspa_exported_symbols0.txt
+grep VSPA_EXPORT ../common/*.c|cut -f 2 -d "(" |cut -f 1 -d ")">> ./vspa_exported_symbols0.txt
 sed 's/\r$//' vspa_exported_symbols0.txt > ./vspa_exported_symbols.txt
-/home/nxp/Freescale/tmp/VSPA_Tools/bin/vspa-elfdump -y $1 >./$1.symbol.txt 
+/home/nxp/Freescale/tmp/VSPA_Tools/bin/vspa-elfdump -y $1 >./$1.symbol.txt
 while read in; do
 	grep "$in" ./$1.symbol.txt|grep GLOBAL >> ./$1_vspa_exported_symbols_addr.txt
 done < ./vspa_exported_symbols.txt
 
 echo "/* SPDX-License-Identifier: BSD-3-Clause" > $2
-echo "* Copyright 2024 NXP">> $2 
-echo " */">> $2 
+echo "* Copyright 2024 NXP">> $2
+echo " */">> $2
 
 
 eld_md5sum=$(md5sum ./$1 | cut -f 1 -d " ")
-echo "#define IQ_STREAMER_VERSION \""$eld_md5sum"\"" >> $2 
+echo "#define IQ_STREAMER_VERSION \""$eld_md5sum"\"" >> $2
 
-md5sum ./$1 
+md5sum ./$1
 
 while read in; do
-	symbol=$(echo $in |  cut -f 7 -d ' ') 
+	symbol=$(echo $in |  cut -f 7 -d ' ')
 	addr=$(echo $in |   cut -f 1 -d ' ')
 	size=$(echo $in |   cut -f 2 -d ' ')
 	if [[ $addr -ge 0x4000 ]]; then
@@ -42,4 +43,4 @@ while read in; do
 	echo "#define " s$symbol "(uint32_t)("$size")" >> $2
 done < ./$1_vspa_exported_symbols_addr.txt
 
-rm ./vspa_exported_symbols0.txt ./vspa_exported_symbols.txt ./$1.symbol.txt ./$1_vspa_exported_symbols_addr.txt 
+rm ./vspa_exported_symbols0.txt ./vspa_exported_symbols.txt ./$1.symbol.txt ./$1_vspa_exported_symbols_addr.txt

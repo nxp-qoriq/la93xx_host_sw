@@ -11,26 +11,30 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "l1-trace.h"
-#include "vspa_trace_enum.h"
-#ifdef IQMOD_RX_2R
-#include "vspa_exported_symbols_2R.h"
-#else
-#ifdef IQMOD_RX_4R
-#include "vspa_exported_symbols_4R.h"
-#else
-#include "vspa_exported_symbols.h"
-#endif
-#endif
+#include "l1-trace-host.h"
 
-#include "l1-trace.h"
-#include "iqmod_rx.h"
-#include "stats.h"
-#include "iq_streamer.h"
-#include "vspa_dmem_proxy.h"
+int rte_get_tsc_hz_init = 0; 
+l1_trace_host_data_t l1_trace_host_data[L1_TRACE_HOST_SIZE]  __attribute__ ((aligned(64)));
+uint32_t l1_trace_index;
+volatile uint32_t l1_trace_disable;
 
-//#define ccnt_read() ((uint64_t)((*_VSPA_cyc_count_msb)&0x7FFFFFFF)*0x100000000 + *_VSPA_cyc_count_lsb)
-uint64_t ccnt_read(void)
+l1_trace_host_code_t l1_trace_host_code[] = {
+{ 0x100, "L1_TRACE_MSG_DMA_XFR "},
+{ 0x101, "L1_TRACE_MSG_DMA_CFGERR "},
+{ 0x102, "L1_TRACE_MSG_DMA_DDR_RD_START "},
+{ 0x103, "L1_TRACE_MSG_DMA_DDR_RD_COMP "},
+{ 0x104, "L1_TRACE_MSG_DMA_DDR_RD_UNDERRUN "},
+{ 0x105, "L1_TRACE_MSG_DMA_DDR_WR_START "},
+{ 0x106, "L1_TRACE_MSG_DMA_DDR_WR_COMP "},
+{ 0x107, "L1_TRACE_MSG_DMA_DDR_WR_OVERRUN "},
+{ 0xFFFF, "MAX_CODE_TRACE"}
+};
+
+/*
+ *   PMC counter
+ */
+
+uint64_t rte_get_tsc_cycles(void)
 {
 	uint64_t time;
 
@@ -38,15 +42,13 @@ uint64_t ccnt_read(void)
 	return time;
 }
 
-int rte_get_tsc_hz_init=0; 
-
 static inline uint64_t rte_get_tsc_hz(void)
 {
     FILE *fp;
     char path[1035], *stopstring;
     uint64_t val = 0;
 
-	if(0==rte_get_tsc_hz_init){
+	if (rte_get_tsc_hz_init == 0) {
 		/*Get CPU freq */
 		fp = popen("/sys/kernel/debug/clk/arm_a53_core/clk_rate", "r");
 		if (fp == NULL) {
@@ -64,24 +66,21 @@ static inline uint64_t rte_get_tsc_hz(void)
 		printf("default device not match, use the default freq.\n");
 		rte_get_tsc_hz_init = 1600000000;
 		}
-		//printf("%s: CPU freq %ld \n", __func__, val);
+		//printf("%s: CPU freq %ld\n", __func__, val);
 	}
-	
+
     return rte_get_tsc_hz_init;
 }
 
-l1_trace_data_t l1_trace_data[L1_TRACE_SIZE] __attribute__ ((aligned(64)));
-uint32_t l1_trace_index;
-volatile uint32_t l1_trace_disable;
 
 #if L1_TRACE
 
-void l1_trace_clear(void)
+void l1_trace_host_clear(void)
 {
-	for (l1_trace_index = 0; l1_trace_index < L1_TRACE_SIZE; l1_trace_index++) {
-	    l1_trace_data[l1_trace_index].cnt = 0;
-	    l1_trace_data[l1_trace_index].msg = 0;
-	    l1_trace_data[l1_trace_index].param = 0;
+	for (l1_trace_index = 0; l1_trace_index < L1_TRACE_HOST_SIZE; l1_trace_index++) {
+	    l1_trace_host_data[l1_trace_index].cnt = 0;
+	    l1_trace_host_data[l1_trace_index].msg = 0;
+	    l1_trace_host_data[l1_trace_index].param = 0;
 	}
 	l1_trace_index = 0;
 }
@@ -90,12 +89,12 @@ void l1_trace(uint32_t msg, uint32_t param)
 {
 	if (l1_trace_disable) return;
 
-    l1_trace_data[l1_trace_index].cnt = ccnt_read();
-    l1_trace_data[l1_trace_index].msg = msg;
-    l1_trace_data[l1_trace_index].param = param;
+    l1_trace_host_data[l1_trace_index].cnt = rte_get_tsc_cycles();
+    l1_trace_host_data[l1_trace_index].msg = msg;
+    l1_trace_host_data[l1_trace_index].param = param;
     l1_trace_index++;
 
-    if (l1_trace_index >= L1_TRACE_SIZE) {
+    if (l1_trace_index >= L1_TRACE_HOST_SIZE) {
 	l1_trace_index = 0;
     }
 }
@@ -110,25 +109,24 @@ inline void l1_trace(uint32_t msg, uint32_t param)
 }
 #endif // L1_TRACE
 
-
 void print_host_trace(void)
 {
 	uint32_t i, j, k;
-	uint32_t STATS_MAX = sizeof(l1_trace_data)/sizeof(l1_trace_data_t);
-	l1_trace_data_t *entry;
+	uint32_t STATS_MAX = sizeof(l1_trace_host_data)/sizeof(l1_trace_host_data_t);
+	l1_trace_host_data_t *entry;
 	uint64_t prev;
 
 	l1_trace_disable = 1;
-	
+
 	printf("\n host_trace:");
 
-	prev = l1_trace_data[l1_trace_index].cnt;
+	prev = l1_trace_host_data[l1_trace_index].cnt;
 	for (i = 0, j = l1_trace_index; i < STATS_MAX; i++, j++) {
 		if (j >= STATS_MAX) j = 0;
-		entry = (l1_trace_data_t *)l1_trace_data + j;
+		entry = (l1_trace_host_data_t *)l1_trace_host_data + j;
 		k = 0;
-		while (l1_trace_code[k].msg != 0xffff) { if (l1_trace_code[k].msg == entry->msg) break; k++; }
-		printf("\n%4d, counter: %016ld (+%08ld ns), param: 0x%08x, (0x%03x)%s", i, entry->cnt, (entry->cnt-prev)*1000000000/rte_get_tsc_hz(), entry->param, entry->msg, l1_trace_code[k].text);
+		while (l1_trace_host_code[k].msg != 0xffff) { if (l1_trace_host_code[k].msg == entry->msg) break; k++; }
+		printf("\n%4d, counter: %016ld (+%08ld ns), param: 0x%08x, (0x%03x)%s", i, entry->cnt, (entry->cnt-prev)*1000000000/rte_get_tsc_hz(), entry->param, entry->msg, l1_trace_host_code[k].text);
 		prev = entry->cnt;
 	}
 	printf("\n");
@@ -136,58 +134,5 @@ void print_host_trace(void)
 	l1_trace_disable = 0;
 
 	return;
-}
-
-//VSPA_EXPORT(l1_trace_data)
-//VSPA_EXPORT(l1_trace_index)
-//VSPA_EXPORT(l1_trace_disable)
-
-// format
-//146, counter: 0000045638347355, param: 0x0B003000, L1_TRACE_MSG_DMA_AXIQ_TX
-#ifdef v_l1_trace_data
-void print_vspa_trace(void)
-{
-	uint32_t i, j, k;
-	uint32_t STATS_MAX = s_l1_trace_data/sizeof(l1_trace_data_t);
-	l1_trace_data_t *entry;
-
-	*(v_l1_trace_disable) = 1;
-
-	for (i = 0, j =  *(v_l1_trace_index); i < STATS_MAX; i++, j++) {
-		if (j >= STATS_MAX) j = 0;
-		entry = (l1_trace_data_t *)v_l1_trace_data + j;
-		k = 0;
-		while (l1_trace_code[k].msg != 0xffff) { if (l1_trace_code[k].msg == entry->msg) break; k++; }
-		printf("\n%4d, counter: %016ld, param: 0x%08x, (0x%03x)%s", i, entry->cnt, entry->param, entry->msg, l1_trace_code[k].text);
-	}
-	printf("\n");
-
-	*(v_l1_trace_disable) = 0;
-
-	return;
-}
-#else
-void print_vspa_trace(void)
-{
-printf("\n VSPA trace disabled \n");
-}
-#endif
-
-// format
-//146, counter: 0000045638347355, param: 0x0B003000, L1_TRACE_MSG_DMA_AXIQ_TX
-extern uint32_t *v_ocram_addr;
-void print_m7_trace(void)
-{
-	uint32_t i,k;
-	uint32_t STATS_MAX = L1_TRACE_SIZE;
-	l1_trace_data_t* entry=(l1_trace_data_t*)(v_ocram_addr+VSPA_DMEM_PROXY_SIZE/sizeof(uint32_t));
-	for(i=0;i<STATS_MAX;i++){
-		k=0;
-		while(l1_trace_code[k].msg!=0xffff){ if(l1_trace_code[k].msg==entry->msg) break; k++; }
-		printf("\n%4d, counter: %016ld, param: 0x%08x, (0x%03x)%s",i,entry->cnt,entry->param,entry->msg,l1_trace_code[k].text);
-		entry++;
-	}
-	printf("\n");
-	return ;
 }
 
