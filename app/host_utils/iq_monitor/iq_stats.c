@@ -24,7 +24,6 @@
 #include "la9310_regs.h"
 #include "imx8-host.h"
 #include "stats.h"
-#include "iq_mon.h"
 #include "vspa_dmem_proxy.h"
 
 #define pr_info printf

@@ -6,10 +6,8 @@
 
 print_usage()
 {
-echo "usage: ./test-ddr-dma-read <on/off> [half duplex]"
-echo "ex : ./test-ddr-dma-read 1"
-echo "ex : ./test-ddr-dma-read 0"
-echo "ex : ./test-ddr-dma-read 1 1"
+echo "usage: ./iq-start-rxfifo.sh <fifo size num 4KB>"
+echo "ex : ./iq-start-rxfifo.sh 8"
 }
 
 # check parameters
@@ -22,28 +20,22 @@ fi
 # check la9310 shiva driver and retrieve iqsample info i.e. iqflood in scratch buffer (non cacheable)
 # [] NXP-LA9310-Driver 0000:01:00.0: RFNM IQFLOOD Buff:0xc0000000[H]-0x96400000[M],size 20971520
 ddrh=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 2 -d "-"|cut -f 1 -d "["| head -1`
-maxsize=`dmesg |grep IQFLOOD |cut -f 2 -d "z"|cut -f 2 -d " "| head -1`
+ddrep=`dmesg |grep IQFLOOD|cut -f 5 -d ":"|cut -f 1 -d "-"|cut -f 1 -d "["| head -1`
+maxsize=`dmesg |grep IQFLOOD |cut -f 2 -d ","|cut -f 2 -d " "| head -1`
+buff=`printf "0x%X\n" $[$maxsize/2 + $ddrh]`
+buffep=`printf "0x%X\n" $[$maxsize/2 + $ddrep]`
 if [[ "$ddrh" -eq "" ]];then
         echo can not retrieve IQFLOOD region, is LA9310 shiva started ?
         exit 1
 fi
-
-# build command
-if [ $1 -eq 0 ];then
-       cmd=0x05000000
-else
-if [ $# -gt 1 ];then
-	if [ $2 -eq 1 ];then
-		cmd=`printf "0x%X\n" $[0x05700008]`
-	else 
-		cmd=`printf "0x%X\n" $[0x05300008]`
-	fi
-else
-        cmd=`printf "0x%X\n" $[0x05300008]`
-fi
+if [ $1 -gt $[$maxsize/2/4096] ];then
+        echo $1 x4KB too large to fit in IQFLOOD region $maxsize bytes
+        exit 1
 fi
 
-dtcm=0x20001000
-vspa_mbox send 0 0 $cmd $dtcm
+cmd=`printf "0x%X\n" $[0x06900000 + $1]`
+vspa_mbox send 0 0 $cmd $buffep
 vspa_mbox recv 0 0
 echo running until ./iq-stop.sh and 
+echo bin2mem -f iqdata.bin -a $buff -r $[4096 * $1]
+
