@@ -98,7 +98,7 @@ int PCI_DMA_WRITE_transfer(uint32_t ddr_src, uint32_t pci_dst, uint32_t size, ui
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, (uint32_t)ddr_src);
 
 	for (dma = 0; dma < nbchan; dma++)
-		pci_dma_write(ddr_src, pci_dst, size / nbchan, dma + 1);
+		pci_dma_write(ddr_src, pci_dst, size / nbchan, dma + 1, 0);
 
 	/* mark dma running */
 	tx_pending_dma = 1;
@@ -190,7 +190,7 @@ int PCI_DMA_READ_transfer(uint32_t pci_src, uint32_t ddr_dst, uint32_t size, uin
 	l1_trace(L1_TRACE_MSG_DMA_DDR_WR_START, (uint32_t)pci_src);
 
 	for (dma = dma_id; dma < dma_id+nbchan; dma++) {
-		pci_dma_read(pci_src, ddr_dst, size / nbchan, dma + 1);
+		pci_dma_read(pci_src, ddr_dst, size / nbchan, dma + 1, 0);
 
        /* mark dma running */
 	   rx_pending_dma[dma_id] = vspa_chan_id;

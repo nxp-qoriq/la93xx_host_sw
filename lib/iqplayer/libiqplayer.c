@@ -31,7 +31,7 @@
 #include "imx8-host.h"
 #include "l1-trace-host.h"
 
-uint32_t *v_iqflood_ddr_addr = NULL;
+uint32_t *v_iqflood_ddr_addr_t = NULL;
 uint32_t *BAR2_addr = NULL;
 uint32_t *v_vspa_dmem_proxy_ro = NULL; 
 t_tx_ch_host_proxy *tx_vspa_proxy_ro = NULL;
@@ -48,10 +48,10 @@ t_stats *app_stats = NULL;
 
 int iq_player_init(uint32_t *v_iqflood, uint32_t iqflood_size, uint32_t *v_la9310_pci_bar2)
 {
-	v_iqflood_ddr_addr = v_iqflood;
+	v_iqflood_ddr_addr_t = v_iqflood;
 
 	/* use last 256 bytes of iqflood as shared vspa dmem proxy , vspa will write mirrored dmem value to avoid PCI read from host */
-	v_vspa_dmem_proxy_ro = (uint32_t *)(v_iqflood_ddr_addr + (iqflood_size - VSPA_DMEM_PROXY_SIZE)/4);
+	v_vspa_dmem_proxy_ro = (uint32_t *)(v_iqflood_ddr_addr_t + (iqflood_size - VSPA_DMEM_PROXY_SIZE)/4);
 	rx_vspa_proxy_ro =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->rx_state_readonly[0]);
 	tx_vspa_proxy_ro =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->tx_state_readonly);
 	app_stats =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->app_stats); 
@@ -85,7 +85,7 @@ int iq_player_init_tx(uint32_t fifo_start, uint32_t fifo_size)
 	(void) VSPA_stat_tx_string; 
 	(void) VSPA_stat_rx_string; 
 
-	if (v_iqflood_ddr_addr == NULL)
+	if (v_iqflood_ddr_addr_t == NULL)
 		return 0;
 
 	dccivac((uint32_t *)(tx_vspa_proxy_ro));
@@ -149,7 +149,7 @@ int iq_player_send_data(uint32_t* v_buffer, uint32_t size)
 	}
 
 	// xfer data
-	ddr_dst = (void*)((uint64_t)v_iqflood_ddr_addr + tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
+	ddr_dst = (void*)((uint64_t)v_iqflood_ddr_addr_t + tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
 	memcpy(ddr_dst, v_buffer, empty_size);
 	flush_region(ddr_dst, empty_size);
@@ -176,7 +176,7 @@ int iq_player_init_rx(uint32_t chan, uint32_t fifo_start, uint32_t fifo_size)
 {
 	uint32_t EP_DDR_wr_base_address = 0;
 
-	if (v_iqflood_ddr_addr == NULL)
+	if (v_iqflood_ddr_addr_t == NULL)
 		return -1;
 
 	rx_modem_ddr_fifo_start[chan] = fifo_start;
@@ -238,7 +238,7 @@ int iq_player_receive_data(uint32_t chan, uint32_t* v_buffer, uint32_t max_size)
 	}
 
 	// xfer data
-	ddr_src = (void*)((uint64_t)v_iqflood_ddr_addr + rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
+	ddr_src = (void*)((uint64_t)v_iqflood_ddr_addr_t + rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
 	invalidate_region(ddr_src, data_size);
 	memcpy(v_buffer, ddr_src, data_size);

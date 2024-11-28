@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <stdint.h>
@@ -15,10 +18,11 @@
 #include <imx_edma_api.h>
 
 int ch_num = 1;
-int type;
-uint32_t src_addr, dst_addr, sz;
+int dir, sg_en = 0, nb_desc = 0;
+uint32_t host_addr, mdm_addr, sz = DEFAULT_TXRX_SIZE;
 uint32_t edma_base_addr = IMX8MP_DMA_BASE_ADDR;
 uint32_t edma_reg_size = IMX8MP_DMA_REG_SPACE_SIZE;
+uint32_t ll_base_addr = LL_TABLE_ADDR;
 
 void print_usage_message(void)
 {
@@ -28,11 +32,11 @@ void print_usage_message(void)
 	printf("\t -c: Current channel number - default 1\n");
 	printf("\t -b: PCI EDMA base address\n");
 	printf("\t -n: PCI EDMA	reg space size\n");
-	printf("\t -s: Source Address : default: 0x96400000(for write)\n");
-	printf("\t -d: Destination Address: default: 0x1f000000(for write)\n");
-	printf("\t -l: Tansfer Len - default 0x20\n");
+	printf("\t -h: Host Address : default: 0x96400000(for write)\n");
+	printf("\t -m: Modem Address: default: 0x1f000000(for write)\n");
+	printf("\t -s: Tansfer Len - default 0x20\n");
 	printf("\t Read-> Dma transfer from Ep to RC\n");
-	printf("\t Write-> Dma transfer from Ep to RC\n");
+	printf("\t Write-> Dma transfer from RC to EP\n");
 	fflush(stdout);
 
 	exit(EXIT_SUCCESS);
@@ -43,7 +47,7 @@ void validate_cli_args(int argc, char *argv[])
 	int opt;
 	char *endp = NULL;
 
-	while ((opt = getopt(argc, argv, "c:b:n:s:d:l:rwh")) != -1) {
+	while ((opt = getopt(argc, argv, "c:b:l:h:m:s:t:n:rwh")) != -1) {
 		switch (opt) {
 		case 'c':
 			ch_num = atoi(optarg);
@@ -56,7 +60,7 @@ void validate_cli_args(int argc, char *argv[])
 				exit(2);
 			}
 			break;
-		case 'n':
+		case 'l':
 			edma_reg_size = strtoull(optarg, &endp, 0);
 			if ((endp && 0 != *endp)) {
 				printf("Invalid memory address: %s\n", optarg);
@@ -64,23 +68,23 @@ void validate_cli_args(int argc, char *argv[])
 				exit(2);
 			}
 			break;
+		case 'h':
+			host_addr = strtoull(optarg, &endp, 0);
+			if ((endp && 0 != *endp)) {
+				printf("Invalid memory address: %s\n", optarg);
+				print_usage_message();
+				exit(2);
+			}
+			break;
+		case 'm':
+			mdm_addr = strtoull(optarg, &endp, 0);
+			if ((endp && 0 != *endp)) {
+				printf("Invalid memory address: %s\n", optarg);
+				print_usage_message();
+				exit(2);
+			}
+			break;
 		case 's':
-			src_addr = strtoull(optarg, &endp, 0);
-			if ((endp && 0 != *endp)) {
-				printf("Invalid memory address: %s\n", optarg);
-				print_usage_message();
-				exit(2);
-			}
-			break;
-		case 'd':
-			dst_addr = strtoull(optarg, &endp, 0);
-			if ((endp && 0 != *endp)) {
-				printf("Invalid memory address: %s\n", optarg);
-				print_usage_message();
-				exit(2);
-			}
-			break;
-		case 'l':
 			sz = strtoull(optarg, &endp, 0);
 			if ((endp && 0 != *endp)) {
 				printf("Invalid memory address: %s\n", optarg);
@@ -88,11 +92,17 @@ void validate_cli_args(int argc, char *argv[])
 				exit(2);
 			}
 			break;
+		case 't':
+			sg_en = atoi(optarg);
+			break;
+		case 'n':
+			nb_desc = atoi(optarg);
+			break;
 		case 'r':
-			type = 1;
+			dir = 1;
 			break;
 		case 'w':
-			type = 0;
+			dir = 0;
 			break;
 		default:
 			print_usage_message();
@@ -125,8 +135,8 @@ void dma_init(void)
 		return;
 	}
 
-	src_addr = mi->iqflood.host_phy_addr;
-	dst_addr = mi->tcmu.host_phy_addr;
+	host_addr = mi->iqflood.host_phy_addr;
+	mdm_addr = mi->tcmu.host_phy_addr;
 
 	close(fd);
 }
@@ -134,18 +144,53 @@ void dma_init(void)
 int main(int argc, char *argv[])
 {
 	uint64_t rd_pw_en_reg, wr_pw_en_reg;
+	uint32_t s_addr, d_addr, dma_status;
+	host_desc_t *h_desc;
+	mdm_desc_t *m_desc;
 
 	dma_init();
 	validate_cli_args(argc, argv);
 
-	init_mem(edma_base_addr, edma_reg_size);
+	pci_dma_mem_init(edma_base_addr, edma_reg_size, ll_base_addr, nb_desc, sg_en);
 
-	if (!type)
-		pci_dma_write(src_addr, dst_addr, sz, ch_num);
+	if (sg_en) {
+		h_desc = malloc(sizeof(h_desc) * nb_desc);
+		m_desc = malloc(sizeof(m_desc) * nb_desc);
+
+		for (int i=0; i<nb_desc; i++) {
+			h_desc[i].addr = host_addr + sz*i;
+			m_desc[i].addr = mdm_addr + sz*i;
+			h_desc[i].size = sz;
+			m_desc[i].size = sz;
+		}
+
+		pci_dma_sg_configure(h_desc, m_desc, nb_desc, dir);
+		s_addr = ll_base_addr;
+		d_addr = -1;
+	} else {
+		if (!dir) {
+			s_addr = host_addr;
+			d_addr = mdm_addr;
+		} else {
+			s_addr = mdm_addr;
+			d_addr = host_addr;
+		}
+
+	}
+	if (!dir)
+		pci_dma_write(s_addr, d_addr, sz, ch_num, sg_en);
 	else
-		pci_dma_read(dst_addr, src_addr, sz, ch_num);
+		pci_dma_read(s_addr, d_addr, sz, ch_num, sg_en);
 
-	deinit_mem(edma_reg_size);
+	do {
+		dma_status = pci_dma_completed(ch_num, dir);
+
+		if (dma_status == -2) {
+			printf("Dma Halted due to some error\n");
+			break;
+		}
+	} while(dma_status);
+	pci_dma_mem_deinit(edma_reg_size, nb_desc);
 
 	return 0;
 }

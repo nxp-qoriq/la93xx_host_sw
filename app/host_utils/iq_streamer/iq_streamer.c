@@ -213,7 +213,7 @@ int map_physical_regions(void)
 		return -1;
 	}
 
-	if (init_mem((PCIE1_ADDR + DMA_OFFSET), PCIE1_SIZE) < 0) {
+	if (pci_dma_mem_init((PCIE1_ADDR + DMA_OFFSET), PCIE1_SIZE, 0, 0, 0) < 0) {
 		printf("Unable to MAP DMA REG area\n");
 		return -1;
 	}
@@ -400,7 +400,7 @@ int main(int argc, char *argv[])
 		dma_perf_test();
 	}
 
-	deinit_mem(PCIE1_SIZE);
+	pci_dma_mem_deinit(PCIE1_SIZE, 0);
 
 	return 0;
 }
