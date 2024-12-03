@@ -31,7 +31,7 @@
 #include "imx8-host.h"
 #include "l1-trace-host.h"
 
-uint32_t *v_iqflood_ddr_addr_t = NULL;
+uint32_t *v_iqflood_ddr_addr = NULL;
 uint32_t *BAR2_addr = NULL;
 uint32_t *v_vspa_dmem_proxy_ro = NULL; 
 t_tx_ch_host_proxy *tx_vspa_proxy_ro = NULL;
@@ -48,10 +48,10 @@ t_stats *app_stats = NULL;
 
 int iq_player_init(uint32_t *v_iqflood, uint32_t iqflood_size, uint32_t *v_la9310_pci_bar2)
 {
-	v_iqflood_ddr_addr_t = v_iqflood;
+	v_iqflood_ddr_addr = v_iqflood;
 
 	/* use last 256 bytes of iqflood as shared vspa dmem proxy , vspa will write mirrored dmem value to avoid PCI read from host */
-	v_vspa_dmem_proxy_ro = (uint32_t *)(v_iqflood_ddr_addr_t + (iqflood_size - VSPA_DMEM_PROXY_SIZE)/4);
+	v_vspa_dmem_proxy_ro = (uint32_t *)(v_iqflood_ddr_addr + (iqflood_size - VSPA_DMEM_PROXY_SIZE)/4);
 	rx_vspa_proxy_ro =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->rx_state_readonly[0]);
 	tx_vspa_proxy_ro =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->tx_state_readonly);
 	app_stats =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->app_stats); 
@@ -79,37 +79,31 @@ uint32_t tx_modem_fifo_offset;
 
 int iq_player_init_tx(uint32_t fifo_start, uint32_t fifo_size)
 {
-	uint32_t EP_DDR_rd_base_address = 0;
-
  	(void) VSPA_stat_gbl_string; /* unused variables  */
 	(void) VSPA_stat_tx_string; 
 	(void) VSPA_stat_rx_string; 
 
-	if (v_iqflood_ddr_addr_t == NULL)
+	if (v_iqflood_ddr_addr == NULL)
 		return 0;
 
 	dccivac((uint32_t *)(tx_vspa_proxy_ro));
 
-	EP_DDR_rd_base_address = tx_vspa_proxy_ro->DDR_rd_base_address;
-	if (EP_DDR_rd_base_address != 0xdeadbeef) {
-		printf("\n TX : modem already running - need to start app first\n");
-		fflush(stdout);
-		return 0;
-	}
+    /* check firmware is idle waiting for new data */
+	//if (tx_vspa_proxy_ro->host_produced_size != tx_vspa_proxy_ro->la9310_fifo_enqueued_size) {
+	//	printf("\n TX : modem is already running \n");
+	//	fflush(stdout);
+	//	return 0;
+	//}
 
 	// init fifo pointers
 	tx_modem_ddr_fifo_start = fifo_start;
 	tx_modem_ddr_fifo_size = fifo_size;
-	tx_modem_fifo_offset = 0;
+	tx_modem_fifo_offset = tx_vspa_proxy_ro->la9310_fifo_enqueued_size%fifo_size;
+	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_produced_size = tx_vspa_proxy_ro->la9310_fifo_enqueued_size;
 
 	// init flow control
-	app_TX_total_consumed_size = 0;
-	app_TX_total_produced_size = 0;
-	tx_vspa_proxy_ro->la9310_fifo_enqueued_size = 0;
-	tx_vspa_proxy_ro->host_produced_size = 0;
-	dcbf((uint32_t *)(tx_vspa_proxy_ro));
-	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_produced_size = 0;
-	app_stats->tx_stats[STAT_EXT_DMA_DDR_RD] = 0;
+	app_TX_total_consumed_size = tx_vspa_proxy_ro->la9310_fifo_enqueued_size;
+	app_TX_total_produced_size = tx_vspa_proxy_ro->la9310_fifo_enqueued_size;
 
 	return 1;
 }
@@ -122,6 +116,15 @@ int iq_player_send_data(uint32_t* v_buffer, uint32_t size)
 	void *ddr_dst;
 
 	dccivac((uint32_t *)(tx_vspa_proxy_ro));
+
+	// check stop/restart
+	if (tx_vspa_proxy_ro->DDR_rd_base_address==0xdeadbeef) {
+		tx_modem_fifo_offset = 0;
+		app_TX_total_consumed_size = 0;
+		app_TX_total_produced_size = 0;
+		((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_produced_size = 0;
+		return 0;
+	}
 
 	// Check new transfer opty
 	app_TX_total_consumed_size = tx_vspa_proxy_ro->la9310_fifo_enqueued_size;
@@ -149,14 +152,14 @@ int iq_player_send_data(uint32_t* v_buffer, uint32_t size)
 	}
 
 	// xfer data
-	ddr_dst = (void*)((uint64_t)v_iqflood_ddr_addr_t + tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
+	ddr_dst = (void*)((uint64_t)v_iqflood_ddr_addr + tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, tx_modem_ddr_fifo_start + tx_modem_fifo_offset);
 	memcpy(ddr_dst, v_buffer, empty_size);
 	flush_region(ddr_dst, empty_size);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, empty_size);
 
 	// update modem flow control
-	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_produced_size += empty_size;
+	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_produced_size = app_TX_total_produced_size;
 
 	tx_modem_fifo_offset += empty_size;
 	if (tx_modem_fifo_offset >= tx_modem_ddr_fifo_size) {
@@ -174,35 +177,20 @@ uint32_t app_RX_total_produced_size[RX_NUM_MAX_CHAN] = {0, 0, 0, 0}; /* Bytes re
 
 int iq_player_init_rx(uint32_t chan, uint32_t fifo_start, uint32_t fifo_size)
 {
-	uint32_t EP_DDR_wr_base_address = 0;
-
-	if (v_iqflood_ddr_addr_t == NULL)
+	if (v_iqflood_ddr_addr == NULL)
 		return -1;
 
+	dccivac((uint32_t *)(rx_vspa_proxy_ro));
+
+	// init fifo pointers
 	rx_modem_ddr_fifo_start[chan] = fifo_start;
 	rx_modem_ddr_fifo_size[chan] = fifo_size;
+	rx_modem_fifo_offset[chan] = rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size%fifo_size;
 
-	// check rx is off
-	rx_modem_fifo_offset[chan] = 0;
-
-	dccivac((uint32_t *)(rx_vspa_proxy_ro));
-	EP_DDR_wr_base_address = rx_vspa_proxy_ro[chan].DDR_wr_base_address;
-	if (EP_DDR_wr_base_address != 0xdeadbeef) {
-		printf("\n RX : modem already running - need to start app first\n");
-		fflush(stdout);
-		return 0;
-	}
-
-	// Check pointers are cleared
-	app_RX_total_consumed_size[chan] = 0;
-	app_RX_total_produced_size[chan] = 0;
-	rx_vspa_proxy_ro[chan].la9310_fifo_produced_size = 0;
-	rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size = 0;
-	tx_vspa_proxy_ro->host_consumed_size[chan] = 0;
-	dcbf((uint32_t *)(tx_vspa_proxy_ro));
-	dcbf((uint32_t *)(rx_vspa_proxy_ro));
-	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_consumed_size[chan] = 0;
-	app_stats->rx_stats[chan][STAT_EXT_DMA_DDR_WR] = 0;
+	// init flow counters
+	app_RX_total_consumed_size[chan] = rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size;
+	app_RX_total_produced_size[chan] = rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size;
+	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_consumed_size[chan]=rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size;
 
 	return 1;
 }
@@ -215,6 +203,15 @@ int iq_player_receive_data(uint32_t chan, uint32_t* v_buffer, uint32_t max_size)
 
 	dccivac((uint32_t *)(rx_vspa_proxy_ro));
 
+	// check stop/restart
+	if (rx_vspa_proxy_ro[chan].DDR_wr_base_address==0xdeadbeef) {
+		app_RX_total_produced_size[chan]=0;
+		app_RX_total_consumed_size[chan]=0;
+		rx_modem_fifo_offset[chan] = 0;
+		((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_consumed_size[chan]=0;
+		return 0;
+	}
+
 	// Check new transfer
 	app_RX_total_produced_size[chan] = rx_vspa_proxy_ro[chan].la9310_fifo_consumed_size;
 	data_size = app_RX_total_produced_size[chan] - app_RX_total_consumed_size[chan];
@@ -223,6 +220,7 @@ int iq_player_receive_data(uint32_t chan, uint32_t* v_buffer, uint32_t max_size)
 		fflush(stdout);
 		exit(0);
 	}
+
 	fifoWaterMark = rx_modem_ddr_fifo_size[chan]-rx_modem_fifo_offset[chan]; 
 	if (data_size >= RX_DDR_STEP) {
 		if (data_size > fifoWaterMark)
@@ -238,14 +236,14 @@ int iq_player_receive_data(uint32_t chan, uint32_t* v_buffer, uint32_t max_size)
 	}
 
 	// xfer data
-	ddr_src = (void*)((uint64_t)v_iqflood_ddr_addr_t + rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
+	ddr_src = (void*)((uint64_t)v_iqflood_ddr_addr + rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_START, rx_modem_ddr_fifo_start[chan]  + rx_modem_fifo_offset[chan]);
 	invalidate_region(ddr_src, data_size);
 	memcpy(v_buffer, ddr_src, data_size);
 	l1_trace(L1_TRACE_MSG_DMA_DDR_RD_COMP, data_size);
 
 	// update modem flow control
-	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_consumed_size[chan] += data_size;
+	((t_tx_ch_host_proxy*)v_tx_vspa_proxy_wo)->host_consumed_size[chan] = app_RX_total_consumed_size[chan];
 
 	rx_modem_fifo_offset[chan] += data_size;
 	if (rx_modem_fifo_offset[chan] >= rx_modem_ddr_fifo_size[chan]) {

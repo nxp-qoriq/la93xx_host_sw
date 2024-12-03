@@ -400,8 +400,8 @@ int main(int argc, char *argv[])
 		dma_perf_test();
 	}
 
-	pci_dma_mem_deinit(PCIE1_SIZE, 0);
-
+	pci_dma_mem_deinit(PCIE1_SIZE,0);
+ 
 	return 0;
 }
 
