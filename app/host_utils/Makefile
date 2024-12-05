@@ -3,7 +3,7 @@
 
 #Add host_utils directories here
 
-UTIL_DIRS := iq_streamer vspa_mbox
+UTIL_DIRS := iq_streamer vspa_mbox iq_app iq_monitor
 
 CLEAN_UTIL_DIRS = $(patsubst %, %_clean, ${UTIL_DIRS})
 INSTALL_UTIL_DIRS = $(patsubst %, %_install, ${UTIL_DIRS})
