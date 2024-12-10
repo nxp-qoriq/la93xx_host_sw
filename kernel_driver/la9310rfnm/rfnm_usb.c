@@ -291,17 +291,15 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 		goto fail;
 
 	struct resource mem_res;
-	char node_name[10];
 	int ret;
 	struct rfnm_bootconfig *cfg;
 
-	strncpy(node_name, "bootconfig", 10);
-	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
+	ret = la9310_read_dtb_node_mem_region("bootconfig",&mem_res);
 	if(ret != RFNM_DTB_NODE_NOT_FOUND) {
 	        cfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
 	}
 	else {
-	        printk("RFNM: func %s Node name %s not found..\n",__func__,node_name);
+	        printk("RFNM: func %s Node name %s not found..\n",__func__,"bootconfig");
 			goto fail;
 	}
 	memcpy(rfnm_serial, cfg->motherboard_eeprom.serial_number, 8);

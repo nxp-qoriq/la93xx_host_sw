@@ -245,6 +245,7 @@ void get_pci_controller_path(char *host_pci_status, char *pci_driver_path) {
 	if (fgets(pci_device_path, sizeof(pci_device_path), command) == NULL) {
 		printf("pci_device_path failed.\n");
 		host_pci_status[len] = '\0';
+		pclose(command);
 		return;
 	}
 
@@ -262,6 +263,7 @@ void get_pci_controller_path(char *host_pci_status, char *pci_driver_path) {
 		i++;
 	}
 	host_pci_status[len] = '\0';
+	pclose(command);
 }
 
 int libwdog_reinit_modem(struct wdog *wdog_t, uint32_t timeout)

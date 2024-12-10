@@ -147,7 +147,6 @@ int rfnm_rx_ch_set(struct rfnm_dgb *dgb_dt, struct rfnm_api_rx_ch *rx_ch)
 
 static int rfnm_mt3812_probe(struct spi_device *spi)
 {
-	char node_name[10];
 	struct spi_master *spi_master = spi->master;
 	int dgb_id = spi_master->bus_num - 1;
 	struct device *dev = &spi->dev;
@@ -157,7 +156,6 @@ static int rfnm_mt3812_probe(struct spi_device *spi)
 	mt3812_priv_t *mt3812_priv; 
 
 	pr_debug("M inside %s probe\n", __func__);
-	strncpy(node_name, "bootconfig", 10);
 
 	dgb_dt = devm_kzalloc(dev, sizeof(struct rfnm_dgb), GFP_KERNEL);
 	if (!dgb_dt) {
@@ -285,8 +283,8 @@ static int rfnm_mt3812_remove(struct spi_device *spi)
 	kfree(dgb_dt->rx_s[0]);
 	kfree(dgb_dt->rx_s[0]);
 	kfree(dgb_dt->priv_drv);
-	kfree(dgb_dt);
 	rfnm_dgb_unreg(dgb_dt);
+	kfree(dgb_dt);
 	return 0;
 }
 

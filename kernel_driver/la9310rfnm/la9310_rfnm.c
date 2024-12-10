@@ -711,7 +711,7 @@ while(1) {
 		//printk("la_adc_cc %d adc_buf_cnt %d adc_buf %d head %d\n", 
 		//	la_adc_cc, rfnm_dev->rx_usb_cb.adc_buf_cnt[la_adc_id], rfnm_dev->rx_usb_cb.adc_buf[la_adc_id], rfnm_dev->rx_usb_cb.head);
 
-		if(la_adc_id > 4) {
+		if(la_adc_id >= 4) {
 			printk("Why is this ADC %d? tail is %d axiq is %d\n", la_adc_id, la_tail, rfnm_bufdesc_rx[la_tail].axiq_done);
 			continue;
 		}

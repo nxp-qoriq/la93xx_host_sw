@@ -74,8 +74,8 @@ static inline uint64_t read_from_cfg(char *filename)
     } else {
         if (fgets(cfg, 256, fp) != NULL) {
             val = strtoull(cfg, &stopstring, 16);
-			fclose(fp);
         }
+		fclose(fp);
     }
 
     return val;

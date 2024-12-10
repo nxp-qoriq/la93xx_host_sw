@@ -345,7 +345,7 @@ int tti_dev_start(struct la9310_dev *dev)
 {
 	struct device_node *la9310_tti;
 	struct tti_priv *tti_dev = NULL;
-	int i, j, ret, tti_gpio, irq;
+	int i = 0, j, ret, tti_gpio = 0, irq = 0;
 	j = dev->id;
 
 

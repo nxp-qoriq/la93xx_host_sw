@@ -716,7 +716,7 @@ static ssize_t b_store(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, con
 	}
 
 	if (strcmp(attr->attr.name, "enable") == 0) {
-		enum rfnm_ch_enable enable;
+		enum rfnm_ch_enable enable = 0;
 
 		if (strcmp(buf_red, "off") == 0) {
 			enable = RFNM_CH_OFF;
@@ -737,7 +737,7 @@ static ssize_t b_store(struct rfnm_ch_obj *ch_obj, struct r_attribute *attr, con
 	}
 
 	if (strcmp(attr->attr.name, "stream") == 0) {
-		enum rfnm_ch_stream stream;
+		enum rfnm_ch_stream stream = 0;
 
 		if (strcmp(buf_red, "auto") == 0) {
 			stream = RFNM_CH_STREAM_AUTO;
@@ -1036,7 +1036,6 @@ EXPORT_SYMBOL(rfnm_dgb_unreg);
 static __init int rfnm_daughterboard_init(void)
 {
 	struct resource mem_res;
-	char node_name[10];
 	int ret;
 
 	printk(KERN_DEBUG "init rfnm_daughterboard\n");
@@ -1055,12 +1054,11 @@ static __init int rfnm_daughterboard_init(void)
 	// on boot, enable iq-swap on rx-2/primary (maps to 4)
 	gpout_vmem[GP_OUT_4] |= 0x1 << 27;
 
-	strncpy(node_name, "bootconfig", 10);
-	ret = la9310_read_dtb_node_mem_region(node_name, &mem_res);
+	ret = la9310_read_dtb_node_mem_region("bootconfig", &mem_res);
 	if (ret != RFNM_DTB_NODE_NOT_FOUND) {
 		bootcfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
 	} else {
-		printk(KERN_DEBUG "RFNM: func %s Node name %s not found..\n", __func__, node_name);
+		printk(KERN_DEBUG "RFNM: func %s Node name %s not found..\n", __func__, "bootconfig");
 		return ret;
 	}
 

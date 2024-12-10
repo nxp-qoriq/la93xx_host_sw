@@ -107,6 +107,7 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	else {
 		strncpy(mi->board_name, brd_name, name_len);
 	}
+	mi->board_name[name_len] = '\0';
 	of_node_put(root);
 
 	sprintf(mi->pci_addr, "%s", g_la9310_global[0].dev_name);

@@ -265,7 +265,7 @@ int32_t config_ecspi_clk_setting(uint32_t ecspi_chan, ecspi_clk_t clk, ecspi_sta
 int32_t imx_spi_clk_suspend_resume(uint32_t ecspi_chan, ecspi_state_t  state)
 {
 	int32_t ret = -1;
-	ecspi_clk_t clk; //dummy clock to make function happy
+	ecspi_clk_t clk = {0}; //dummy clock to make function happy
 
 	if ((state == ECSPI_SUSPEND) || (state == ECSPI_RESUME))
 		ret = config_ecspi_clk_setting(ecspi_chan, clk, state);
@@ -574,7 +574,7 @@ void imx_get_spi_clk_config(void *ecspi_base, uint16_t ecspi_chan, ecspi_clk_t *
 
 int32_t  imx_spi_deinit(uint32_t ecspi_chan)
 {
-	ecspi_clk_t clk;
+	ecspi_clk_t clk = {0};
 
 	if (ecspi_chan >= IMX8MP_ECSPI_MAX_DEVICES) {
 		pr_info("Invalid ecspi device..\r\n");

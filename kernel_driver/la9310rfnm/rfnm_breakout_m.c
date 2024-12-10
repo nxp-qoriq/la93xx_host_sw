@@ -73,21 +73,18 @@ static int rfnm_breakout_probe(struct spi_device *spi)
 {
 	struct rfnm_bootconfig *cfg;
 	struct resource mem_res;
-	char node_name[10];
 	int ret;
 	struct spi_master *spi_master = spi->master;
 	int dgb_id = spi_master->bus_num - 1;
  	struct device *dev = &spi->dev;
 	struct rfnm_dgb *dgb_dt;
 
-
-	strncpy(node_name, "bootconfig", 10);
-	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
+	ret = la9310_read_dtb_node_mem_region("bootconfig",&mem_res);
 	if(ret != RFNM_DTB_NODE_NOT_FOUND) {
 	        cfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
 	}
 	else {
-	        printk("RFNM: func %s Node name %s not found..\n",__func__,node_name);
+	        printk("RFNM: func %s Node name %s not found..\n",__func__,"bootconfig");
 	        return ret;
 	}
 

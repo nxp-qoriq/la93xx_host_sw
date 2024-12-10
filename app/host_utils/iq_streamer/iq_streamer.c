@@ -152,49 +152,49 @@ int map_physical_regions(void)
 			MAP_SHARED, devmem_fd, OCRAM_ADDR);
 	if (v_ocram_addr == MAP_FAILED) {
 		perror("Mapping v_ocram_addr buffer failed\n");
-		return -1;
+		goto out_v_ocram_addr;
 	}
 
 	v_iqflood_ddr_addr = mmap(NULL, mi.iqflood.size, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, mi.iqflood.host_phy_addr);
 	if (v_iqflood_ddr_addr == MAP_FAILED) {
 		perror("Mapping v_iqflood_ddr_addr buffer failed\n");
-		return -1;
+		goto out_v_iqflood_ddr_addr;
 	}
 
 	v_scratch_ddr_addr = mmap(NULL,  mi.scratchbuf.size, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd,  mi.scratchbuf.host_phy_addr);
 	if (v_scratch_ddr_addr == MAP_FAILED) {
 		perror("Mapping v_scratch_ddr_addr buffer failed\n");
-		return -1;
+		goto out_v_scratch_ddr_addr;
 	}
 
 	BAR0_addr = mmap(NULL, BAR0_SIZE, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, BAR0_ADDR);
 	if (BAR0_addr == MAP_FAILED) {
 		perror("Mapping BAR0_addr buffer failed\n");
-		return -1;
+		goto out_BAR0_addr;
 	}
 
 	BAR1_addr = mmap(NULL, BAR1_SIZE, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, BAR1_ADDR);
 	if (BAR1_addr == MAP_FAILED) {
 		perror("Mapping BAR1_addr buffer failed\n");
-		return -1;
+		goto out_BAR1_addr;
 	}
 
 	BAR2_addr = mmap(NULL, BAR2_SIZE, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, BAR2_ADDR);
 	if (BAR2_addr == MAP_FAILED) {
 		perror("Mapping BAR2_addr buffer failed\n");
-		return -1;
+		goto out_BAR2_addr;
 	}
 
 	PCIE1_addr = mmap(NULL, IMX8MP_PCIE1_SIZE, PROT_READ | PROT_WRITE,
 			MAP_SHARED, devmem_fd, IMX8MP_PCIE1_ADDR);
 	if (PCIE1_addr == MAP_FAILED) {
 		perror("Mapping PCIE1_addr buffer failed\n");
-		return -1;
+		goto out_PCIE1_addr;
 	}
 
 	/* search outbound windows mapping iqflood */
@@ -210,12 +210,12 @@ int map_physical_regions(void)
 		printf("la9310 pci outbound to ddr iqflood found : 0x%08x", p_la9310_outbound_base);
 	} else {
 		printf("la9310 pci outbound to iqflood (0x%08x) not found\n", (uint32_t)mi.iqflood.host_phy_addr);
-		return -1;
+		goto out;
 	}
 
 	if (pci_dma_mem_init((PCIE1_ADDR + DMA_OFFSET), PCIE1_SIZE, 0, 0, 0) < 0) {
 		printf("Unable to MAP DMA REG area\n");
-		return -1;
+		goto out;
 	}
 
 	/* use last 256 bytes of iqflood as shared vspa dmem proxy , vspa will write mirrored dmem value to avoid PCI read from host */
@@ -235,9 +235,27 @@ int map_physical_regions(void)
 		v_rx_vspa_proxy_wo = (uint32_t *)((uint64_t)BAR2_addr + 0x500000 + 0x00004040);
 	}
 
-	close(devmem_fd);
 
+	close(devmem_fd);
 	return 0;
+
+out:
+	munmap( out_PCIE1_addr, IMX8MP_PCIE1_SIZE);
+out_PCIE1_addr:
+	munmap( BAR2_addr, BAR2_SIZE);
+out_BAR2_addr:
+	munmap( BAR1_addr, BAR1_SIZE);
+out_BAR1_addr:
+	munmap( BAR0_addr, BAR0_SIZE);
+out_BAR0_addr:
+	munmap( v_scratch_ddr_addr, mi.scratchbuf.size);
+out_v_scratch_ddr_addr:
+	munmap( v_iqflood_ddr_addr, mi.iqflood.size);
+out_v_iqflood_ddr_addr:
+	munmap( v_ocram_addr, OCRAM_SIZE);
+out_v_ocram_addr:
+	close(devmem_fd);
+	return -1;
 }
 
 /*
@@ -334,7 +352,6 @@ int main(int argc, char *argv[])
 				print_cmd_help();
 				exit(1);
 			break;
-
 		}
 	}
 

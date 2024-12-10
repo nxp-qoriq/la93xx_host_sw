@@ -13,8 +13,8 @@
 int main(int argc, char *argv[])
 {
 
-	unsigned long fre_correction;
-	unsigned char clock_div;
+	unsigned long fre_correction = 0;
+	unsigned char clock_div = 0;
 	int opt;
 	int operation = 0;
 	char cmd_str[256];

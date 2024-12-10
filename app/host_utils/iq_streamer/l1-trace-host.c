@@ -67,6 +67,7 @@ static inline uint64_t rte_get_tsc_hz(void)
 		rte_get_tsc_hz_init = 1600000000;
 		}
 		//printf("%s: CPU freq %ld\n", __func__, val);
+		pclose(fp);
 	}
 
     return rte_get_tsc_hz_init;
