@@ -240,7 +240,7 @@ int map_physical_regions(void)
 	return 0;
 
 out:
-	munmap( out_PCIE1_addr, IMX8MP_PCIE1_SIZE);
+	munmap( PCIE1_addr, IMX8MP_PCIE1_SIZE);
 out_PCIE1_addr:
 	munmap( BAR2_addr, BAR2_SIZE);
 out_BAR2_addr:
