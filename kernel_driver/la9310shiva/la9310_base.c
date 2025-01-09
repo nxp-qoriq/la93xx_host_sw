@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2024 NXP
+ * Copyright 2017-2025 NXP
  */
 
 #include <linux/kernel.h>
@@ -698,6 +698,9 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	struct la9310_mem_region_info *ccsr_region;
 	struct device_node *np;
 	struct resource mem_addr;
+	u64 start_time, end_time, diff;
+
+	start_time = get_jiffies_64();
 
 	la9310_dev->stats_control = LA9310_STATS_DEFAULT_ENABLE_MASK;
 
@@ -838,6 +841,12 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	}
 	la9310_init_ep_pcie_allocator(la9310_dev);
 	rc = la9310_modinfo_init(la9310_dev);
+
+	end_time = get_jiffies_64();
+	diff = (u64) (end_time - start_time);
+	dev_info(la9310_dev->dev, "Probed OK, %s  Time elasped %llu msec \n",
+                        __func__, (diff * 1000 / HZ));
+
 
 out:
 	if (rc)

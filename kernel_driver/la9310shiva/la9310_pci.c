@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2024 NXP
+ * Copyright 2017-2025 NXP
  */
 
 #include <linux/kernel.h>
@@ -601,7 +601,9 @@ static struct pci_driver la9310_pcidev_driver = {
 static int __init la9310_pcidev_init(void)
 {
 	int err = 0, ret;
+	u64 start_time, end_time, diff;
 
+	start_time = get_jiffies_64();
 	pr_info("NXP PCIe LA9310 Driver: Init.\n");
 
 	if (!(scratch_buf_size && scratch_buf_phys_addr)) {
@@ -672,6 +674,10 @@ static int __init la9310_pcidev_init(void)
 			__func__, __LINE__);
 	}
 	la9310_init_global_sysfs();
+
+	end_time = get_jiffies_64();
+	diff = (u64) (end_time - start_time);
+	pr_info("PCIe LA9310 driver total elasped time %llu msec \n",(diff * 1000 / HZ));
 out:
 	return err;
 }
