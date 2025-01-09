@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017, 2021-2024 NXP
+ * Copyright 2017, 2021-2025 NXP
  */
 #include <linux/kernel.h>
 #include <linux/pci.h>
@@ -70,22 +70,21 @@ int la9310_do_reset_handshake(struct la9310_dev *la9310_dev)
 		  LA9310_HOST_START_DRIVER_INIT);
 
 #ifdef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
-	set_current_state(TASK_INTERRUPTIBLE);
-	/* Wait for FreeRTOS to complete reset hand shake */
-	schedule_timeout(msecs_to_jiffies(LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
-	dma_rmb();
-	scratch_val = readl(scratch_reg);
-	hif_offset = readl(hif_offset_reg);
-	hif_size = readl(hif_size_reg);
-	while ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && hif_size && retries) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(msecs_to_jiffies(
-			LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
-		retries--;
+	retries = (LA9310_HOST_BOOT_HSHAKE_TIMEOUT * LA9310_HOST_BOOT_HSHAKE_RETRIES * 1000 ) / LA9310_POL_INTERVAL_MICRO_SEC;
+	while (retries) {
 		dma_rmb();
 		scratch_val = readl(scratch_reg);
 		hif_offset = readl(hif_offset_reg);
 		hif_size = readl(hif_size_reg);
+		/* Wait for FreeRTOS to complete reset hand shake */
+		if ((scratch_val != LA9310_HOST_START_DRIVER_INIT) && hif_size) {
+			retries--;
+			udelay(LA9310_POL_INTERVAL_MICRO_SEC);
+		}
+		else {
+			break;
+		}
+
 	}
 #else
 	/*waiting for interrupt from la9310 to do handshake*/
@@ -229,24 +228,22 @@ int la9310_load_rtos_img(struct la9310_dev *la9310_dev)
 	writel(PREAMBLE, &boot_header->preamble);
 	dev_info(la9310_dev->dev, "Waiting for FreeRTOS boot.\n");
 
-	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(msecs_to_jiffies(LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
-
 	dma_rmb();
 	scratch_reg = &ccsr_dcr->scratchrw[LA9310_BOOT_HSHAKE_SCRATCH_REG];
-	scratch_val = readl(scratch_reg);
 #if LA9310_UPGRADE_TIMESYNC_FW
 	dev_info(la9310_dev->dev,
 		"[Sync Fw upgrade] Waiting for FreeRTOS to write %d\n",
 		 LA9310_HOST_TIMESYNC_FW_LOAD);
-	while ((scratch_val != LA9310_HOST_TIMESYNC_FW_LOAD) && retries) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(msecs_to_jiffies(
-					LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
-		retries--;
-		scratch_val = readl(scratch_reg);
+	retries = (LA9310_HOST_BOOT_HSHAKE_TIMEOUT * LA9310_HOST_BOOT_HSHAKE_RETRIES * 1000 ) / LA9310_POL_INTERVAL_MICRO_SEC;
+	while (retries) {
 		dma_rmb();
-
+		scratch_val = readl(scratch_reg);
+		if(scratch_val != LA9310_HOST_TIMESYNC_FW_LOAD) {
+			retries--;
+			udelay(LA9310_POL_INTERVAL_MICRO_SEC);
+		}
+		else
+			break;
 	}
 
 	if (scratch_val != LA9310_HOST_TIMESYNC_FW_LOAD) {
@@ -273,19 +270,18 @@ int la9310_load_rtos_img(struct la9310_dev *la9310_dev)
 		"[Sync fw upgrade] Waiting for FreeRTOS to write %d\n",
 		LA9310_HOST_START_CLOCK_CONFIG);
 	/* Wait for FreeRTOS to ask for clock configuration */
-	set_current_state(TASK_INTERRUPTIBLE);
-	schedule_timeout(msecs_to_jiffies(LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
+	retries = (LA9310_HOST_BOOT_HSHAKE_TIMEOUT * LA9310_HOST_BOOT_HSHAKE_RETRIES * 1000 ) / LA9310_POL_INTERVAL_MICRO_SEC;
 
-	retries = LA9310_HOST_BOOT_HSHAKE_RETRIES;
-	while ((scratch_val != LA9310_HOST_START_CLOCK_CONFIG) && retries) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(msecs_to_jiffies(
-					LA9310_HOST_BOOT_HSHAKE_TIMEOUT));
-		retries--;
+	while (retries) {
 		scratch_val = readl(scratch_reg);
 		dma_rmb();
+		if (scratch_val != LA9310_HOST_START_CLOCK_CONFIG) {
+			retries--;
+			udelay(LA9310_POL_INTERVAL_MICRO_SEC);
+		}
+		else
+			break;
 	}
-
 	if (scratch_val != LA9310_HOST_START_CLOCK_CONFIG) {
 		dev_err(la9310_dev->dev, "LA9310 FreeRTOS boot failed: 0x%x\n",
 			scratch_val);
