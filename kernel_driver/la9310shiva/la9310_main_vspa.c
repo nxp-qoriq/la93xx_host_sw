@@ -4,7 +4,7 @@
  * This file has been taken from ua_bringup branch
  * and appropriate changes are made to support La9310.
  *
- * Copyright 2017, 2021-2024 NXP
+ * Copyright 2017, 2021-2025 NXP
  */
 
 #include <linux/types.h>
@@ -201,7 +201,7 @@ dma_raw_transmit(struct vspa_device *vspadev, struct vspa_dma_req *dr)
 error:
 	return -ETIMEDOUT;
 }
-
+#ifdef LA9310_VSPA_ZEROIZE_NEEDED
 static int
 vspa_mem_initialization(struct vspa_device *vspadev)
 {
@@ -302,7 +302,7 @@ vspa_mem_initialization(struct vspa_device *vspadev)
 	kfree(mem_addr);
 	return 0;
 }
-
+#endif //LA9310_VSPA_ZEROIZE_NEEDED
 
 /* To start the vspa core after dma is programmed */
 static int
@@ -1060,13 +1060,13 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 			"INFO:%s : VSPA Loading firmware initiated-\n", __func__);
 
 	vspadev->state = VSPA_STATE_LOADING;
-
+#ifdef LA9310_VSPA_ZEROIZE_NEEDED
 	err = vspa_mem_initialization(vspadev);
 	if (err < 0) {
 		dev_err(vspadev->dev, "Memory Zeroise failed\n");
 		goto err_out;
 	}
-
+#endif
 	snprintf(vspadev->eld_filename, VSPA_MAX_ELD_FILENAME,
 			"%s", vspa_fw_name);
 
