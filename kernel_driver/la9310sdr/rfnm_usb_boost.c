@@ -27,21 +27,12 @@
 #include <linux/usb/ch9.h>
 #include <linux/module.h>
 #include <linux/io.h>
-#include <linux/rfnm-shared.h>
-
+#include <linux/sdr-shared.h>
 
 #include <function/f_mass_storage.h>
 
-/* USB functions for functionMask parameter, RFNM function is always enabled*/
-#define FN_MSG 1
-#define FN_NCM 2
-
-
 /*-------------------------------------------------------------------------*/
 USB_GADGET_COMPOSITE_OPTIONS();
-
-static int functionMask = FN_MSG | FN_NCM; // Default, all functions
-module_param(functionMask, int, S_IRUSR | S_IRGRP | S_IROTH);
 
 static struct usb_device_descriptor rfnm_device_desc = {
 	.bLength =		sizeof rfnm_device_desc,
@@ -58,7 +49,7 @@ static struct usb_device_descriptor rfnm_device_desc = {
 
 	/* Vendor and product id can be overridden by module parameters.  */
 	.idVendor =		0x15A2,
-	.idProduct =		0x8C,
+	.idProduct =		0x8D,
 	.bNumConfigurations =	1,
 };
 
@@ -68,7 +59,7 @@ char rfnm_serial[9] = "00000000\0";
 
 static struct usb_string strings_dev[] = {
 	[USB_GADGET_MANUFACTURER_IDX].s = "RFNM Inc",
-	[USB_GADGET_PRODUCT_IDX].s = "RFNM",
+	[USB_GADGET_PRODUCT_IDX].s = "RFNM Data Boost",
 	[USB_GADGET_SERIAL_IDX].s = rfnm_serial,
 	{  } /* end of list */
 };
@@ -84,12 +75,9 @@ static struct usb_gadget_strings *dev_strings[] = {
 };
 
 static struct usb_function_instance *fi_rfnm;
-static struct usb_function_instance *fi_msg;
-static struct usb_function_instance *fi_ncm;
+
 
 static struct usb_function *f_rfnm;
-static struct usb_function *f_msg;
-static struct usb_function *f_ncm;
 
 
 static struct usb_configuration os_desc_config = {
@@ -111,7 +99,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
 #endif
-#if 1
+
 	c->cdev->use_os_string = 1;
 	c->cdev->b_vendor_code = 0xca;
 
@@ -131,11 +119,9 @@ static int rfnm_do_config(struct usb_configuration *c)
 	c->cdev->qw_sign[13] = 0;
 
 	c->cdev->os_desc_config = &os_desc_config;
-#endif
-	printk("Sending os driver data from callback\n");
-	printk("FunctionMask = %X\n", functionMask);
 
-	
+	printk("Sending os driver data from callback\n");
+
 	f_rfnm = usb_get_function(fi_rfnm);
 	if (IS_ERR(f_rfnm))
 		return PTR_ERR(f_rfnm);
@@ -145,29 +131,7 @@ static int rfnm_do_config(struct usb_configuration *c)
 		goto put_func;
 
 	os_desc_config.interface[0] = f_rfnm;
-	
 
-	if (functionMask & FN_MSG)
-	{
-		f_msg = usb_get_function(fi_msg);
-		if (IS_ERR(f_msg))
-			return PTR_ERR(f_msg);
-
-		ret = usb_add_function(c, f_msg);
-		if (ret)
-			goto put_func;
-	}
-
-	if (functionMask & FN_NCM)
-	{
-		f_ncm = usb_get_function(fi_ncm);
-		if (IS_ERR(f_ncm))
-			return PTR_ERR(f_ncm);
-
-		ret = usb_add_function(c, f_ncm);
-		if (ret)
-			goto put_func;
-	}	
 
 	printk("callback ok\n");
 
@@ -176,36 +140,10 @@ static int rfnm_do_config(struct usb_configuration *c)
 
 put_func:
 	usb_put_function(f_rfnm);
-	usb_put_function(f_msg);
-	usb_put_function(f_ncm);
 	return ret;
 }
 
 
-int msg_do_config(struct usb_configuration *c)
-{
-	int ret;
-#if 0
-	if (gadget_is_otg(c->cdev->gadget)) {
-		c->descriptors = otg_desc;
-		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
-	}
-#endif
-
-	f_msg = usb_get_function(fi_msg);
-	if (IS_ERR(f_msg))
-		return PTR_ERR(f_msg);
-
-	ret = usb_add_function(c, f_msg);
-	if (ret)
-		goto put_func;
-
-	return 0;
-
-put_func:
-	usb_put_function(f_msg);
-	return ret;
-}
 
 static struct usb_configuration rfnm_config_driver = {
 	.label			= "RFNM Temporary USB Driver",
@@ -236,9 +174,12 @@ extern void rfnm_wsled_set(uint8_t chain_id, uint8_t led_id, uint8_t r, uint8_t 
 
 static int rfnm_bind(struct usb_composite_dev *cdev)
 {
-	struct fsg_opts *msg_opts;
-	struct fsg_config msg_config;
 	int status;
+
+	struct resource mem_res;
+	char node_name[10];
+	int ret;
+	struct rfnm_bootconfig *cfg;
 
 	int r, g, b;
 	r = 0xff;
@@ -252,54 +193,18 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	if (IS_ERR(fi_rfnm))
 		return PTR_ERR(fi_rfnm);
 
-	if (functionMask & FN_NCM)
-	{
-		fi_ncm = usb_get_function_instance("ncm");
-		if (IS_ERR(fi_ncm))
-			return PTR_ERR(fi_ncm);
-	}
-
-	if (functionMask & FN_MSG)
-	{
-		fi_msg = usb_get_function_instance("mass_storage");
-		if (IS_ERR(fi_msg))
-			return PTR_ERR(fi_msg);
-
-		fsg_config_from_params(&msg_config, &msg_mod_data, fsg_num_buffers);
-		msg_opts = fsg_opts_from_func_inst(fi_msg);
-
-		msg_opts->no_configfs = true;
-		status = fsg_common_set_num_buffers(msg_opts->common, fsg_num_buffers);
-		if (status)
-			goto fail;
-
-		status = fsg_common_set_cdev(msg_opts->common, cdev, msg_config.can_stall);
-		if (status)
-			goto fail;
-
-		fsg_common_set_sysfs(msg_opts->common, true);
-		status = fsg_common_create_luns(msg_opts->common, &msg_config);
-		if (status)
-			goto fail;
-
-		fsg_common_set_inquiry_string(msg_opts->common, msg_config.vendor_name,
-						msg_config.product_name);
-	}
-
 	status = usb_string_ids_tab(cdev, strings_dev);
 	if (status < 0)
 		goto fail;
 
-	struct resource mem_res;
-	int ret;
-	struct rfnm_bootconfig *cfg;
 
-	ret = la9310_read_dtb_node_mem_region("bootconfig",&mem_res);
+	strncpy(node_name, "bootconfig", 10);
+	ret = la9310_read_dtb_node_mem_region(node_name,&mem_res);
 	if(ret != RFNM_DTB_NODE_NOT_FOUND) {
 	        cfg = memremap(mem_res.start, SZ_4M, MEMREMAP_WB);
 	}
 	else {
-	        printk("RFNM: func %s Node name %s not found..\n",__func__,"bootconfig");
+	        printk("RFNM: func %s Node name %s not found..\n",__func__,node_name);
 			goto fail;
 	}
 	memcpy(rfnm_serial, cfg->motherboard_eeprom.serial_number, 8);
@@ -308,29 +213,10 @@ static int rfnm_bind(struct usb_composite_dev *cdev)
 	rfnm_device_desc.iProduct = strings_dev[USB_GADGET_PRODUCT_IDX].id;
 	rfnm_device_desc.iManufacturer = strings_dev[USB_GADGET_MANUFACTURER_IDX].id;
 	rfnm_device_desc.iSerialNumber = strings_dev[USB_GADGET_SERIAL_IDX].id;
-#if 0
-	if (gadget_is_otg(cdev->gadget) && !otg_desc[0]) {
-		struct usb_descriptor_header *usb_desc;
-
-		printk("is OTG\n");
-
-		usb_desc = usb_otg_descriptor_alloc(cdev->gadget);
-		if (!usb_desc) {
-			status = -ENOMEM;
-			goto fail;
-		}
-		usb_otg_descriptor_init(cdev->gadget, usb_desc);
-		otg_desc[0] = usb_desc;
-		otg_desc[1] = NULL;
-	}
-#endif
+	
 	status = usb_add_config(cdev, &rfnm_config_driver, rfnm_do_config);
 	if (status < 0)
 		goto fail;
-
-/*	status = usb_add_config(cdev, &msg_config_driver, msg_do_config);
-	if (status < 0)
-		goto fail;*/
 
 	usb_composite_overwrite_options(cdev, &coverwrite);
 	return 0;
@@ -339,7 +225,6 @@ fail:
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
 	usb_put_function_instance(fi_rfnm);
-	usb_put_function_instance(fi_msg);
 	return status;
 }
 
@@ -351,12 +236,6 @@ static int rfnm_unbind(struct usb_composite_dev *cdev)
 	if (!IS_ERR(fi_rfnm))
 		usb_put_function_instance(fi_rfnm);
 
-	if (!IS_ERR(f_msg))
-		usb_put_function(f_msg);
-
-	if (!IS_ERR(fi_msg))
-		usb_put_function_instance(fi_msg);
-
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
 
@@ -366,8 +245,8 @@ static int rfnm_unbind(struct usb_composite_dev *cdev)
 /****************************** Some noise ******************************/
 
 static struct usb_composite_driver rfnm_driver = {
-	.name		= "rfnm_usb",
-	.udc_name = "38100000.usb",
+	.name		= "rfnm_usb_boost",
+	.udc_name = "38200000.usb",
 	.dev		= &rfnm_device_desc,
 	.max_speed	= USB_SPEED_SUPER_PLUS,
 	.needs_serial	= 1,
@@ -377,6 +256,9 @@ static struct usb_composite_driver rfnm_driver = {
 };
 
 module_usb_composite_driver(rfnm_driver);
+
+//module_driver(__usb_composite_driver, usb_composite_probe, usb_composite_unregister);
+
 
 MODULE_DESCRIPTION("Mass Storage Gadget");
 MODULE_AUTHOR("Michal Nazarewicz");

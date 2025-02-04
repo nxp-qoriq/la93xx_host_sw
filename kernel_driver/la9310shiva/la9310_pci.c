@@ -708,9 +708,9 @@ module_param(dac_rate_mask, int, 0400);
 MODULE_PARM_DESC(dac_rate_mask,
 	"DAC Frequency for each channel (0 for Full Duplex, 1 for Half Duplex");
 module_param(iq_mem_addr, ullong, 0400);
-MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Address");
+MODULE_PARM_DESC(iq_mem_addr, "SDR IQ Flood Mem Address");
 module_param(iq_mem_size, int, 0400);
-MODULE_PARM_DESC(iq_mem_addr, "RFNM IQ Flood Mem Size");
+MODULE_PARM_DESC(iq_mem_addr, "SDR IQ Flood Mem Size");
 module_param(modem_rf_data_size, int, 0400);
 MODULE_PARM_DESC(modem_rf_data_size, "RFIC buffer size for each LA931x devices");
 module_param_string(alt_vspa_fw_name, vspa_fw_name,
@@ -722,7 +722,7 @@ module_param_string(alt_firmware_name, firmware_name,
 MODULE_PARM_DESC(alt_firmware_name,
 	"Alternative shiva firmware name e.g la9310.bin");
 module_param(sdr_board, int, 0400);
-MODULE_PARM_DESC(sdr_board, "Board Type is IMX8MP-RFNM SDR");
+MODULE_PARM_DESC(sdr_board, "Board Type is IMX8MP-SDR");
 module_param(modem_host_uart, int, 0400);
 MODULE_PARM_DESC(modem_host_uart, "Enable modem log to host");
 MODULE_LICENSE("Dual BSD/GPL");

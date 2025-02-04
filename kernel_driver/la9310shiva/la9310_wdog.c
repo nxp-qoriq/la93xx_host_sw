@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021-2024 NXP
+ * Copyright 2021-2025 NXP
  */
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -472,7 +472,7 @@ int wdog_init(void)
 			of_get_named_gpio(dn_wdog, "la9310-reset-gpio", i);
 		if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio)) {
 			pr_warn("la9310-reset-gpio %d not found\n", i);
-			/*RFNM boards have different GPIO name */
+			/*SDR boards have different GPIO name */
 			wdog_dev->wdog_pd[i].gpio =	
 				of_get_named_gpio(dn_wdog, "la9310-trst-gpios", i);
 			if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio)) {
@@ -480,7 +480,7 @@ int wdog_init(void)
 				rc = -EINVAL;
 				goto err;
 			} else {
-				/* 2nd GPIO for RFNM */
+				/* 2nd GPIO for SDR */
 				wdog_dev->wdog_pd[i].gpio_hrst =
 					of_get_named_gpio(dn_wdog, "la9310-hrst-gpios", i);
 				if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio_hrst)) {

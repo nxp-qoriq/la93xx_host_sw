@@ -22,7 +22,7 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <rfnm-gpio.h>
 
 extern void tti_irq_api(void);

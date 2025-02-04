@@ -1,5 +1,5 @@
 #SPDX-License-Identifier: GPL-2.0
-#Copyright 2017, 2021-2024 NXP
+#Copyright 2017, 2021-2025 NXP
 
 CC              = $(CROSS_COMPILE)gcc
 AR              = $(CROSS_COMPILE)ar
@@ -39,7 +39,7 @@ GIT_VERSION :=\"$(shell git describe --abbrev=0 --tags)\"
 # Config Tweak handles
 DEBUG ?= 1
 BOOTROM_USE_EDMA ?= 1
-IMX_RFNM ?= 0
+IMX_SDR ?= 0
 IMX_SEEVE ?= 0
 NLM ?= 0
 EXTRA_RMMOD_SCRIPT ?= ""
@@ -48,11 +48,11 @@ export CC LIB_INSTALL_DIR BIN_INSTALL_DIR SCRIPTS_INSTALL_DIR MODULE_INSTALL_DIR
 	FIRMWARE_INSTALL_DIR
 export CONFIG_INSTALL_DIR API_DIR LIB_DIR KERNEL_DIR COMMON_DIR UAPI_DIR LA9310_DRV_HEADER_DIR
 export INCLUDES CFLAGS VERSION_STRING LDFLAGS GIT_VERSION
-export DEBUG BOOTROM_USE_EDMA IMX_RFNM IMX_SEEVE EXTRA_RMMOD_SCRIPT
+export DEBUG BOOTROM_USE_EDMA IMX_SDR IMX_SEEVE EXTRA_RMMOD_SCRIPT
 
-ifeq ($(IMX_RFNM),1)
+ifeq ($(IMX_SDR),1)
 	export BSP_VERSION := $(shell git describe --tags --abbrev=11 --dirty --match "la12*")
-	CFLAGS += -DIMX_RFNM
+	CFLAGS += -DIMX_SDR
 else ifeq ($(IMX_SEEVE),1)
 	export BSP_VERSION := $(shell git describe --tags --abbrev=11 --dirty --match "la12*")
 	CFLAGS += -DIMX_SEEVE

@@ -47,7 +47,7 @@
 
 #define LMS_REF_FREQ (51200000)
 
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <rfnm-gpio.h>
 
 #include "rfnm_fe_generic.h"

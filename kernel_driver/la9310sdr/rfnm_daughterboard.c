@@ -33,10 +33,10 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <linux/workqueue.h>
 #ifdef IMX_RFMT3812
-#include <rfnm_fe_mt3812.h>
+#include <sdr_fe_mt3812.h>
 #endif
 
 struct rfnm_dgb *rfnm_dgb[2];

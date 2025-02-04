@@ -1,11 +1,11 @@
 How to Build SPI Application
 =============================
-iMX8MP has three ecspi instances. User mode driver has set of api's 
+iMX8MP has three ecspi instances. User mode driver has set of api's
 which can be used to build application using ecspi libarry.
 
 Directory Structure
 --------------------
-Below is the directory structure,showing how api, app and lib directory's are structured. 
+Below is the directory structure,showing how api, app and lib directory's are structured.
 
 api
  diora_ecspi_api.h
@@ -35,12 +35,12 @@ USer can make application using these api's.
 Clock Configuartion
 ===================
 ECSPI clock is configurable as per application need.There are two level of clock divisor configuartion.
-At top level root clock is being selected  as shown below 
+At top level root clock is being selected  as shown below
 
 ROOT CLOCK
 -------------
-Below are the various root clock options for ECSPI block to work. 
-101 (Peripheral) ECSPI1_CLK_ROOT 0xB280 80 
+Below are the various root clock options for ECSPI block to work.
+101 (Peripheral) ECSPI1_CLK_ROOT 0xB280 80
 ------------------------------------------
 	000 - 24M_REF_CLK
 	100 - SYSTEM_PLL1_CLK
@@ -126,14 +126,15 @@ How to build Application
 Below is the steps to build application.
 Which build everything in host software along with ecspi application.
 
-make clean;CONFIG_ENABLE_FLOAT_BYPASS=y make IMX_RFNM=1 IMX_RFGR=1
+make clean;CONFIG_ENABLE_FLOAT_BYPASS=y make IMX_SDR=1 IMX_RFGR=1
 
-user can disable IMX_RFNM and IMX_RFGR by setting them to IMX_RFNM=0 IMX_RFGR=0,
+user can disable IMX_SDR and IMX_RFGR by setting them to IMX_SDR=0 IMX_RFGR=0,
 if not needed.
 
 How to Invoke Test
 =================
-root@imx8mp-rfnm:~# ./ecspi_test_app                                                                                                                                                                                                      
+root@imx8mp-rfnm:~# ./ecspi_test_app
+ 
 Usage: ./ecspi_test_app ecspi_ch_id(1..3)  -c(cpu number to affine(1..4))
 
 User need to pass the valid ecspi channel number between 1 to 3.

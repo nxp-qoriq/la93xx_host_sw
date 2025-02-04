@@ -14,7 +14,7 @@
 #include <linux/module.h>
 #include <linux/usb/composite.h>
 #include <linux/err.h>
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 
 #include <function/g_zero.h>
 #include <u_f.h>

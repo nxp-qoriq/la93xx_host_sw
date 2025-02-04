@@ -1,5 +1,5 @@
 #SPDX-License-Identifier: GPL-2.0
-#Copyright 2017, 2021-2024 NXP
+#Copyright 2017, 2021-2025 NXP
 
 PWD=$(shell pwd)
 
@@ -17,11 +17,11 @@ include $(KERNEL_DIR)/.config
 EXTRA_CFLAGS += -g -DLA9310_HOST_SW_VERSION="${VERSION_STRING}" -DVERSION=${GIT_VERSION} -I${COMMON_DIR} -I${UAPI_DIR}
 obj-y += la9310shiva/
 obj-y += la9310demo/
-ifeq ($(IMX_RFNM),1)
-obj-y += la9310rfnm/
+ifeq ($(IMX_SDR),1)
+obj-y += la9310sdr/
 endif
 ifeq ($(IMX_SEEVE),1)
-obj-y += la9310rfnm/
+obj-y += la9310sdr/
 endif
 ifeq ($(IMX_RFLIME),1)
 obj-y += la9310rflime/
@@ -43,30 +43,30 @@ clean:
 install:
 	install  -D  la9310shiva/la9310shiva.ko ${MODULE_INSTALL_DIR}/la9310shiva.ko
 	install  -D  la9310demo/la9310demo.ko ${MODULE_INSTALL_DIR}/la9310demo.ko
-ifeq ($(IMX_RFNM),1)
-	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
-	install  -D  la9310rfnm/rfnm_usb_boost.ko ${MODULE_INSTALL_DIR}/rfnm_usb_boost.ko
-	install  -D  la9310rfnm/rfnm_gpio.ko ${MODULE_INSTALL_DIR}/rfnm_gpio.ko
-	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
-	install  -D  la9310rfnm/rfnm_usb_function.ko ${MODULE_INSTALL_DIR}/rfnm_usb_function.ko
-	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
-	install  -D  la9310rfnm/rfnm_breakout.ko ${MODULE_INSTALL_DIR}/rfnm_breakout.ko
-	install  -D  la9310rfnm/rfnm_usb.ko ${MODULE_INSTALL_DIR}/rfnm_usb.ko
-	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
-	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
+ifeq ($(IMX_SDR),1)
+	install  -D  la9310sdr/la9310sdr.ko ${MODULE_INSTALL_DIR}/la9310sdr.ko
+	install  -D  la9310sdr/sdr_usb_boost.ko ${MODULE_INSTALL_DIR}/sdr_usb_boost.ko
+	install  -D  la9310sdr/sdr_gpio.ko ${MODULE_INSTALL_DIR}/sdr_gpio.ko
+	install  -D  la9310sdr/la9310sdr.ko ${MODULE_INSTALL_DIR}/la9310sdr.ko
+	install  -D  la9310sdr/sdr_usb_function.ko ${MODULE_INSTALL_DIR}/sdr_usb_function.ko
+	install  -D  la9310sdr/sdr_daughterboard.ko ${MODULE_INSTALL_DIR}/sdr_daughterboard.ko
+	install  -D  la9310sdr/sdr_breakout.ko ${MODULE_INSTALL_DIR}/sdr_breakout.ko
+	install  -D  la9310sdr/sdr_usb.ko ${MODULE_INSTALL_DIR}/sdr_usb.ko
+	install  -D  la9310sdr/sdr_tti.ko ${MODULE_INSTALL_DIR}/sdr_tti.ko
+	install  -D  la9310sdr/sdr_lalib.ko ${MODULE_INSTALL_DIR}/sdr_lalib.ko
 else ifeq ($(IMX_SEEVE),1)
-	install  -D  la9310rfnm/la9310rfnm.ko ${MODULE_INSTALL_DIR}/la9310rfnm.ko
-	install  -D  la9310rfnm/rfnm_gpio.ko ${MODULE_INSTALL_DIR}/rfnm_gpio.ko
-	install  -D  la9310rfnm/rfnm_daughterboard.ko ${MODULE_INSTALL_DIR}/rfnm_daughterboard.ko
-	install  -D  la9310rfnm/rfnm_tti.ko ${MODULE_INSTALL_DIR}/rfnm_tti.ko
-	install  -D  la9310rfnm/rfnm_lalib.ko ${MODULE_INSTALL_DIR}/rfnm_lalib.ko
+	install  -D  la9310sdr/la9310sdr.ko ${MODULE_INSTALL_DIR}/la9310sdr.ko
+	install  -D  la9310sdr/sdr_gpio.ko ${MODULE_INSTALL_DIR}/sdr_gpio.ko
+	install  -D  la9310sdr/sdr_daughterboard.ko ${MODULE_INSTALL_DIR}/sdr_daughterboard.ko
+	install  -D  la9310sdr/sdr_tti.ko ${MODULE_INSTALL_DIR}/sdr_tti.ko
+	install  -D  la9310sdr/sdr_lalib.ko ${MODULE_INSTALL_DIR}/sdr_lalib.ko
 endif
 ifeq ($(IMX_RFLIME),1)
-	install  -D  la9310rflime/rfnm_lime.ko ${MODULE_INSTALL_DIR}/rfnm_lime.ko
+	install  -D  la9310rflime/sdr_lime.ko ${MODULE_INSTALL_DIR}/sdr_lime.ko
 endif
 ifeq ($(IMX_RFGR),1)
-	install  -D la9310rfgr/rfnm_granita.ko ${MODULE_INSTALL_DIR}/rfnm_granita.ko
+	install  -D la9310rfgr/sdr_granita.ko ${MODULE_INSTALL_DIR}/sdr_granita.ko
 endif
 ifeq ($(IMX_RFMT3812),1)
-	install  -D la9310mt3812/rfnm_mt3812.ko ${MODULE_INSTALL_DIR}/rfnm_mt3812.ko
+	install  -D la9310mt3812/sdr_mt3812.ko ${MODULE_INSTALL_DIR}/sdr_mt3812.ko
 endif

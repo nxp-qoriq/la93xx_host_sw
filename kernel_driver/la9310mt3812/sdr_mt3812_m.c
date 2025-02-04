@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
  *
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 #include <linux/irq.h>
 #include <linux/interrupt.h>
@@ -34,10 +34,10 @@
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 #include <linux/delay.h>
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <rfnm-gpio.h>
 #include "rfnm_fe_generic.h"
-#include "rfnm_fe_mt3812.h"
+#include "sdr_fe_mt3812.h"
 #include <linux/i2c.h>
 
 void rfnm_tx_ch_get(struct rfnm_dgb *dgb_dt, struct rfnm_api_tx_ch *tx_ch)
@@ -173,12 +173,12 @@ static int rfnm_mt3812_probe(struct spi_device *spi)
 	dgb_dt->rx_ch_get = rfnm_rx_ch_get;
 	dgb_dt->tx_ch_set = rfnm_tx_ch_set;
 	dgb_dt->tx_ch_get = rfnm_tx_ch_get;
-	dgb_dt->reset = rfnm_reset;
+	dgb_dt->reset = sdr_reset;
 	spi_set_drvdata(spi, dgb_dt);
 	spi->max_speed_hz = 1000000;
 	spi->bits_per_word = 8;
 	spi->mode = SPI_CPHA;
-	rfnm_fe_generic_init(dgb_dt, RFNM_MT3812_NUM_LATCHES);
+	rfnm_fe_generic_init(dgb_dt, SDR_MT3812_NUM_LATCHES);
 	tx_ch = devm_kzalloc(dev, sizeof(struct rfnm_api_tx_ch), GFP_KERNEL);
 	rx_ch[0] = devm_kzalloc(dev, sizeof(struct rfnm_api_rx_ch), GFP_KERNEL);
 	rx_ch[1] = devm_kzalloc(dev, sizeof(struct rfnm_api_rx_ch), GFP_KERNEL);
@@ -230,7 +230,7 @@ static int rfnm_mt3812_probe(struct spi_device *spi)
 }
 
 //Reset sequence called. The steps include setting GPIO4_5, wait for 1ms, configure , load, and trigger LATCH3_Q0 value 0,Clear GPIO4_5
-int rfnm_reset(struct rfnm_dgb *dgb_dt)
+int sdr_reset(struct rfnm_dgb *dgb_dt)
 {
 	pr_debug("Inside %s Entered\n", __func__);
 
@@ -261,7 +261,7 @@ int rfnm_reset(struct rfnm_dgb *dgb_dt)
 	//MT RST
 	rfnm_gpio_clear(dgb_dt->dgb_id, RFNM_DGB_GPIO4_5);
 	udelay(1000);
-	rfnm_fe_srb(dgb_dt, RFNM_MT3812_MT_TRX, 0);
+	rfnm_fe_srb(dgb_dt, SDR_MT3812_MT_TRX, 0);
 	rfnm_fe_load_latches(dgb_dt);
 	rfnm_fe_trigger_latches(dgb_dt);
 	udelay(1000);

@@ -50,7 +50,7 @@
 
 
 //#include "rfnm_types.h"
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <rfnm-gpio.h>
 
 #include "rfnm_lalib.h"

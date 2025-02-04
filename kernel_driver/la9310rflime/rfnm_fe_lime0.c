@@ -2,7 +2,7 @@
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 
 #include "rfnm_fe_lime0.h"
 #include "rfnm_fe_generic.h"

@@ -41,7 +41,7 @@
 #include <linux/platform_device.h>
 #include <linux/spi/spi.h>
 
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <rfnm-gpio.h>
 
 volatile unsigned int *gpio[7];

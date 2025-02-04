@@ -43,7 +43,7 @@
 
 #include <linux/debugfs.h>
 
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 #include <linux/rfnm-api.h>
 #include <rfnm-gpio.h>
 

@@ -297,7 +297,7 @@ la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
 			LA9310_IQFLOOD_PHYS_ADDR,
 			iq_mem_addr,
 			iq_mem_size);
-	dev_info(la9310_dev->dev, "RFNM IQFLOOD Buff:0x%x[H]-0x%llx[M],size %d\n",
+	dev_info(la9310_dev->dev, "SDR IQFLOOD Buff:0x%x[H]-0x%llx[M],size %d\n",
 		 LA9310_IQFLOOD_PHYS_ADDR, iq_mem_addr, iq_mem_size);
 }
 

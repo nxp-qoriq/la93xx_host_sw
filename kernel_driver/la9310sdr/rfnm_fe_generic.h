@@ -2,7 +2,7 @@
 #ifndef RFNM_FE_GENERIC_H_
 #define RFNM_FE_GENERIC_H_
 
-#include <linux/rfnm-shared.h>
+#include <linux/sdr-shared.h>
 
 int rfnm_fe_generic_init(struct rfnm_dgb * dgb_dt, int * num_latches);
 
