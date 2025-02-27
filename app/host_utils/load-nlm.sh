@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright 2024 NXP
+# Copyright 2024-2025 NXP
 ####################################################################
 #set -x
 
@@ -35,11 +35,11 @@ echo insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=$scra
 insmod /lib/modules/$(uname -r)/extra/la9310shiva.ko scratch_buf_size=$scratch_size scratch_buf_phys_addr=$scratch_addr adc_mask=0xf adc_rate_mask=$adcm dac_mask=0x1 dac_rate_mask=$dacm alt_firmware_name=la9310_dfe.bin alt_vspa_fw_name=apm-iqplayer.eld
 
 # insert rf modules kernel modules
-insmod /lib/modules/$(uname -r)/extra/rfnm_gpio.ko
-insmod /lib/modules/$(uname -r)/extra/rfnm_lalib.ko
-insmod /lib/modules/$(uname -r)/extra/rfnm_daughterboard.ko
-insmod /lib/modules/$(uname -r)/extra/rfnm_lime.ko
-insmod /lib/modules/$(uname -r)/extra/rfnm_granita.ko
+insmod /lib/modules/$(uname -r)/extra/sdr_gpio.ko
+insmod /lib/modules/$(uname -r)/extra/sdr_lalib.ko
+insmod /lib/modules/$(uname -r)/extra/sdr_daughterboard.ko
+insmod /lib/modules/$(uname -r)/extra/sdr_lime.ko
+insmod /lib/modules/$(uname -r)/extra/sdr_granita.ko
 insmod /lib/modules/$(uname -r)/extra/pmu_el0_cycle_counter.ko
 
 # enable ADC/DAC always on
