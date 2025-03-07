@@ -156,6 +156,10 @@ static int rfnm_mt3812_probe(struct spi_device *spi)
 	mt3812_priv_t *mt3812_priv; 
 
 	pr_debug("M inside %s probe\n", __func__);
+        if (dgb_id != 0) {
+		/*only slot 0 is valid*/
+                return -1;
+        }
 
 	dgb_dt = devm_kzalloc(dev, sizeof(struct rfnm_dgb), GFP_KERNEL);
 	if (!dgb_dt) {
@@ -274,17 +278,24 @@ int sdr_reset(struct rfnm_dgb *dgb_dt)
 static int rfnm_mt3812_remove(struct spi_device *spi)
 {
 	struct rfnm_dgb *dgb_dt;
-
+	struct device *dev = &spi->dev;
+	struct spi_master *spi_master = spi->master;
+	int dgb_id = spi_master->bus_num - 1;
 	dgb_dt = spi_get_drvdata(spi);
-	kfree(dgb_dt->tx_ch);
-	kfree(dgb_dt->rx_ch[0]);
-	kfree(dgb_dt->rx_ch[1]);
-	kfree(dgb_dt->tx_s);
-	kfree(dgb_dt->rx_s[0]);
-	kfree(dgb_dt->rx_s[0]);
-	kfree(dgb_dt->priv_drv);
+
+        if (dgb_id != 0) {
+		/*only slot 0 is valid*/
+                return -1;
+        }
+	devm_kfree(dev,dgb_dt->tx_ch[0]);
+	devm_kfree(dev,dgb_dt->rx_ch[0]);
+	devm_kfree(dev,dgb_dt->rx_ch[1]);
+	devm_kfree(dev,dgb_dt->tx_s[0]);
+	devm_kfree(dev,dgb_dt->rx_s[0]);
+	devm_kfree(dev,dgb_dt->rx_s[1]);
+	devm_kfree(dev,dgb_dt->priv_drv);
 	rfnm_dgb_unreg(dgb_dt);
-	kfree(dgb_dt);
+	devm_kfree(dev,dgb_dt);
 	return 0;
 }
 
