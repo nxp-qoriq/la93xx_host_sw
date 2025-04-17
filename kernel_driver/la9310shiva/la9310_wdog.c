@@ -491,9 +491,8 @@ int wdog_init(void)
 				wdog_dev->wdog_pd[i].gpio_bootstrap =
 					of_get_named_gpio(dn_wdog, "la9310-bootstrap-en-gpios", i);
 				if (!gpio_is_valid(wdog_dev->wdog_pd[i].gpio_bootstrap)) {
-					pr_err("rfnm: la9310-bootstarp-en-gpios %d not found\n", i);
-					rc = -EINVAL;
-					goto err;
+					pr_warn("rfnm: la9310-bootstarp-en-gpios %d not found\n", i);
+					wdog_dev->wdog_pd[i].gpio_bootstrap=0;
 				}
 			}
 

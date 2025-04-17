@@ -19,13 +19,8 @@
 #define FIRMWARE_NAME_SIZE 100
 
 /*Boot HandShake timeout in jiffies and retry count */
-#if defined(SEEVE)
-#define LA9310_HOST_BOOT_HSHAKE_TIMEOUT		10
-#define LA9310_HOST_BOOT_HSHAKE_RETRIES		40
-#else
 #define LA9310_HOST_BOOT_HSHAKE_TIMEOUT		100
 #define LA9310_HOST_BOOT_HSHAKE_RETRIES		60
-#endif
 #define LA9310_IPC_INIT_WAIT_TIMEOUT		100
 #define LA9310_IPC_INIT_WAIT_RETRIES		50
 #define NXP_ERRATUM_A008822	       1
