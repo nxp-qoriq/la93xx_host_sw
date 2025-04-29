@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2024 NXP
+####################################################################
+
+ rffe_app: linux user space utilities used to read/write registers of SKY58281-11 
+           app is using GPIO bit-bangs to emulating MIPI RFFE interface
+           code is derived from https://github.com/Anthony-S/stm32-rffe.git 
+           and has been adapted to i.MX8MPlus connected to SKY58281-11 
+ 
+ ref: RFFE MIPI Version 3.0 – 1 December 2019
+      data sheet SKY58281-11 Sky5 January 26, 2024      
+ 
+ max sck freq 1Mhz on i.MX8PLUS @1.6Ghz 
+ 
+
+
