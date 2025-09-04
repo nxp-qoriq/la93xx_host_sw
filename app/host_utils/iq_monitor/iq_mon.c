@@ -164,7 +164,7 @@ int map_physical_regions(void)
 		return -1;
 	}
 
-	/* use last 256 bytes of iqflood as shared vspa dmem proxy , vspa will write mirrored dmem value to avoid PCI read from host */
+	/* use last 1024 bytes of iqflood as shared vspa dmem proxy , vspa will write mirrored dmem value to avoid PCI read from host */
 	v_vspa_dmem_proxy_ro = (uint32_t *)(v_iqflood_ddr_addr + (mi.iqflood.size - VSPA_DMEM_PROXY_SIZE)/4);
 	host_stats =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->host_stats);
 	rx_vspa_proxy_ro =  &(((t_vspa_dmem_proxy *)v_vspa_dmem_proxy_ro)->rx_state_readonly[0]);
