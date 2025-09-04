@@ -501,11 +501,49 @@ out:
 	return la9310_dev;
 }
 
+static int PCI_class_00_workaround(struct pci_dev *pciContext)
+{
+	// LA9310 bootloader PCI descriptor has a PCI class type of 00
+	// Linux skips devices with undefined class when assigning resources
+	// https://github.com/torvalds/linux/blob/113fb03ed1d4c1877cc8817e500867616b222380/drivers/pci/setup-bus.c#L184-L186
+	// hence the device is enumerated and shows up in lspci, but BARs are left unassigned.
+
+	// has to be done before attempt to pci_enable_device()
+	int ret = 0;
+	struct resource* bar0 = &pciContext->resource[0];
+	if (bar0->start == 0) // BAR is unassigned
+	{
+		// Default LA9310 BAR0 size is 256MB, some systems can't assign that much.
+		// reduce BAR0 size to 64MB CCSR + 64KB AXIQ + 64KB LLCP
+		bar0->end = 0x401FFFF;
+		// resource assignement will offset start/end
+	}
+
+	// workaround, removes the need for kernel patching https://github.com/nxp-qoriq/linux/commit/4326f6e976795c9cd54eff036ff2393da6af172e
+	for (int barIndex=0; barIndex<3; ++barIndex)
+	{
+		struct resource* res = &pciContext->resource[barIndex];
+		if (res->start != 0)
+			continue;
+
+		ret = pci_assign_resource(pciContext, barIndex);
+		if (ret)
+			return ret;
+	}
+	return ret;
+}
+
 static int la9310_pcidev_probe(struct pci_dev *pdev,
 				const struct pci_device_id *id)
 {
 	int rc = 0;
 	struct la9310_dev *la9310_dev = NULL;
+
+	rc = PCI_class_00_workaround(pdev);
+	if (rc) {
+		dev_err(&pdev->dev, "failed to assign BAR resources\n");
+		goto err1;
+	}
 
 	rc = pci_enable_device(pdev);
 	if (rc) {
