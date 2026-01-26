@@ -396,6 +396,62 @@ la9310_init_subdrv_dma_buf(struct la9310_dev *la9310_dev)
 	}
 }
 
+static int la9310_alloc_dma_buf(struct device* dev,
+    const char* buf_name,
+    struct la9310_mem_region_info* buf_info,
+    int buf_size,
+    enum dma_data_direction dma_dir)
+{
+    int status;
+
+    buf_info->vaddr = kzalloc(buf_size, GFP_KERNEL);
+    if (!buf_info->vaddr)
+    {
+        dev_err(dev, "Failed to allocate %s\n", buf_name);
+        return -ENOMEM;
+    }
+
+    buf_info->size = buf_size;
+
+    buf_info->phys_addr = dma_map_single(dev, buf_info->vaddr, buf_size, dma_dir);
+    status = dma_mapping_error(dev, buf_info->phys_addr);
+    if (status)
+    {
+        dev_err(dev, "dma_map_single error @ va:%p pa:%llX for %s\n", buf_info->vaddr, virt_to_phys(buf_info->vaddr), buf_name);
+        kfree(buf_info->vaddr);
+        return status;
+    }
+    buf_info->host_phys_addr = virt_to_phys(buf_info->vaddr);
+    dev_info(dev,
+        "%s size: %i, va:0x%px pa:0x%llx bus:0x%llx\n",
+        buf_name,
+        buf_size,
+        buf_info->vaddr,
+        virt_to_phys(buf_info->vaddr),
+        buf_info->phys_addr);
+    return 0;
+}
+
+static int la9310_free_dma_buf(
+    struct device* dev, const char* buf_name, struct la9310_mem_region_info* buf_info, enum dma_data_direction dma_dir)
+{
+    dev_info(dev,
+        "Unmap and free %s size: %lu, va:0x%px pa:0x%llx bus:0x%llx\n",
+        buf_name,
+        buf_info->size,
+        buf_info->vaddr,
+        virt_to_phys(buf_info->vaddr),
+        buf_info->phys_addr);
+    if (buf_info->phys_addr)
+        dma_unmap_single(dev, buf_info->phys_addr, buf_info->size, dma_dir);
+    if (buf_info->vaddr)
+        kfree(buf_info->vaddr);
+
+    dev_info(dev, "Unmapped and freed %s\n", buf_name);
+
+    return 0;
+}
+
 static int
 la9310_scratch_dma_buf(struct la9310_dev *la9310_dev)
 {
@@ -404,17 +460,29 @@ la9310_scratch_dma_buf(struct la9310_dev *la9310_dev)
 	int rc = 0;
 
 	host_region = &dma_info->host_buf;
-	scratch_buf_size = ALIGN(scratch_buf_size, PAGE_SIZE);
-	host_region->vaddr = ioremap(scratch_buf_phys_addr, scratch_buf_size);
+	scratch_buf_size = LA9310_DMA_BUF_SIZE;
+
+        rc = la9310_alloc_dma_buf(la9310_dev->dev, "Scratch buffer", host_region, scratch_buf_size, DMA_BIDIRECTIONAL);
+        if (rc)
+                return rc;
+
+        scratch_buf_phys_addr=host_region->phys_addr;
+        scratch_buf_host_phys_addr=host_region->host_phys_addr;
+
 	dev_info(la9310_dev->dev, "Virtual address after ioremap=%px\n",
 		 host_region->vaddr);
-	if ((!host_region->vaddr) || (scratch_buf_size < LA9310_DMA_BUF_SIZE)) {
-		dev_err(la9310_dev->dev, "ERR: ioremap DDR Address Failed\n");
-		iounmap(host_region->vaddr);
-		return -ENOMEM;
-	}
-	host_region->phys_addr = scratch_buf_phys_addr;
-	host_region->size = scratch_buf_size;
+
+        if ((!host_region->vaddr) || (scratch_buf_size < LA9310_DMA_BUF_SIZE))
+        {
+                dev_err(la9310_dev->dev, "ERR: ioremap DDR Address Failed\n");
+                if (scratch_buf_size < LA9310_DMA_BUF_SIZE)
+                        dev_err(la9310_dev->dev,
+                        "Scratch buffer to small (%i), expected >= %i\n",
+                        scratch_buf_size,
+                        LA9310_DMA_BUF_SIZE);
+                return -ENOMEM;
+        }
+
 	memset_io(host_region->vaddr, 0, scratch_buf_size);
 	dma_info->dma_region_used = 0;
 
@@ -430,7 +498,8 @@ la9310_scratch_dma_buf(struct la9310_dev *la9310_dev)
 	return 0;
 out:
 	iounmap(host_region->vaddr);
-
+        la9310_free_dma_buf(la9310_dev->dev, "Scratch buffer", host_region, DMA_BIDIRECTIONAL);
+ 
 	return rc;
 }
 
@@ -686,6 +755,34 @@ la9310_init_msg_unit_ptrs(struct la9310_dev *la9310_dev)
 
 }
 
+static int
+la9310_base_cleanup_subdrv(struct la9310_dev *la9310_dev, int drv_index)
+{
+        int i = 0, rc = 0;
+        struct la9310_sub_driver *subdrv;
+        struct la9310_sub_driver_ops *ops;
+
+        dev_info(la9310_dev->dev,
+                 "%s: Removing sub-drivers because of error\n",
+                 la9310_dev->name);
+        for (i = drv_index; i >= 0; i--) {
+                subdrv = la9310_get_subdrv(i);
+                ops = &subdrv->ops;
+                if (ops->remove) {
+                        pr_debug("%s: subdrv remove : %s\n",
+                                 __func__, &subdrv->name[0]);
+
+                        rc = ops->remove(la9310_dev);
+                        if (rc) {
+                                pr_err("%s: %s: Remove failed, err %d\n",
+                                       __func__, &subdrv->name[0], rc);
+                                /*Other drivers to be removed so continue */
+                        }
+                }
+        }
+        return rc;
+}
+
 int
 la9310_base_probe(struct la9310_dev *la9310_dev)
 {
@@ -696,9 +793,8 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	struct virq_evt_map *subdrv_virqmap_ptr;
 	u32    pci_abserr;
 	struct la9310_mem_region_info *ccsr_region;
-	struct device_node *np;
-	struct resource mem_addr;
 	u64 start_time, end_time, diff;
+        struct la9310_mem_region_info iqflood_region;
 
 	start_time = get_jiffies_64();
 
@@ -708,24 +804,22 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	rc = la9310_scratch_dma_buf(la9310_dev);
 	if (rc) {
 		dev_err(la9310_dev->dev,
-				"Failed to init DMA buf for outbound, err %d\n", rc);
+				"Failed to init SCRATCH DMA buf for outbound, err %d\n", rc);
 		goto out;
 	}
 
-	if (iq_mem_addr ==0) {
-		np = of_find_node_by_name(NULL, "iqflood");
-		if (!np)
-			np = of_find_node_by_name(NULL, "iq");
+        init_stage = LA9310_IQFLOOD_DMA_INIT_STAGE;
+        iq_mem_size = 32 * 1024 * 1024;
+        rc = la9310_alloc_dma_buf(
+            la9310_dev->dev, "IQ Flood Buffer", &iqflood_region, iq_mem_size, DMA_BIDIRECTIONAL);
+        if (rc) {
+                dev_err(la9310_dev->dev,
+                                "Failed to init IQFLOOD DMA buf for outbound, err %d\n", rc);
+                goto out;
+        }
 
-		if (np) {
-			rc = of_address_to_resource(np, 0, &mem_addr);
-			if (!rc) {
-				iq_mem_addr = mem_addr.start;
-				iq_mem_size = resource_size(&mem_addr);
-			}
-			of_node_put(np);
-		}
-	}
+        iq_mem_addr = iqflood_region.phys_addr;
+        iq_mem_host_addr = iqflood_region.host_phys_addr;
 
 	la9310_create_rfnm_iqflood_outbound(la9310_dev);
 
@@ -847,82 +941,49 @@ la9310_base_probe(struct la9310_dev *la9310_dev)
 	dev_info(la9310_dev->dev, "Probed OK, %s  Time elasped %llu msec \n",
                         __func__, (diff * 1000 / HZ));
 
+	return rc;
 
 out:
-	if (rc)
-		la9310_base_deinit(la9310_dev, init_stage, i);
+    la9310_modinfo_exit(la9310_dev);
+
+    switch (init_stage) {
+        case LA9310_SUBDRV_PROBE_STAGE:
+                la9310_base_cleanup_subdrv(la9310_dev, i);
+#ifdef  LA9310_RESET_HANDSHAKE_POLLING_ENABLE
+                free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_MUX),
+                         la9310_dev);
+#endif
+                __attribute__((__fallthrough__));
+                /*Fallthrough */
+        case LA9310_IRQ_INIT_STAGE:
+                la9310_clean_request_irq(la9310_dev,
+                                         &la9310_dev->hif->irq_evt_regs);
+                __attribute__((__fallthrough__));
+                /*Fallthrough */
+        case LA9310_HANDSHAKE_INIT_STAGE:
+#ifndef LA9310_RESET_HANDSHAKE_POLLING_ENABLE
+                free_irq(la9310_get_msi_irq
+                         (la9310_dev, MSI_IRQ_HOST_HANDSHAKE), la9310_dev);
+                free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_MUX),
+                         la9310_dev);
+#endif
+                __attribute__((__fallthrough__));
+                /*Fallthrough */
+        case LA9310_SYSFS_INIT_STAGE:
+                la9310_remove_sysfs(la9310_dev);
+                __attribute__((__fallthrough__));
+                /*Fallthrough */
+        case LA9310_IQFLOOD_DMA_INIT_STAGE:
+                la9310_free_dma_buf(
+                    la9310_dev->dev, "IQ Flood Buffer", &iqflood_region, DMA_BIDIRECTIONAL);
+                __attribute__((__fallthrough__));
+                /*Fallthrough */
+        case LA9310_SCRATCH_DMA_INIT_STAGE:
+                iounmap(&la9310_dev->dma_info.host_buf.vaddr);
+        }
 
 	return rc;
 
-}
-
-static int
-la9310_base_cleanup_subdrv(struct la9310_dev *la9310_dev, int drv_index)
-{
-	int i = 0, rc = 0;
-	struct la9310_sub_driver *subdrv;
-	struct la9310_sub_driver_ops *ops;
-
-	dev_info(la9310_dev->dev,
-		 "%s: Removing sub-drivers because of error\n",
-		 la9310_dev->name);
-	for (i = drv_index; i >= 0; i--) {
-		subdrv = la9310_get_subdrv(i);
-		ops = &subdrv->ops;
-		if (ops->remove) {
-			pr_debug("%s: subdrv remove : %s\n",
-				 __func__, &subdrv->name[0]);
-
-			rc = ops->remove(la9310_dev);
-			if (rc) {
-				pr_err("%s: %s: Remove failed, err %d\n",
-				       __func__, &subdrv->name[0], rc);
-				/*Other drivers to be removed so continue */
-			}
-		}
-	}
-	return rc;
-}
-
-int
-la9310_base_deinit(struct la9310_dev *la9310_dev, int stage, int drv_index)
-{
-	struct la9310_dma_info *dma_info = &la9310_dev->dma_info;
-	struct la9310_mem_region_info *host_region;
-
-	la9310_modinfo_exit(la9310_dev);
-	switch (stage) {
-	case LA9310_SUBDRV_PROBE_STAGE:
-		la9310_base_cleanup_subdrv(la9310_dev, drv_index);
-#ifdef	LA9310_RESET_HANDSHAKE_POLLING_ENABLE
-		free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_MUX),
-			 la9310_dev);
-#endif
-		__attribute__((__fallthrough__));
-		/*Fallthrough */
-	case LA9310_IRQ_INIT_STAGE:
-		la9310_clean_request_irq(la9310_dev,
-					 &la9310_dev->hif->irq_evt_regs);
-		__attribute__((__fallthrough__));
-		/*Fallthrough */
-	case LA9310_HANDSHAKE_INIT_STAGE:
-#ifndef	LA9310_RESET_HANDSHAKE_POLLING_ENABLE
-		free_irq(la9310_get_msi_irq
-			 (la9310_dev, MSI_IRQ_HOST_HANDSHAKE), la9310_dev);
-		free_irq(la9310_get_msi_irq(la9310_dev, MSI_IRQ_MUX),
-			 la9310_dev);
-#endif
-		__attribute__((__fallthrough__));
-		/*Fallthrough */
-	case LA9310_SYSFS_INIT_STAGE:
-		la9310_remove_sysfs(la9310_dev);
-		__attribute__((__fallthrough__));
-		/*Fallthrough */
-	case LA9310_SCRATCH_DMA_INIT_STAGE:
-		host_region = &dma_info->host_buf;
-		iounmap(host_region->vaddr);
-	}
-	return 0;
 }
 
 int

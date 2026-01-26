@@ -31,6 +31,7 @@
 static const char *driver_name = "la9310-shiva";
 int scratch_buf_size;
 uint64_t scratch_buf_phys_addr;
+uint64_t scratch_buf_host_phys_addr;
 
 int dac_mask = 0x1;
 EXPORT_SYMBOL(dac_mask);
@@ -48,7 +49,9 @@ EXPORT_SYMBOL(dac_rate_mask);
 int modem_rf_data_size = LA9310_SHARE_RF_SIZE;
 EXPORT_SYMBOL(modem_rf_data_size);
 uint64_t iq_mem_addr;
+uint64_t iq_mem_host_addr;
 EXPORT_SYMBOL_GPL(iq_mem_addr);
+EXPORT_SYMBOL_GPL(iq_mem_host_addr);
 int iq_mem_size;
 EXPORT_SYMBOL_GPL(iq_mem_size);
 char firmware_name[FIRMWARE_NAME_SIZE] = FIRMWARE_RTOS;
@@ -606,21 +609,6 @@ static int __init la9310_pcidev_init(void)
 	start_time = get_jiffies_64();
 	pr_info("NXP PCIe LA9310 Driver: Init.\n");
 
-	if (!(scratch_buf_size && scratch_buf_phys_addr)) {
-		pr_err("ERR %s: Scratch buf values should be non zero\n",
-		       __func__);
-		err = -EINVAL;
-		goto out;
-	}
-
-	if ((scratch_buf_size <= LA9310_VSPA_FW_SIZE) ||
-	    (scratch_buf_size > LA9310_MAX_SCRATCH_BUF_SIZE)) {
-		pr_err("ERR %s: Scratch_buf_size is not correct 0x%x (Range - 0x%x-0x%x)\n", __func__,
-			scratch_buf_size, LA9310_VSPA_FW_SIZE, LA9310_MAX_SCRATCH_BUF_SIZE);
-		err = -EINVAL;
-		goto out;
-	}
-
 	if (!(strlen(vspa_fw_name))) {
 		pr_err("ERR %s: alt_vspa_fw_name empty", __func__);
 		err = -EINVAL;
@@ -693,10 +681,7 @@ static void __exit la9310_pcidev_exit(void)
 
 module_init(la9310_pcidev_init);
 module_exit(la9310_pcidev_exit);
-module_param(scratch_buf_size, int, 0);
-MODULE_PARM_DESC(scratch_buf_size, "Scratch buffer size for LA9310 Device");
-module_param(scratch_buf_phys_addr, ullong, 0);
-MODULE_PARM_DESC(scratch_buf_phys_addr, "Scratch buffer start physical address");
+
 module_param(adc_mask, int, 0400);
 MODULE_PARM_DESC(adc_mask, "ADC channel enable mask - bit wise (MAX 0x4)");
 module_param(adc_rate_mask, int, 0400);
@@ -707,10 +692,6 @@ MODULE_PARM_DESC(dac_mask, "DAC channel enable mask - bit wise (MAX 0x2)");
 module_param(dac_rate_mask, int, 0400);
 MODULE_PARM_DESC(dac_rate_mask,
 	"DAC Frequency for each channel (0 for Full Duplex, 1 for Half Duplex");
-module_param(iq_mem_addr, ullong, 0400);
-MODULE_PARM_DESC(iq_mem_addr, "SDR IQ Flood Mem Address");
-module_param(iq_mem_size, int, 0400);
-MODULE_PARM_DESC(iq_mem_addr, "SDR IQ Flood Mem Size");
 module_param(modem_rf_data_size, int, 0400);
 MODULE_PARM_DESC(modem_rf_data_size, "RFIC buffer size for each LA931x devices");
 module_param_string(alt_vspa_fw_name, vspa_fw_name,

@@ -50,8 +50,10 @@ extern int adc_rate_mask;
 extern int dac_rate_mask;
 extern int iq_mem_size;
 extern uint64_t iq_mem_addr;
+extern uint64_t iq_mem_host_addr;
 extern int modem_rf_data_size;
 extern uint64_t scratch_buf_phys_addr;
+extern uint64_t scratch_buf_host_phys_addr;
 extern char firmware_name[];
 extern char vspa_fw_name[];
 extern char la9310_dev_name[];
@@ -63,6 +65,7 @@ extern struct la9310_global g_la9310_global[];
 
 enum la9310_init_stage {
 	LA9310_SCRATCH_DMA_INIT_STAGE = 1,
+        LA9310_IQFLOOD_DMA_INIT_STAGE,
 	LA9310_SYSFS_INIT_STAGE,
 	LA9310_HANDSHAKE_INIT_STAGE,
 	LA9310_IRQ_INIT_STAGE,
@@ -165,6 +168,7 @@ typedef enum la9310_stat_control {
 
 struct la9310_mem_region_info {
 	phys_addr_t phys_addr;
+        phys_addr_t host_phys_addr;
 	u8 __iomem *vaddr;
 	size_t size;
 };
@@ -239,7 +243,7 @@ struct la9310_dma_info {
 					LA9310_FREERTOS_INTERRUPT_STACK))
 #define LA9310_DBUG_LOG_SIZE		(4 * 1024)
 #define LA9310_IQ_SAMPLES_SIZE		(20 * 1024 * 1024)
-#define LA9310_NLM_OPS_SIZE		(16 * 1024 * 1024)
+#define LA9310_NLM_OPS_SIZE		(8 * 1024 * 1024)
 #define LA9310_STD_FW_SIZE		(128 * 1024)
 #define LA9310_SHARE_RF_SIZE		(200 * 1024) /* 200KB */
 /* Mem region separator */

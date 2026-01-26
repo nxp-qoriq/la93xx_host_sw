@@ -190,7 +190,7 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	mi->hif.host_phy_addr = la9310_dev->mem_regions[LA9310_MEM_REGION_TCML].phys_addr + LA9310_EP_HIF_OFFSET;
 	mi->hif.size = sizeof(struct la9310_hif);
 
-	mi->scratchbuf.host_phy_addr = scratch_buf_phys_addr;
+	mi->scratchbuf.host_phy_addr = scratch_buf_host_phys_addr;
 	mi->scratchbuf.size = scratch_buf_size;
 
 	mi->dac_mask = dac_mask;
@@ -199,7 +199,7 @@ void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi)
 	mi->dac_rate_mask = dac_rate_mask;
 
 	mi->iqflood.modem_phy_addr = LA9310_IQFLOOD_PHYS_ADDR;
-	mi->iqflood.host_phy_addr = iq_mem_addr;
+	mi->iqflood.host_phy_addr = iq_mem_host_addr;
 	mi->iqflood.size = iq_mem_size;
 }
 
