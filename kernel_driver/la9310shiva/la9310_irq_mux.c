@@ -18,7 +18,7 @@
 #define la9310_mem_r(addr) readl(addr)
 #define la9310_mem_w(val, addr) writel(val, addr)
 
-int la9310_init_irq_mux(struct irq_evt_regs *irq_evt_regs,
+static int la9310_init_irq_mux(struct irq_evt_regs *irq_evt_regs,
 		     struct la9310_irq_mux_pram *irq_mux)
 {
 	u32 num_irq_words = la9310_mem_r(&irq_evt_regs->irq_evt_cfg) &
@@ -66,7 +66,7 @@ static void la9310_reset_irq_mux_stats(void *irq_mux_stats)
 }
 
 /* -------------------- IRQ chip functions -------------------- */
-void la9310_set_imask(struct la9310_irq_mux_pram *irq_mux, int irq, u32 set_flg)
+static void la9310_set_imask(struct la9310_irq_mux_pram *irq_mux, int irq, u32 set_flg)
 {
 	int irq_bit = irq - irq_mux->irq_base;
 	unsigned long irq_evt_en_reg;
@@ -104,7 +104,7 @@ static struct irq_chip la9310_irq_chip = {
 	.irq_unmask		= la9310_irq_unmask,
 };
 
-void la9310_set_irq_chip(struct la9310_irq_mux_pram *irq_mux)
+static void la9310_set_irq_chip(struct la9310_irq_mux_pram *irq_mux)
 {
 	int i;
 	int irq;

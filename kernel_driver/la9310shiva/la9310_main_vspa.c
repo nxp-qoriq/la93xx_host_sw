@@ -35,6 +35,7 @@
 #include <linux/list.h>
 #include <linux/delay.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 
 #include "la9310_vspa.h"
 #include "la9310_pci.h"
@@ -453,7 +454,7 @@ get_lma(uint8_t *file_start, uint32_t pg_hd_off,
 	return -LIBVSPA_ERR_INVALID_FILE;
 }
 
-int _strncmp( const char * s1, const char * s2, size_t n )
+static int _strncmp( const char * s1, const char * s2, size_t n )
 {
     while ( n && *s1 && ( *s1 == *s2 ) )
     {
@@ -507,7 +508,7 @@ getsectiontype(uint8_t *string_table, int sec_name_offset)
 	return -1;
 }
 
-int
+static int
 vspa_fw_dma_write(struct la9310_dev *la9310_dev, struct dma_param *linfo,
 		  uint32_t flags, int overlay_enable)
 {
@@ -956,8 +957,6 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 	uint32_t val;
 	char name[50];
 
-	sprintf(name, "%s%s", la9310_dev->name, VSPA_DEVICE_NAME);
-
 	/* Allocating space vspa device structure */
 	vspadev = kzalloc(sizeof(struct vspa_device), GFP_KERNEL);
 	if (!vspadev) {
@@ -1001,7 +1000,7 @@ vspa_probe(struct la9310_dev *la9310_dev, int vspa_irq_count,
 	/* Struct vspa_device fields initialization */
 	vspadev->vspa_dma_region = vspa_dma_region;
 
-	sprintf(name, "%s%d", name, vspadev->id);
+        sprintf(name, "%s%s%d", la9310_dev->name, VSPA_DEVICE_NAME, vspadev->id);
 
 	vspadev->state = VSPA_STATE_UNKNOWN;
 	vspadev->debug = DEBUG_MESSAGES;

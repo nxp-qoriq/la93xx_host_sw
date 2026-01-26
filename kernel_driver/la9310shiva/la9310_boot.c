@@ -22,7 +22,7 @@
 #include "la9310_base.h"
 #include "la9310_sync_timing_device.h"
 
-int check_file(const char *filename)
+static int check_file(const char *filename)
 {
 	struct file *file;
 	char path[FIRMWARE_NAME_SIZE];

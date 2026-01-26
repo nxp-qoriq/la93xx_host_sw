@@ -26,6 +26,8 @@ volatile int received_data = 0;
 volatile int last_received_data = 0;
 volatile long long int last_print_time = 0;
 
+void sdr_callback_func(struct sk_buff *skb_ptr, void *cookie);
+void callback_func(struct sk_buff *skb_ptr, void *cookie);
 
 void sdr_callback_func(struct sk_buff *skb_ptr, void *cookie)
 {

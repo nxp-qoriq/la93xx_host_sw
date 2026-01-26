@@ -94,7 +94,7 @@ ipc_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-int la9310_dev_get_ipc_msi(int ipc_ch_num)
+static int la9310_dev_get_ipc_msi(int ipc_ch_num)
 {
 	if (ipc_ch_num == 0)
 		return MSI_IRQ_IPC_1;
@@ -110,13 +110,17 @@ static irqreturn_t ipc_irq_handler(int irq, void *data)
 
 	/* Send signal to IPC Channel Listner */
 	if (ipc_chan)
-		eventfd_signal(ipc_chan->evt_fd_ctxt,
-				SIGNAL_TO_CHANNEL_LISTENER);
+		#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,8,0)
+		eventfd_signal(ipc_chan->evt_fd_ctxt);
+		#else
+                eventfd_signal(ipc_chan->evt_fd_ctxt,
+                                SIGNAL_TO_CHANNEL_LISTENER);
+		#endif
 
 	return IRQ_HANDLED;
 }
 
-int register_ipc_channel_irq(struct la9310_dev *la9310_dev, int ipc_ch_num,
+static int register_ipc_channel_irq(struct la9310_dev *la9310_dev, int ipc_ch_num,
 				uint32_t fd)
 {
 	int ret = 0, irq_num = 0, index = 0;
@@ -158,7 +162,9 @@ int register_ipc_channel_irq(struct la9310_dev *la9310_dev, int ipc_ch_num,
 	userspace_task = current;
 
 	rcu_read_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+        efd_file = lookup_fdget_rcu(fd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	efd_file = files_lookup_fd_rcu(userspace_task->files, fd);
 #else
 	efd_file = fcheck_files(userspace_task->files, fd);
@@ -193,7 +199,7 @@ err:
 	return ret;
 }
 
-void deregister_ipc_channel_irq(struct la9310_dev *la9310_dev, int ipc_ch_num)
+static void deregister_ipc_channel_irq(struct la9310_dev *la9310_dev, int ipc_ch_num)
 {
 	struct ipc_chan *ipc_chan = &((struct ipc_dev *)
 			(la9310_dev->ipc_priv))->asyn_chans[ipc_ch_num];

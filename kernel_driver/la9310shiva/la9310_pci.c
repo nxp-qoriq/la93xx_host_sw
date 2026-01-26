@@ -167,7 +167,7 @@ static int pci_current_link_speed(struct pci_dev *pci_dev)
 	 (speed) == PCI_EXP_LNKSTA_CLS_2_5GB ? "2.5 GT/s" : \
 	 "Unknown speed")
 
-ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
+static ssize_t la9310_device_dump(struct la9310_dev *dev, char *buf)
 {
 	int i = 0, adc_dac_hw_rate, adc_dac_hw_mask;
 	struct vspa_device *vspadev = (struct vspa_device *)dev->vspa_priv;
@@ -268,7 +268,7 @@ ssize_t la9310_show_global_status(char *buf)
 }
 EXPORT_SYMBOL_GPL(la9310_show_global_status);
 
-void la9310_dev_reset_interrupt_capability(struct la9310_dev *la9310_dev)
+static void la9310_dev_reset_interrupt_capability(struct la9310_dev *la9310_dev)
 {
 	if (LA9310_CHK_FLG(la9310_dev->flags, LA9310_FLG_PCI_MSI_EN)) {
 		pci_disable_msi(la9310_dev->pdev);
@@ -276,7 +276,7 @@ void la9310_dev_reset_interrupt_capability(struct la9310_dev *la9310_dev)
 	}
 }
 
-void enable_all_msi(struct la9310_dev *la9310_dev)
+static void enable_all_msi(struct la9310_dev *la9310_dev)
 {
 	u32 __iomem *pcie_vaddr, *pcie_msi_control;
 	u32 val;
@@ -305,7 +305,7 @@ void enable_all_msi(struct la9310_dev *la9310_dev)
  * Attempt to configure interrupts using the best available
  * capabilities of the hardware and kernel.
  */
-int la9310_dev_set_interrupt_capability(struct la9310_dev *la9310_dev, int mode)
+static int la9310_dev_set_interrupt_capability(struct la9310_dev *la9310_dev, int mode)
 {
 	int ret = 0, i = 0;
 	/* Check whether the device has MSIx cap */

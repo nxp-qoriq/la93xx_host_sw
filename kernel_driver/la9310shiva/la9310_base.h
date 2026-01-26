@@ -455,4 +455,27 @@ ssize_t la9310_show_global_status(char *buf);
 int la9310_modinfo_init(struct la9310_dev *dev);
 int la9310_modinfo_exit(struct la9310_dev *dev);
 void la9310_modinfo_get(struct la9310_dev *la9310_dev, modinfo_t *mi);
+
+ssize_t la9310_ep_show_stats(void *stats_args, char *buf,struct la9310_dev *la9310_dev);
+void la9310_ep_reset_stats(void *stats_args);
+int la9310_register_ep_stats_ops(struct la9310_dev *la9310_dev);
+
+int __attribute__ ((weak)) la9310_ipc_probe(struct la9310_dev *la9310_dev,int virq_count,struct virq_evt_map *virq_map);
+int __attribute__ ((weak)) la9310_ipc_remove(struct la9310_dev *la9310_dev);
+int __attribute__ ((weak)) la9310_ipc_init(void);
+int __attribute__ ((weak)) la9310_ipc_exit(void);
+
+int  __attribute__((weak)) wdog_init(void);
+int  __attribute__((weak)) wdog_exit(void);
+int  __attribute__((weak)) tvd_init(void);
+int  __attribute__((weak)) tvd_exit(void);
+int  __attribute__((weak)) tvd_probe(struct la9310_dev *la9310_dev,int virq_count, struct virq_evt_map *virq_map);
+int  __attribute__((weak)) tvd_remove(struct la9310_dev *la9310_dev);
+int  __attribute__((weak)) init_tti_dev(void);
+int  __attribute__((weak)) remove_tti_dev(void);
+int  __attribute__((weak)) tti_dev_start(struct la9310_dev *la9310_dev,int virq_count, struct virq_evt_map *virq_map);
+int  __attribute__((weak)) tti_dev_stop(struct la9310_dev *la9310_dev);
+
+int register_rfnm_callback(void * callbackfunc, int irqid);
+int unregister_rfnm_callback(void);
 #endif

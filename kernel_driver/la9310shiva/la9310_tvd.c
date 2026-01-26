@@ -75,7 +75,7 @@ struct la9310_tvd_device_data {
 
 char tvd_dev_name[TVD_DEVICE_NAME_LEN];
 
-void mtd_get_temp(struct tvd_dev *tvd_dev, uint32_t tvdid, struct mtdTemp *mtd_temp)
+static void mtd_get_temp(struct tvd_dev *tvd_dev, uint32_t tvdid, struct mtdTemp *mtd_temp)
 {
 	int retry = 0, valid = 0, index = 0, temp = 0, ret = 0;
 	struct la9310_dev *la9310_dev = NULL;

@@ -284,7 +284,7 @@ la9310_create_ipc_hugepage_outbound(struct la9310_dev *la9310_dev,
 		 phys_addr, LA9310_USER_HUGE_PAGE_PHYS_ADDR, size);
 }
 
-void
+static void
 la9310_create_rfnm_iqflood_outbound(struct la9310_dev *la9310_dev)
 {
 	struct la9310_mem_region_info *ccsr_region;
@@ -345,7 +345,7 @@ la9310_get_dma_region(struct la9310_dev *la9310_dev,
 	return ep_buf;
 }
 
-void
+static void
 la9310_init_subdrv_dma_buf(struct la9310_dev *la9310_dev)
 {
 
@@ -671,7 +671,7 @@ la9310_register_ep_stats_ops(struct la9310_dev *la9310_dev)
 	return la9310_host_add_stats(la9310_dev, &stats_ops);
 }
 
-void
+static void
 la9310_init_msg_unit_ptrs(struct la9310_dev *la9310_dev)
 {
 	struct la9310_msg_unit *msg_unit;
@@ -1100,7 +1100,7 @@ int  __attribute__((weak)) remove_tti_dev(void)
 }
 
 int  __attribute__((weak)) tti_dev_start(struct la9310_dev *la9310_dev,
-		int virq_count, struct virq_evt_map *virq_map)
+               int virq_count, struct virq_evt_map *virq_map)
 {
 	dev_dbg(la9310_dev->dev, "[%s]Dummy TTI probe\n", la9310_dev->name);
 	return 0;

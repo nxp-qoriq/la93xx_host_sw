@@ -40,6 +40,12 @@
 #define AVG_TIME 500000
 char tti_dev_name[20];
 
+void tti_irq_api(void);
+void set_tti_irq_status(u8 irq_status);
+int tti_register_irq(struct tti_priv *tti_priv_t, struct tti *tti_t);
+void tti_deregister_irq(struct tti_priv *tti_priv_t, struct tti *tti_t);
+ssize_t tti_device_dump(int id, char *buf);
+
 static struct tti_priv *tti_priv_g;
 #ifdef DEBUG_TTI
 static ktime_t time_cur = 0, time_prev = 0;
@@ -79,7 +85,7 @@ static void get_time(void) {
 }
 #endif
 
-void tti_swake_up_all_locked(struct swait_queue_head *q)
+static void tti_swake_up_all_locked(struct swait_queue_head *q)
 {
 	while (!list_empty(&q->task_list))
 #if ( LINUX_VERSION_CODE >= KERNEL_VERSION( 6, 4, 0 ) )
@@ -103,8 +109,12 @@ static irqreturn_t tti_irq_handler(int irq, void *data)
 		tti_swake_up_all_locked(&tti_priv_t->tti_wq);
 		raw_spin_unlock(&tti_priv_t->wq_lock);
 		if (tti_priv_t->evt_fd_ctxt) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,8,0)
+                        eventfd_signal(tti_priv_t->evt_fd_ctxt);
+#else
 			eventfd_signal(tti_priv_t->evt_fd_ctxt,
 				SIGNAL_TO_USERSPACE);
+#endif
 		}
 	}
 	return IRQ_HANDLED;
@@ -121,8 +131,12 @@ void tti_irq_api(void)
 		tti_swake_up_all_locked(&tti_priv_g->tti_wq);
 		raw_spin_unlock(&tti_priv_g->wq_lock);
 		if (tti_priv_g->evt_fd_ctxt) {
-			eventfd_signal(tti_priv_g->evt_fd_ctxt,
-				SIGNAL_TO_USERSPACE);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,8,0)
+                        eventfd_signal(tti_priv_g->evt_fd_ctxt);
+#else
+                        eventfd_signal(tti_priv_g->evt_fd_ctxt,
+                                SIGNAL_TO_USERSPACE);
+#endif
 		}
 	}
 	return;
@@ -171,7 +185,9 @@ int tti_register_irq(struct tti_priv *tti_priv_t, struct tti *tti_t)
 	if (tti_t->tti_eventfd > 0) {
 		userspace_task = current;
 		rcu_read_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+		efd_file = lookup_fdget_rcu(tti_t->tti_eventfd);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		efd_file = files_lookup_fd_rcu(userspace_task->files,
 				tti_t->tti_eventfd);
 #else
@@ -341,7 +357,7 @@ int tti_dev_stop(struct la9310_dev *dev)
 	return 0;
 }
 
-int tti_dev_start(struct la9310_dev *dev)
+int tti_dev_start(struct la9310_dev *dev,int virq_count, struct virq_evt_map *virq_map)
 {
 	struct device_node *la9310_tti;
 	struct tti_priv *tti_dev = NULL;

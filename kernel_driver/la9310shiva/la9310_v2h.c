@@ -193,7 +193,7 @@ EXPORT_SYMBOL_GPL(unregister_v2h_callback);
 *      SUCCESS - 64 bit physical address of the newly allocated buffer
 *      Negative value - -ENOMEM
 ****************************************************************************/
-int
+static int
 allocate_frame_buffer(struct la9310_dev *la9310_dev, phys_addr_t *phys_addr)
 {
 	struct sk_buff *skb;
@@ -245,7 +245,7 @@ allocate_frame_buffer(struct la9310_dev *la9310_dev, phys_addr_t *phys_addr)
 *      SUCCESS - pci istart address of the indexed memory
 *      Fail - 0
  ****************************************************************************/
-uint32_t
+static uint32_t
 get_v2h_pci_addr(int index)
 {
 	if (index >= V2H_MAX_BD)
@@ -266,7 +266,7 @@ get_v2h_pci_addr(int index)
  *	SUCCESS - 0
  *	Negative value - -ENOMEM / -EINVAL
  ****************************************************************************/
-int
+static int
 init_rxpkt_ring_buff(struct la9310_dev *la9310_dev, struct v2h_ring *ring_ptr)
 {
 	uint32_t cnt, ctr;
