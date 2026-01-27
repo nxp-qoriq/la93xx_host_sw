@@ -7,7 +7,7 @@ LDFLAGS  += -L${LIB_INSTALL_DIR} -static
 
 INCLUDES += -I../common 
 INCLUDES += -I${API_DIR}
-INCLUDES += -I${LIB_DIR}/dma
+INCLUDES += -I${LIB_DIR}/dma -I${UAPI_DIR}
 
 SRCS_TEST := iq_streamer.c pci_imx8.c l1-trace-host.c l1-trace-vspa.c 
 OBJS_TEST := $(SRCS_TEST:.c =.o)

@@ -6,7 +6,7 @@ LDFLAGS += -pthread -lpthread -lrt
 LDFLAGS  += -L${LIB_INSTALL_DIR} -static
 
 INCLUDES += -I../common 
-INCLUDES += -I${API_DIR}
+INCLUDES += -I${API_DIR} -I${UAPI_DIR}
 
 SRCS_TEST := iq_app.c  ../common/l1-trace-host.c ../common/imx8-host.c
 OBJS_TEST := $(SRCS_TEST:.c =.o)

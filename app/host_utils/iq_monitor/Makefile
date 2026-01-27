@@ -5,7 +5,7 @@ CFLAGS  +=  -g -O3 -Wall -D_GNU_SOURCE -Werror -Wno-unused-variable
 LDFLAGS += -pthread -lpthread -lrt -static
 
 INCLUDES += -I../common 
-INCLUDES += -I${API_DIR}
+INCLUDES += -I${API_DIR} -I${UAPI_DIR} 
 
 SRCS_TEST := iq_mon.c iq_stats.c  
 OBJS_TEST := $(SRCS_TEST:.c =.o)
