@@ -3,7 +3,7 @@
 
 #Add applicatin/exectuable directories here
 
-APP_DIRS := bincreate wdog devmem bin2mem modem_info memrw tvd tti memtool freq_correction host_utils ecspi phc_clock edma rffe
+APP_DIRS := bincreate wdog devmem bin2mem modem_info memrw tvd tti memtool freq_correction ecspi phc_clock edma rffe
 
 
 CLEAN_APP_DIRS = $(patsubst %, %_clean, ${APP_DIRS})
