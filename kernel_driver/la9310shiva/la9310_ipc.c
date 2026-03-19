@@ -216,11 +216,16 @@ static long ipc_ioctl(struct file *filp, unsigned int cmd,
 	struct ipc_dev *ipc_dev = (struct ipc_dev *)filp->private_data;
 	struct la9310_dev *la9310_dev = ipc_dev->la9310_dev;
 	ipc_eventfd_t ipc_channel = {0};
-	sys_map_t *sys_map_user = (sys_map_t *)arg;
+	sys_map_t sys_map_user;
 	sys_map_t sys_map;
 	struct la9310_mem_region_info *nlm_ops_region;
 	int offset;
 	int ret = 0, channel_id;
+
+	if(copy_from_user(&sys_map_user, (void __user *)arg, sizeof(sys_map_t))){
+		printk(KERN_INFO "ipc_ioctl can't retrieve arguments sys_map_user");
+		return -EFAULT;
+	}
 
 	switch (cmd) {
 	case  IOCTL_LA93XX_IPC_GET_SYS_MAP:
@@ -253,7 +258,7 @@ static long ipc_ioctl(struct file *filp, unsigned int cmd,
 			sys_map.hugepg_start.modem_phys =
 				(uint32_t)LA9310_USER_HUGE_PAGE_PHYS_ADDR;
 			sys_map.hugepg_start.size =
-				sys_map_user->hugepg_start.size;
+				sys_map_user.hugepg_start.size;
 
 			sys_map.tcml_start.host_phys =
 				la9310_dev->mem_regions[LA9310_MEM_REGION_TCML].phys_addr;
@@ -275,10 +280,12 @@ static long ipc_ioctl(struct file *filp, unsigned int cmd,
 			sys_map.nlm_ops.size = nlm_ops_region->size;
 
 			memcpy(&ipc_dev->sys_map, &sys_map, sizeof(sys_map_t));
-			ret = copy_to_user(sys_map_user, &sys_map,
+			ret = copy_to_user((sys_map_t*)arg, &sys_map,
 						sizeof(sys_map_t));
-			if (ret != 0)
+			if (ret != 0){
+				printk(KERN_INFO "copy_to_user sys_map_user failed: %d\n",ret);
 				return -EFAULT;
+			}
 
 			/* All is done. Set Host Library Ready now. */
 			la9310_set_host_ready(la9310_dev, LA9310_HIF_STATUS_IPC_LIB_READY);
